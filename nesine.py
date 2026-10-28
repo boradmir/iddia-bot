@@ -76,6 +76,22 @@ def parse(data, only_target_leagues=True):
     return matches
 
 
+def raw_markets(data, only_target_leagues=True):
+    """Hedef lig maçlarının TÜM marketleri, sıkışık biçimde (türev market araştırması için).
+    [{"code", "mtid", "sov", "mbs", "oca": [[N, O], ...]}]"""
+    out = []
+    for e in data["sg"]["EA"]:
+        if e.get("TYPE") != 1 or "HN" not in e:
+            continue
+        if only_target_leagues and e.get("LC") not in LEAGUES:
+            continue
+        for m in e.get("MA", []):
+            oca = [[o["N"], o["O"]] for o in m.get("OCA", []) if o.get("O", 0) > 1]
+            if oca:
+                out.append({"code": e["C"], "mtid": m.get("MTID"), "sov": m.get("SOV", 0), "mbs": m.get("MBS"), "oca": oca})
+    return out
+
+
 def save_snapshots(con, matches, fetched_at):
     """Nesine oranlarını zaman damgasıyla kaydeder (kendi geçmiş veri setimiz; backtest için şart)."""
     rows = []

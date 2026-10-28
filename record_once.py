@@ -37,6 +37,17 @@ def main():
     status = json.load(open(status_path, encoding="utf-8")) if os.path.exists(status_path) else {}
     status["last_nesine"] = ts
 
+    # 3 saatte bir TÜM marketler, sıkıştırılmış (~60 KB/kayıt): türev market araştırması için.
+    if "--full" in sys.argv or (now.minute < 20 and now.hour % 3 == 0):
+        import gzip
+        full = nesine.raw_markets(data)
+        os.makedirs("records/nesine_full", exist_ok=True)
+        with gzip.open(f"records/nesine_full/{day}.jsonl.gz", "at", encoding="utf-8") as f:
+            for r in full:
+                r["t"] = ts
+                f.write(json.dumps(r, ensure_ascii=False, separators=(",", ":")) + "\n")
+        print(f"Tüm marketler: {len(full)} market satırı (sıkıştırılmış)")
+
     if "--pinnacle" in sys.argv:
         sports = sorted({m["sport_key"] for m in nm if m["sport_key"] and m["start"] > now})
         prow, remaining = [], None
