@@ -12,3 +12,4 @@ record.py
 test_prob.py
 inspect_bulten.py
 backtest.py
+backtest_model.py
