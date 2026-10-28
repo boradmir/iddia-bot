@@ -2,8 +2,7 @@ name: Oran kaydı
 
 on:
   schedule:
-    - cron: "*/20 * * * *"        # her 20 dk: sadece Nesine (bedava)
-    - cron: "5 10 * * *"          # günde 1 kez: Nesine + Pinnacle (Odds API ücretsiz kota 500/ay)
+    - cron: "*/20 * * * *"        # her 20 dk: sadece Nesine (bedava). Pinnacle'ı gözcü (watch.yml) çeker.
   workflow_dispatch:
     inputs:
       pinnacle:
@@ -32,7 +31,7 @@ jobs:
           ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
           PYTHONIOENCODING: utf-8
         run: |
-          if [ "${{ github.event.schedule }}" = "5 10 * * *" ] || [ "${{ inputs.pinnacle }}" = "true" ]; then
+          if [ "${{ inputs.pinnacle }}" = "true" ]; then
             python record_once.py --pinnacle
           else
             python record_once.py

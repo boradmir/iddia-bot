@@ -1,0 +1,36 @@
+name: Maç günü gözcüsü
+
+on:
+  schedule:
+    - cron: "0 11 * * *"     # öğle/akşamüstü maçları (UTC 11:00 → ~16:40'a kadar)
+    - cron: "55 16 * * *"    # akşam maçları (UTC 16:55 → ~22:35'e kadar)
+  workflow_dispatch:
+    inputs:
+      max_minutes:
+        description: "Kaç dakika izlensin?"
+        default: "340"
+      dry:
+        description: "Kuru çalışma (Odds API yok, commit yok)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Gözcü
+        env:
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+          PYTHONIOENCODING: utf-8
+        run: |
+          ARGS="--max-minutes ${{ inputs.max_minutes || '340' }}"
+          if [ "${{ inputs.dry }}" = "true" ]; then ARGS="$ARGS --dry"; fi
+          python watch.py $ARGS
