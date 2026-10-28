@@ -14,7 +14,7 @@ Kullanım: python watch.py [--max-minutes 340] [--dry]   (--dry: Odds API çağ�
 """
 import json, os, subprocess, sys, time, calendar
 from datetime import datetime, timezone, timedelta
-import config, nesine, odds, match, prob, value, build_site
+import config, nesine, odds, match, prob, value, build_site, claude_check
 
 NESINE_SEC = 60
 WINDOW_MIN = 100          # Pinnacle izleme penceresi: maça bu kadar dk kala başlar
@@ -135,6 +135,7 @@ def main():
     pin_events = {}          # sport → (fetched_at, events)
     last_poll = {}           # sport → epoch
     alerted = {}             # (code, market, pick) → alert dict
+    claude_done = set()      # bu çalışmada Claude'a sorulan maçlar
     last_publish = 0
     day = now.strftime("%Y-%m-%d")
     spent_today = status.get("spent_today", 0) if status.get("spent_day") == day else 0
@@ -194,6 +195,15 @@ def main():
                     continue
                 probs = prob.market_probs(h2h, odds.pinnacle_totals(ev))
                 mins_to_ko = (m["start"] - now).total_seconds() / 60
+                if not dry and m["code"] not in claude_done:
+                    claude_done.add(m["code"])
+                    try:
+                        r = claude_check.analyze_and_store(m, probs)
+                        if r:
+                            ob = r["objection"]["verdict"] if r.get("objection") else "-"
+                            log(f"Claude: {m['home']}-{m['away']} kör tahmin ev %{r['blind']['p_home']*100:.0f} · itiraz {ob}")
+                    except Exception as e:
+                        log(f"Claude hatası: {type(e).__name__}: {e}")
                 for b in value.evaluate(m, probs, h2h, bankroll=100.0):
                     key = (b["code"], b["market"], b["pick"])
                     if key in alerted:

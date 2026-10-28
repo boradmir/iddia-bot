@@ -233,6 +233,9 @@ details.match[open] summary{border-bottom:1px solid var(--line)}
 .views .why{margin:12px 0 0;font-size:14.5px;color:var(--chalk-dim)}
 .views .why b{color:var(--chalk)}
 .views .acc{margin:10px 0 0;font-size:13px;color:var(--chalk-dim)}
+.claudebox{margin:12px 0 0;padding:12px 14px;border-radius:8px;background:rgba(245,192,74,.07);border:1px solid rgba(245,192,74,.25);font-size:15px}
+.claudebox p{margin:6px 0 0}.claudebox ul{margin:8px 0 0;padding-left:18px;color:var(--chalk-dim);font-size:14px}.claudebox .muted{color:var(--chalk-dim);font-size:13px}
+.coupon .claudebox{background:#F3EBD3;border-color:#E0D2A6;color:var(--ink)}.coupon .claudebox ul{color:var(--ink-dim)}
 /* uyarılar */
 .alerts{list-style:none;margin:0;padding:0}
 .alerts li{display:grid;grid-template-columns:90px 1fr auto;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);align-items:baseline}
@@ -323,7 +326,7 @@ def past_coupons_html(rows):
 
 
 # ----------------------------------------------------------------- parçalar
-def coupon_card(b, i, stale, sv):
+def coupon_card(b, i, stale, sv, cr=None):
     ok = not stale
     status = ('<div class="status">✅ Oynanabilir: değer eşiğin üstünde, dünya piyasası verisi güncel.</div>' if ok else
               '<div class="status warn">⏸ Şimdilik sadece izliyoruz: dünya piyasası verisi eski, deneme aşamasındayız.</div>')
@@ -346,6 +349,7 @@ def coupon_card(b, i, stale, sv):
     <dt>Önerilen yatırım</dt><dd>kasanın %{b['stake']:.1f}'i</dd>
   </dl>
   {why}
+  {claude_box(cr)}
   {status}
 </article>"""
 
@@ -373,7 +377,31 @@ def combo_card(title, c, i, kind):
 </article>"""
 
 
-def match_details(m, h2h_probs, sv, bets_by_code):
+def claude_prob(cr, mk, pick):
+    if not cr:
+        return None
+    bl = cr["blind"]
+    return {("MS", "1"): bl["p_home"], ("MS", "X"): bl["p_draw"], ("MS", "2"): bl["p_away"],
+            ("AU25", "Üst"): bl["p_over25"], ("AU25", "Alt"): 1 - bl["p_over25"],
+            ("KG", "Var"): bl["p_btts"], ("KG", "Yok"): 1 - bl["p_btts"]}.get((mk, pick))
+
+
+def claude_box(cr):
+    if not cr:
+        return ""
+    bl = cr["blind"]; ob = cr.get("objection") or {}
+    facts = "".join(f"<li>{esc(x)}</li>" for x in bl.get("facts", [])[:5])
+    verdict = ('<span class="tag hit">piyasaya itiraz yok ✓</span>' if ob.get("verdict") == "ok" else
+               '<span class="tag miss">⚠ itiraz var</span>' if ob.get("verdict") == "warn" else "")
+    html_ = (f'<div class="claudebox"><b>Claude ne diyor?</b> {verdict}<p>{esc(bl.get("comment", ""))}</p>'
+             f'<p><b>Risk:</b> {esc(bl.get("risk", ""))} <span class="muted">(güven: {esc(bl.get("confidence", ""))})</span></p>')
+    if ob.get("verdict") == "warn":
+        html_ += f'<p><b>İtiraz gerekçesi:</b> {esc(ob.get("reason", ""))}</p>'
+    html_ += (f"<ul>{facts}</ul>" if facts else '<p class="muted">Somut haber bulunamadı.</p>') + "</div>"
+    return html_
+
+
+def match_details(m, h2h_probs, sv, bets_by_code, cr=None):
     bets = bets_by_code.get(m["code"], [])
     best = max(bets, key=lambda b: b["ev_pct"]) if bets else None
     tag = (f'<span class="tag hit">+%{best["ev_pct"]:.1f} değer</span>' if best and best["ev_pct"] >= value.EV_THRESHOLD
@@ -385,19 +413,25 @@ def match_details(m, h2h_probs, sv, bets_by_code):
         for pick, o in m["markets"][mk]["odds"].items():
             pm = h2h_probs.get(mk, {}).get(pick) if h2h_probs else None
             ps = sv["probs"][mk][pick] if sv else None
+            pc = claude_prob(cr, mk, pick)
             ev = (o * pm - 1) * 100 if pm else None
             ev_cls = "good" if ev is not None and ev >= value.EV_THRESHOLD else ""
+            agree = pm is not None and pc is not None and abs(pm - pc) <= 0.05
+            pc_cls = "good" if agree else ("dim" if pc is None else "")
             rows += (f'<tr><td>{esc(PICK_TR.get((mk, pick), pick))}</td><td>{o:.2f}</td>'
-                     f'<td>{pct(pm) if pm is not None else "—"}</td><td>{pct(ps) if ps is not None else "—"}</td><td class="dim">—</td>'
+                     f'<td>{pct(pm) if pm is not None else "—"}</td><td>{pct(ps) if ps is not None else "—"}</td>'
+                     f'<td class="{pc_cls}">{pct(pc) if pc is not None else "—"}{" ✓" if agree else ""}</td>'
                      f'<td class="{ev_cls}">{f"{ev:+.1f}%" if ev is not None else "—"}</td></tr>')
     why = (f'<p class="why">{form_line(m["home"], sv["home_form"])} {form_line(m["away"], sv["away_form"])}</p>' if sv else
            '<p class="why">Bu lig için takım geçmişi verisi yok (Avrupa kupaları ve milli maçlar). İstatistik görüşü boş.</p>')
     mbs = f' · <span class="tag">en az {m["mbs"]} maçla oynanır</span>' if m["mbs"] > 1 else ""
+    cbox = claude_box(cr)
     return f"""
 <details class="match"><summary><time>{tr_time(m['start'], day=True)}</time><div><div class="tm">{esc(m['home'])} – {esc(m['away'])}</div><div class="lg">{esc(m['league'])}{mbs}</div></div>{tag}</summary>
 <div class="views"><table><tr><th>Bahis</th><th>Nesine</th><th>Piyasa</th><th>İstatistik</th><th>Claude</th><th>Değer</th></tr>{rows}</table>
 {why}
-<p class="acc">İsabet geçmişi (5.200 maç): <b>piyasa</b> ±2 puan kalibre · <b>istatistik</b> piyasadan daha az isabetli, tek başına izlenirse geçmişte −12% · <b>Claude</b> henüz ölçülmedi.</p>
+{cbox}
+<p class="acc">İsabet geçmişi (5.200 maç): <b>piyasa</b> ±2 puan kalibre · <b>istatistik</b> piyasadan daha az isabetli, tek başına izlenirse geçmişte −12% · <b>Claude</b> henüz ölçülmedi (✓ = piyasayla 5 puan içinde uyuşuyor).</p>
 </div></details>"""
 
 
@@ -406,6 +440,7 @@ def build():
     nes_rows = read_jsonl("records/nesine/*.jsonl")
     pin_rows = read_jsonl("records/pinnacle/*.jsonl")
     alerts = read_jsonl("records/alerts/*.jsonl")
+    claude_rows = {r["code"]: r for r in read_jsonl("records/claude/*.jsonl") if r.get("blind")}
     status = json.load(open("records/status.json", encoding="utf-8")) if os.path.exists("records/status.json") else {}
     watch = json.load(open("records/watch_status.json", encoding="utf-8")) if os.path.exists("records/watch_status.json") else {}
     t_nes, nes_last = latest_snapshot(nes_rows)
@@ -493,7 +528,7 @@ def build():
 
     # --- kartlar
     if cards:
-        cards_html = "".join(coupon_card(b, i, stale, sv_by_code.get(b["code"])) for i, b in enumerate(cards))
+        cards_html = "".join(coupon_card(b, i, stale, sv_by_code.get(b["code"]), claude_rows.get(b["code"])) for i, b in enumerate(cards))
     else:
         best_txt = (f' En yakını <b>{esc(best["home"])} – {esc(best["away"])}</b>, {PICK_TR.get((best["market"], best["pick"]), best["pick"]).lower()}: '
                     f'Nesine {best["nesine_odds"]:.2f} veriyor, adil oran {best["fair_odds"]:.2f}; yani hâlâ %{abs(best["ev_pct"]):.1f} geride.' if best else "")
@@ -510,7 +545,7 @@ def build():
     cp_html = f'<div class="grid">{cp_html}</div>' if cp_html else '<div class="empty">Önümüzdeki 48 saatte kupon kuracak kadar karşılaştırılmış maç yok.</div>'
 
     # --- yaklaşan maçlar
-    md_html = "".join(match_details(m, probs_by_code.get(m["code"]), sv_by_code.get(m["code"]), bets_by_code) for m in soon) or \
+    md_html = "".join(match_details(m, probs_by_code.get(m["code"]), sv_by_code.get(m["code"]), bets_by_code, claude_rows.get(m["code"])) for m in soon) or \
         '<div class="empty">Önümüzdeki 48 saatte takip edilen liglerde maç yok.</div>'
 
     # --- sayaç
@@ -572,7 +607,7 @@ def build():
 {past_coupons_html(past)}
 
 <h2 id="maclar">Yaklaşan maçlar <small>üç görüş yan yana · 48 saat</small></h2>
-<p class="plain"><b>Bu ne demek?</b> Her maç için "bu sonuç yüzde kaç ihtimalle olur?" sorusuna üç ayrı kaynak cevap verir: <b>Piyasa</b> (dünyanın en keskin bahis borsası Pinnacle'ın oranından hesaplanır), <b>İstatistik</b> (iki takımın son 2-3 sezondaki gollerinden hesaplanır), <b>Claude</b> (haberleri ve kadroları okuyan yapay zekâ; yakında). "Değer" sütunu: Nesine'nin oranı, piyasanın ihtimaline göre fazla mı az mı. Artıysa iyi.</p>
+<p class="plain"><b>Bu ne demek?</b> Her maç için "bu sonuç yüzde kaç ihtimalle olur?" sorusuna üç ayrı kaynak cevap verir: <b>Piyasa</b> (dünyanın en keskin bahis borsası Pinnacle'ın oranından hesaplanır), <b>İstatistik</b> (iki takımın son 2-3 sezondaki gollerinden hesaplanır), <b>Claude</b> (maç saatine yakın haberleri ve kadroları okuyan yapay zekâ; oranı görmeden tahmin eder, sonra piyasaya itirazı var mı söyler). "Değer" sütunu: Nesine'nin oranı, piyasanın ihtimaline göre fazla mı az mı. Artıysa iyi.</p>
 <p class="lead">Maça tıklayın, tablo açılır. Altında iki takımın son maçları düz yazıyla anlatılır. En makul görüşü siz seçersiniz; hangisinin geçmişte ne kadar tuttuğu da yazıyor.</p>
 {md_html}
 

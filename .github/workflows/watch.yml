@@ -26,9 +26,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Bağımlılıklar
+        run: pip install -q anthropic
       - name: Gözcü
         env:
           ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_MODEL: ${{ vars.CLAUDE_MODEL || 'claude-opus-5-5' }}
+          CLAUDE_MAX_PER_DAY: ${{ vars.CLAUDE_MAX_PER_DAY || '3' }}
           PYTHONIOENCODING: utf-8
         run: |
           ARGS="--max-minutes ${{ inputs.max_minutes || '340' }}"
