@@ -1,0 +1,36 @@
+name: Geçmiş sezon verisi (football-data.co.uk)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: record
+  cancel-in-progress: false
+
+jobs:
+  download:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: İndir
+        run: |
+          mkdir -p records/fd
+          # E0 Premier, SP1 La Liga, I1 Serie A, D1 Bundesliga, F1 Ligue 1, T1 Süper Lig
+          for season in 2324 2425 2526; do
+            for lg in E0 SP1 I1 D1 F1 T1; do
+              curl -sS -L -A "Mozilla/5.0" -o "records/fd/${lg}_${season}.csv" "https://www.football-data.co.uk/mmz4281/${season}/${lg}.csv" || echo "HATA $lg $season"
+            done
+          done
+          ls -la records/fd
+      - name: Repoya yaz
+        run: |
+          git config user.name "iddia-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add records/fd
+          git diff --cached --quiet && echo "değişiklik yok" && exit 0
+          git commit -m "football-data geçmiş sezonlar"
+          for i in 1 2 3; do git pull --rebase && git push && break || sleep 5; done
