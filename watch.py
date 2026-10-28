@@ -75,19 +75,30 @@ def pinnacle_rows(ts, sport, events):
     return rows
 
 
-def git_publish(msg, dry):
+def git_setup(dry):
     if dry:
         return
-    cmds = [["git", "add", "records/", "docs/"],
-            ["git", "-c", "user.name=iddia-bot", "-c", "user.email=actions@users.noreply.github.com", "commit", "-q", "-m", msg]]
-    for c in cmds:
-        subprocess.run(c, check=False)
+    subprocess.run(["git", "config", "user.name", "iddia-bot"], check=False)
+    subprocess.run(["git", "config", "user.email", "actions@users.noreply.github.com"], check=False)
+
+
+def git_publish(msg, dry):
+    """Kayıtları ve sayfayı repoya yazar. Rebase takılırsa iptal eder, sonraki döngüde yeniden dener."""
+    if dry:
+        return
+    subprocess.run(["git", "add", "records/", "docs/"], check=False)
+    if subprocess.run(["git", "diff", "--cached", "--quiet"], check=False).returncode == 0:
+        return  # değişiklik yok
+    if subprocess.run(["git", "commit", "-q", "-m", msg], check=False).returncode != 0:
+        log("UYARI: commit başarısız"); return
     for _ in range(3):
-        if subprocess.run(["git", "pull", "--rebase", "-X", "theirs", "-q"], check=False).returncode == 0 and \
-           subprocess.run(["git", "push", "-q"], check=False).returncode == 0:
+        if subprocess.run(["git", "pull", "--rebase", "-X", "theirs", "-q", "origin", "master"], check=False).returncode != 0:
+            subprocess.run(["git", "rebase", "--abort"], check=False)
+            time.sleep(5); continue
+        if subprocess.run(["git", "push", "-q", "origin", "master"], check=False).returncode == 0:
             return
         time.sleep(5)
-    log("UYARI: push başarısız")
+    log("UYARI: push başarısız (commit yerelde duruyor, sonraki turda tekrar denenecek)")
 
 
 def rebuild_page():
@@ -101,6 +112,7 @@ def rebuild_page():
 
 def main():
     dry = "--dry" in sys.argv
+    git_setup(dry)
     max_minutes = float(sys.argv[sys.argv.index("--max-minutes") + 1]) if "--max-minutes" in sys.argv else 340
     deadline = time.time() + max_minutes * 60
     now = datetime.now(timezone.utc)
