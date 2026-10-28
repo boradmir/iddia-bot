@@ -5,7 +5,7 @@ Yanıt başlığı x-requests-remaining kalan kotayı verir.
 """
 import json, sys, urllib.request, urllib.parse
 from datetime import datetime, timezone
-import config, db
+import config
 
 BASE = "https://api.the-odds-api.com/v4"
 # Odds API market adı → bizim market kodu, sonuç adı eşlemesi
@@ -80,6 +80,7 @@ def pinnacle_totals(ev):
 
 if __name__ == "__main__":
     sports = sys.argv[1:] or ["soccer_italy_serie_a"]
+    import db
     con = db.connect()
     for s in sports:
         events, remaining = fetch(s)
