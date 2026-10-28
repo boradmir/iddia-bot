@@ -1,0 +1,41 @@
+name: Bekçi
+
+# GitHub cron'una güvenmeyen zamanlayıcı: uzun çalışır, 20 dk'da bir kayıt alır, bitince kendini yeniden tetikler.
+on:
+  schedule:
+    - cron: "7 */6 * * *"     # yedek: zincir koparsa 6 saatte bir yeniden başlat
+  workflow_dispatch:
+    inputs:
+      max_minutes:
+        description: "Kaç dakika çalışsın?"
+        default: "340"
+      chain:
+        description: "Bitince kendini yeniden tetiklesin mi?"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: keeper
+  cancel-in-progress: false
+
+jobs:
+  keep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Bekçi
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PYTHONIOENCODING: utf-8
+        run: |
+          ARGS="--max-minutes ${{ inputs.max_minutes || '340' }}"
+          if [ "${{ inputs.chain }}" = "false" ]; then ARGS="$ARGS --no-chain"; fi
+          python keeper.py $ARGS

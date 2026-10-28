@@ -1,8 +1,7 @@
 name: Oran kaydı
 
+# Zamanlama artık Bekçi'de (keeper.yml). Bu iş akışı elle çalıştırma için duruyor.
 on:
-  schedule:
-    - cron: "*/20 * * * *"        # her 20 dk: sadece Nesine (bedava). Pinnacle'ı gözcü (watch.yml) çeker.
   workflow_dispatch:
     inputs:
       pinnacle:
