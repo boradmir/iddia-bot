@@ -1,20 +1,124 @@
 <!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>İddia Bot</title>
+<meta name="description" content="Nesine oranlarını dünya piyasasıyla karşılaştıran deneme sayfası.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
-body{font-family:system-ui,sans-serif;max-width:900px;margin:24px auto;padding:0 16px;background:#f6f7f9;color:#222}
-.card{background:#fff;border-radius:10px;padding:14px 16px;margin:12px 0;box-shadow:0 1px 4px rgba(0,0,0,.08)}
-.head{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px}
-table{border-collapse:collapse;width:100%} td,th{padding:4px 10px 4px 0;text-align:left} .wide td{border-bottom:1px solid #eee}
-.ok{color:#1a7f37;font-weight:bold} .warn{color:#b35900;font-weight:bold} .muted{color:#666;font-size:.9em} h2{margin-top:32px}
-</style></head><body>
-<h1>İddia Bot <span class="muted">— Nesine value tarayıcı (gölge test)</span></h1>
-<p class="muted">Sayfa üretildi: 28.10 18:54 UTC · Nesine kaydı: 28.10 18:54 · Pinnacle kaydı: 28.10 18:54
-(0 dk önce) · gelecek maç 61 · Pinnacle'lı 60 · ort. EV %-16.3 · Odds API kalan kota 420</p>
-<p class="warn"></p>
-<h2>Fırsat kartları</h2><p>Şu an eşik üstü (≥ %3, oran &lt; 3.0) fırsat yok.</p>
-<h2>Eşiğe en yakın 15 bahis <span class="muted">(bilgi için)</span></h2>
-<table class="wide"><tr><th>EV</th><th>Maç</th><th>Bahis</th><th>Nesine</th><th>Adil</th></tr><tr><td>-8.9%</td><td>Barcelona – Alaves</td><td>KG Var/Yok Yok</td><td>1.6</td><td>1.76</td></tr><tr><td>-9.7%</td><td>Santander – Real Madrid</td><td>KG Var/Yok Yok</td><td>2.19</td><td>2.43</td></tr><tr><td>-10.4%</td><td>Bayern Münih – B. Dortmund</td><td>Maç Sonucu X</td><td>5.38</td><td>6.01</td></tr><tr><td>-11.1%</td><td>Kocaelispor – Rizespor</td><td>Maç Sonucu 1</td><td>2.36</td><td>2.65</td></tr><tr><td>-11.1%</td><td>Vallecano – Celta Vigo</td><td>KG Var/Yok Yok</td><td>1.72</td><td>1.93</td></tr><tr><td>-11.7%</td><td>Trabzonspor – Gaziantep FK</td><td>Maç Sonucu 1</td><td>1.21</td><td>1.37</td></tr><tr><td>-11.7%</td><td>Como 1907 – Venezia</td><td>KG Var/Yok Yok</td><td>1.92</td><td>2.17</td></tr><tr><td>-11.8%</td><td>Elche – Valencia</td><td>KG Var/Yok Yok</td><td>1.84</td><td>2.09</td></tr><tr><td>-11.8%</td><td>Real Betis – Malaga</td><td>Maç Sonucu 1</td><td>1.21</td><td>1.37</td></tr><tr><td>-11.9%</td><td>Schalke 04 – Leipzig</td><td>Maç Sonucu X</td><td>3.46</td><td>3.93</td></tr><tr><td>-11.9%</td><td>Le Havre – PSG</td><td>KG Var/Yok Yok</td><td>1.89</td><td>2.14</td></tr><tr><td>-11.9%</td><td>AC Milan – Inter</td><td>Maç Sonucu 2</td><td>1.86</td><td>2.11</td></tr><tr><td>-12.1%</td><td>Atalanta – Parma</td><td>KG Var/Yok Yok</td><td>1.68</td><td>1.91</td></tr><tr><td>-12.2%</td><td>E. Frankfurt – Hamburg</td><td>Maç Sonucu 1</td><td>1.44</td><td>1.64</td></tr><tr><td>-12.2%</td><td>Kasımpaşa – Beşiktaş</td><td>Maç Sonucu 1</td><td>4.9</td><td>5.58</td></tr></table>
-<h2>Nesine oran değişimleri <span class="muted">(son 25 · 59 değişim / 4 kayıt / 445 oran serisi)</span></h2>
-<table class="wide"><tr><th>Zaman (UTC)</th><th>Maç</th><th>Bahis</th><th>Oran</th><th>Maça kalan</th></tr><tr><td>28.10 18:54</td><td>AC Monza – Napoli</td><td>Maç Sonucu 1</td><td>4.16 → 4.36</td><td>0s 50dk</td></tr><tr><td>28.10 18:54</td><td>AC Monza – Napoli</td><td>Maç Sonucu X</td><td>3.54 → 3.61</td><td>0s 50dk</td></tr><tr><td>28.10 18:54</td><td>AC Monza – Napoli</td><td>Maç Sonucu 2</td><td>1.51 → 1.47</td><td>0s 50dk</td></tr><tr><td>28.10 18:54</td><td>AC Monza – Napoli</td><td>KG Var/Yok Var</td><td>1.5 → 1.51</td><td>0s 50dk</td></tr><tr><td>28.10 18:54</td><td>AC Monza – Napoli</td><td>KG Var/Yok Yok</td><td>1.92 → 1.9</td><td>0s 50dk</td></tr><tr><td>28.10 18:54</td><td>AC Monza – Napoli</td><td>Alt/Üst 2.5 Alt</td><td>1.94 → 1.96</td><td>0s 50dk</td></tr><tr><td>28.10 18:54</td><td>AC Monza – Napoli</td><td>Alt/Üst 2.5 Üst</td><td>1.49 → 1.47</td><td>0s 50dk</td></tr><tr><td>28.10 18:54</td><td>Genoa – Juventus</td><td>Maç Sonucu 1</td><td>4.31 → 4.38</td><td>0s 50dk</td></tr><tr><td>28.10 18:54</td><td>Genoa – Juventus</td><td>Maç Sonucu X</td><td>2.96 → 2.98</td><td>0s 50dk</td></tr><tr><td>28.10 18:54</td><td>Genoa – Juventus</td><td>Maç Sonucu 2</td><td>1.62 → 1.6</td><td>0s 50dk</td></tr><tr><td>28.10 18:54</td><td>Genoa – Juventus</td><td>KG Var/Yok Var</td><td>2 → 2.01</td><td>0s 50dk</td></tr><tr><td>28.10 18:26</td><td>AC Monza – Napoli</td><td>Maç Sonucu 1</td><td>4.08 → 4.16</td><td>1s 18dk</td></tr><tr><td>28.10 18:26</td><td>AC Monza – Napoli</td><td>Maç Sonucu X</td><td>3.52 → 3.54</td><td>1s 18dk</td></tr><tr><td>28.10 18:26</td><td>AC Monza – Napoli</td><td>Maç Sonucu 2</td><td>1.52 → 1.51</td><td>1s 18dk</td></tr><tr><td>28.10 18:26</td><td>AC Monza – Napoli</td><td>KG Var/Yok Var</td><td>1.53 → 1.5</td><td>1s 18dk</td></tr><tr><td>28.10 18:26</td><td>AC Monza – Napoli</td><td>KG Var/Yok Yok</td><td>1.88 → 1.92</td><td>1s 18dk</td></tr><tr><td>28.10 18:26</td><td>AC Monza – Napoli</td><td>Alt/Üst 2.5 Alt</td><td>1.89 → 1.94</td><td>1s 18dk</td></tr><tr><td>28.10 18:26</td><td>AC Monza – Napoli</td><td>Alt/Üst 2.5 Üst</td><td>1.52 → 1.49</td><td>1s 18dk</td></tr><tr><td>28.10 18:26</td><td>Genoa – Juventus</td><td>Maç Sonucu 1</td><td>4.38 → 4.31</td><td>1s 18dk</td></tr><tr><td>28.10 18:26</td><td>Genoa – Juventus</td><td>Maç Sonucu X</td><td>2.99 → 2.96</td><td>1s 18dk</td></tr><tr><td>28.10 18:26</td><td>Genoa – Juventus</td><td>Maç Sonucu 2</td><td>1.6 → 1.62</td><td>1s 18dk</td></tr><tr><td>28.10 18:26</td><td>Genoa – Juventus</td><td>KG Var/Yok Var</td><td>1.96 → 2</td><td>1s 18dk</td></tr><tr><td>28.10 18:26</td><td>Genoa – Juventus</td><td>KG Var/Yok Yok</td><td>1.47 → 1.45</td><td>1s 18dk</td></tr><tr><td>28.10 18:26</td><td>Genoa – Juventus</td><td>Alt/Üst 2.5 Alt</td><td>1.4 → 1.37</td><td>1s 18dk</td></tr><tr><td>28.10 18:26</td><td>Genoa – Juventus</td><td>Alt/Üst 2.5 Üst</td><td>2.12 → 2.19</td><td>1s 18dk</td></tr></table>
-<p class="muted">Bu sayfa otomatik üretilir; yatırım tavsiyesi değildir. Hedef uzun vadede yatırılan paranın %2-5'i; günde 0-5 fırsat normal, sıfır gün de normal.</p>
-</body></html>
+:root{--pitch:#0B1F17;--pitch-2:#102A20;--line:#1E3A2E;--chalk:#F2F5F0;--chalk-dim:#A9B8AF;--sodium:#F5C04A;
+--paper:#FBF7EA;--ink:#1B1B1B;--ink-dim:#6B665C;--signal:#2ED47A;--ember:#F08A4B;--rule:#E5DCC3}
+*{box-sizing:border-box}
+html{background:var(--pitch)}
+body{margin:0;font-family:"Source Sans 3",system-ui,sans-serif;font-size:17px;line-height:1.5;color:var(--chalk);
+background:radial-gradient(1200px 600px at 50% -200px,#1B4A36 0%,var(--pitch) 60%)}
+.wrap{max-width:860px;margin:0 auto;padding:0 20px 80px}
+header{padding:40px 0 8px;display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.brand{font-family:"Barlow Condensed",sans-serif;font-weight:600;font-size:22px;letter-spacing:.08em;text-transform:uppercase;color:var(--sodium)}
+.brand small{display:block;font-family:"Source Sans 3",sans-serif;font-weight:400;font-size:14px;letter-spacing:0;text-transform:none;color:var(--chalk-dim)}
+.pulse{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--signal);margin-right:8px;box-shadow:0 0 0 0 rgba(46,212,122,.6);animation:pulse 2.2s infinite}
+.pulse.off{background:var(--ember);box-shadow:none;animation:none}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(46,212,122,.6)}70%{box-shadow:0 0 0 12px rgba(46,212,122,0)}100%{box-shadow:0 0 0 0 rgba(46,212,122,0)}}
+.hero{padding:36px 0 28px;border-bottom:1px solid var(--line)}
+.verdict{font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:clamp(44px,9vw,84px);line-height:.95;letter-spacing:-.01em;margin:0;
+opacity:0;transform:translateY(14px);animation:rise .7s .1s cubic-bezier(.2,.7,.2,1) forwards}
+.verdict em{font-style:normal;color:var(--sodium)}
+.sub{margin:16px 0 0;color:var(--chalk-dim);font-size:17px;opacity:0;animation:rise .7s .35s forwards}
+.sub b{color:var(--chalk);font-weight:600}
+@keyframes rise{to{opacity:1;transform:none}}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:24px 0 0;padding:0;list-style:none;opacity:0;animation:rise .7s .5s forwards}
+.facts li{background:var(--pitch-2);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.facts .n{font-family:"Barlow Condensed",sans-serif;font-size:34px;font-weight:600;line-height:1;color:var(--chalk)}
+.facts .l{font-size:14px;color:var(--chalk-dim);margin-top:4px}
+h2{font-family:"Barlow Condensed",sans-serif;font-weight:600;font-size:30px;letter-spacing:.02em;margin:48px 0 6px;color:var(--chalk)}
+.lead{margin:0 0 18px;color:var(--chalk-dim)}
+.lead b{color:var(--chalk);font-weight:600}
+/* kupon kartı */
+.coupon{position:relative;background:var(--paper);color:var(--ink);border-radius:6px;padding:18px 22px 20px;margin:16px 0;
+box-shadow:0 10px 30px rgba(0,0,0,.35);opacity:0;animation:rise .6s forwards}
+.coupon::before,.coupon::after{content:"";position:absolute;left:0;right:0;height:8px;background:
+radial-gradient(circle at 6px 4px,var(--pitch) 4px,transparent 4.5px) 0 0/16px 8px repeat-x}
+.coupon::before{top:-4px}.coupon::after{bottom:-4px;transform:scaleY(-1)}
+.coupon .top{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;border-bottom:1px dashed var(--rule);padding-bottom:10px;margin-bottom:12px}
+.coupon .teams{font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:26px;line-height:1.05}
+.coupon .meta{font-family:"JetBrains Mono",monospace;font-size:12.5px;color:var(--ink-dim);text-align:right}
+.coupon .pick{font-size:19px;font-weight:600;margin:0 0 10px}
+.coupon .pick small{display:block;font-weight:400;font-size:14px;color:var(--ink-dim)}
+.coupon dl{display:grid;grid-template-columns:1fr auto;gap:6px 16px;margin:0;font-size:15.5px}
+.coupon dt{color:var(--ink-dim)}
+.coupon dd{margin:0;font-family:"JetBrains Mono",monospace;font-weight:600;text-align:right}
+.coupon dd.good{color:#117A45}
+.coupon .status{margin-top:12px;padding-top:10px;border-top:1px dashed var(--rule);font-size:14.5px;color:var(--ink-dim)}
+.coupon .status.warn{color:#9A4F12}
+.empty{background:var(--pitch-2);border:1px dashed var(--line);border-radius:10px;padding:20px 22px;color:var(--chalk-dim)}
+.empty b{color:var(--chalk)}
+/* değer sayacı listesi */
+.list{list-style:none;margin:0;padding:0}
+.row{display:grid;grid-template-columns:1fr 150px 64px;gap:14px;align-items:center;padding:11px 0;border-bottom:1px solid var(--line)}
+.row .m{min-width:0}
+.row .t{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .d{font-size:14px;color:var(--chalk-dim)}
+.row .d code{font-family:"JetBrains Mono",monospace;font-size:13px;color:var(--chalk)}
+.row .v{font-family:"JetBrains Mono",monospace;font-size:15px;text-align:right;color:var(--chalk-dim)}
+.row.hit .v{color:var(--signal);font-weight:700}
+.meter{position:relative;height:10px;background:#0A1812;border-radius:5px;overflow:visible}
+.meter .bar{height:100%;width:0;border-radius:5px;background:#3E5A4D;animation:grow 1.1s cubic-bezier(.2,.7,.2,1) forwards}
+.meter.near .bar{background:var(--sodium)}
+.meter.hit .bar{background:var(--signal)}
+.meter .tick{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--chalk);opacity:.7;left:calc(100% * (3 - (-25)) / (8 - (-25)))}
+@keyframes grow{to{width:var(--w)}}
+.legend{display:flex;gap:18px;flex-wrap:wrap;font-size:13.5px;color:var(--chalk-dim);margin:10px 0 0}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+/* değişim listesi */
+.changes{list-style:none;margin:0;padding:0}
+.changes li{display:grid;grid-template-columns:72px 1fr auto;gap:12px;padding:9px 0;border-bottom:1px solid var(--line);font-size:15.5px;align-items:baseline}
+.changes time{font-family:"JetBrains Mono",monospace;font-size:13px;color:var(--chalk-dim)}
+.changes .o{font-family:"JetBrains Mono",monospace;white-space:nowrap}
+.changes .o.up{color:var(--signal)}.changes .o.down{color:var(--ember)}
+.changes small{color:var(--chalk-dim)}
+/* nasıl çalışır */
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin:0;padding:0;list-style:none}
+.steps li{background:var(--pitch-2);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.steps b{display:block;font-family:"Barlow Condensed",sans-serif;font-size:22px;font-weight:600;margin-bottom:4px}
+.steps p{margin:0;color:var(--chalk-dim);font-size:15.5px}
+footer{margin-top:56px;padding-top:18px;border-top:1px solid var(--line);color:var(--chalk-dim);font-size:14px}
+footer a{color:var(--sodium)}
+@media (max-width:560px){.row{grid-template-columns:1fr 100px 56px}.changes li{grid-template-columns:60px 1fr}.changes .o{grid-column:2}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.verdict,.sub,.facts,.coupon{opacity:1;transform:none}.meter .bar{width:var(--w)}}
+</style></head><body><div class="wrap">
+<header><div class="brand">İddia Bot<small>Nesine oranı dünya piyasasından yüksek mi?</small></div>
+<div class="brand" style="color:var(--chalk-dim);font-size:15px;font-weight:600">28.10 21:59 TSİ</div></header>
+
+<section class="hero">
+  <h1 class="verdict">Şu an oynanacak<br><em>fırsat yok.</em></h1>
+  <p class="sub"><span class="pulse"></span>Nesine oranları en son <b>5 dk önce</b> kontrol edildi. Dünya piyasası verisi <b>5 dk önce</b> alındı.</p>
+  
+<ul class="facts">
+  <li><div class="n">61</div><div class="l">yaklaşan maç takipte</div></li>
+  <li><div class="n">60</div><div class="l">dünya piyasasıyla karşılaştırılan</div></li>
+  <li><div class="n">-16%</div><div class="l">Nesine oranı ortalama bu kadar düşük</div></li>
+  <li><div class="n">59</div><div class="l">oran değişimi yakalandı</div></li>
+</ul>
+</section>
+
+<h2>Fırsatlar</h2>
+<p class="lead">Fırsat demek için üç şart: Nesine oranı adil orandan en az <b>%3</b> yüksek, oran <b>3.00'ın altında</b> (sürprizlerde "değer" yanıltıcı çıkıyor) ve dünya piyasası verisi <b>10 dakikadan taze</b>.</p>
+<div class="empty"><b>Hiçbir maçta Nesine, dünya piyasasından yüksek oran vermiyor.</b> Bu normaldir; fırsat haber çıkıp dünya piyasası hareket ettiğinde, Nesine geç kaldığında doğar. En yakını <b>Barcelona – Alaves</b>, en az bir takım gol atamaz: Nesine 1.60 veriyor, adil oran 1.76; yani hâlâ %8.9 geride.</div>
+
+<h2>Eşiğe en yakın bahisler</h2>
+<p class="lead">Her çubuk, Nesine oranının adil orana göre nerede durduğunu gösterir. Beyaz çizgi <b>+%3</b> eşiği; çubuk onu geçince yeşil yanar ve yukarıda kart olur.</p>
+<ul class="list"><li class="row "><div class="m"><div class="t">Barcelona – Alaves</div><div class="d">En az bir takım gol atamaz · Nesine <code>1.60</code> · adil <code>1.76</code></div></div><div class="meter "><div class="bar" style="--w:48.7%"></div><div class="tick"></div></div><div class="v">-8.9%</div></li><li class="row "><div class="m"><div class="t">Santander – Real Madrid</div><div class="d">En az bir takım gol atamaz · Nesine <code>2.19</code> · adil <code>2.43</code></div></div><div class="meter "><div class="bar" style="--w:46.3%"></div><div class="tick"></div></div><div class="v">-9.7%</div></li><li class="row "><div class="m"><div class="t">Bayern Münih – B. Dortmund</div><div class="d">Beraberlik · Nesine <code>5.38</code> · adil <code>6.01</code></div></div><div class="meter "><div class="bar" style="--w:44.2%"></div><div class="tick"></div></div><div class="v">-10.4%</div></li><li class="row "><div class="m"><div class="t">Kocaelispor – Rizespor</div><div class="d">Ev sahibi kazanır · Nesine <code>2.36</code> · adil <code>2.65</code></div></div><div class="meter "><div class="bar" style="--w:42.3%"></div><div class="tick"></div></div><div class="v">-11.1%</div></li><li class="row "><div class="m"><div class="t">Vallecano – Celta Vigo</div><div class="d">En az bir takım gol atamaz · Nesine <code>1.72</code> · adil <code>1.93</code></div></div><div class="meter "><div class="bar" style="--w:42.2%"></div><div class="tick"></div></div><div class="v">-11.1%</div></li><li class="row "><div class="m"><div class="t">Trabzonspor – Gaziantep FK</div><div class="d">Ev sahibi kazanır · Nesine <code>1.21</code> · adil <code>1.37</code></div></div><div class="meter "><div class="bar" style="--w:40.4%"></div><div class="tick"></div></div><div class="v">-11.7%</div></li><li class="row "><div class="m"><div class="t">Como 1907 – Venezia</div><div class="d">En az bir takım gol atamaz · Nesine <code>1.92</code> · adil <code>2.17</code></div></div><div class="meter "><div class="bar" style="--w:40.2%"></div><div class="tick"></div></div><div class="v">-11.7%</div></li><li class="row "><div class="m"><div class="t">Elche – Valencia</div><div class="d">En az bir takım gol atamaz · Nesine <code>1.84</code> · adil <code>2.09</code></div></div><div class="meter "><div class="bar" style="--w:40.1%"></div><div class="tick"></div></div><div class="v">-11.8%</div></li><li class="row "><div class="m"><div class="t">Real Betis – Malaga</div><div class="d">Ev sahibi kazanır · Nesine <code>1.21</code> · adil <code>1.37</code></div></div><div class="meter "><div class="bar" style="--w:40.0%"></div><div class="tick"></div></div><div class="v">-11.8%</div></li><li class="row "><div class="m"><div class="t">Schalke 04 – Leipzig</div><div class="d">Beraberlik · Nesine <code>3.46</code> · adil <code>3.93</code></div></div><div class="meter "><div class="bar" style="--w:39.8%"></div><div class="tick"></div></div><div class="v">-11.9%</div></li><li class="row "><div class="m"><div class="t">Le Havre – PSG</div><div class="d">En az bir takım gol atamaz · Nesine <code>1.89</code> · adil <code>2.14</code></div></div><div class="meter "><div class="bar" style="--w:39.7%"></div><div class="tick"></div></div><div class="v">-11.9%</div></li><li class="row "><div class="m"><div class="t">AC Milan – Inter</div><div class="d">Deplasman kazanır · Nesine <code>1.86</code> · adil <code>2.11</code></div></div><div class="meter "><div class="bar" style="--w:39.7%"></div><div class="tick"></div></div><div class="v">-11.9%</div></li></ul>
+<div class="legend"><span><i style="background:#3E5A4D"></i>geride</span><span><i style="background:var(--sodium)"></i>yaklaşıyor (−%5 içinde)</span><span><i style="background:var(--signal)"></i>eşiği geçti</span></div>
+
+<h2>İddaa oranları hareket ediyor mu?</h2>
+<p class="lead"><b>4 kontrolde 59 oran değişimi</b> gördük (32 yükseliş, 27 düşüş). Oranlar hareket ediyor; sorumuz, dünya piyasasından ne kadar <b>geç</b> hareket ettiği. Veri biriktikçe cevap netleşecek.</p>
+<ul class="changes"><li><time>28.10 21:54</time><div>AC Monza – Napoli <small>· ev sahibi kazanır · maça 0 sa 50 dk kala</small></div><div class="o up">4.16 ▲ 4.36</div></li><li><time>28.10 21:54</time><div>AC Monza – Napoli <small>· beraberlik · maça 0 sa 50 dk kala</small></div><div class="o up">3.54 ▲ 3.61</div></li><li><time>28.10 21:54</time><div>AC Monza – Napoli <small>· deplasman kazanır · maça 0 sa 50 dk kala</small></div><div class="o down">1.51 ▼ 1.47</div></li><li><time>28.10 21:54</time><div>AC Monza – Napoli <small>· i̇ki takım da gol atar · maça 0 sa 50 dk kala</small></div><div class="o up">1.50 ▲ 1.51</div></li><li><time>28.10 21:54</time><div>AC Monza – Napoli <small>· en az bir takım gol atamaz · maça 0 sa 50 dk kala</small></div><div class="o down">1.92 ▼ 1.90</div></li><li><time>28.10 21:54</time><div>AC Monza – Napoli <small>· 2 veya daha az gol · maça 0 sa 50 dk kala</small></div><div class="o up">1.94 ▲ 1.96</div></li><li><time>28.10 21:54</time><div>AC Monza – Napoli <small>· 3 veya daha fazla gol · maça 0 sa 50 dk kala</small></div><div class="o down">1.49 ▼ 1.47</div></li><li><time>28.10 21:54</time><div>Genoa – Juventus <small>· ev sahibi kazanır · maça 0 sa 50 dk kala</small></div><div class="o up">4.31 ▲ 4.38</div></li><li><time>28.10 21:54</time><div>Genoa – Juventus <small>· beraberlik · maça 0 sa 50 dk kala</small></div><div class="o up">2.96 ▲ 2.98</div></li><li><time>28.10 21:54</time><div>Genoa – Juventus <small>· deplasman kazanır · maça 0 sa 50 dk kala</small></div><div class="o down">1.62 ▼ 1.60</div></li><li><time>28.10 21:54</time><div>Genoa – Juventus <small>· i̇ki takım da gol atar · maça 0 sa 50 dk kala</small></div><div class="o up">2.00 ▲ 2.01</div></li><li><time>28.10 21:26</time><div>AC Monza – Napoli <small>· ev sahibi kazanır · maça 1 sa 18 dk kala</small></div><div class="o up">4.08 ▲ 4.16</div></li><li><time>28.10 21:26</time><div>AC Monza – Napoli <small>· beraberlik · maça 1 sa 18 dk kala</small></div><div class="o up">3.52 ▲ 3.54</div></li><li><time>28.10 21:26</time><div>AC Monza – Napoli <small>· deplasman kazanır · maça 1 sa 18 dk kala</small></div><div class="o down">1.52 ▼ 1.51</div></li><li><time>28.10 21:26</time><div>AC Monza – Napoli <small>· i̇ki takım da gol atar · maça 1 sa 18 dk kala</small></div><div class="o down">1.53 ▼ 1.50</div></li><li><time>28.10 21:26</time><div>AC Monza – Napoli <small>· en az bir takım gol atamaz · maça 1 sa 18 dk kala</small></div><div class="o up">1.88 ▲ 1.92</div></li><li><time>28.10 21:26</time><div>AC Monza – Napoli <small>· 2 veya daha az gol · maça 1 sa 18 dk kala</small></div><div class="o up">1.89 ▲ 1.94</div></li><li><time>28.10 21:26</time><div>AC Monza – Napoli <small>· 3 veya daha fazla gol · maça 1 sa 18 dk kala</small></div><div class="o down">1.52 ▼ 1.49</div></li><li><time>28.10 21:26</time><div>Genoa – Juventus <small>· ev sahibi kazanır · maça 1 sa 18 dk kala</small></div><div class="o down">4.38 ▼ 4.31</div></li><li><time>28.10 21:26</time><div>Genoa – Juventus <small>· beraberlik · maça 1 sa 18 dk kala</small></div><div class="o down">2.99 ▼ 2.96</div></li></ul>
+
+<h2>Bu sayfa ne yapıyor?</h2>
+<ul class="steps">
+  <li><b>1 · Dünya piyasasını okur</b><p>Pinnacle, dünyanın en keskin bahis borsası sayılır: oranları milyonlarca dolarlık parayla saniyeler içinde düzelir. Onu "gerçek ihtimal" ölçütü olarak kullanıyoruz; orada hesabımız yok.</p></li>
+  <li><b>2 · Nesine ile karşılaştırır</b><p>Her maçta Nesine'nin oranı, Pinnacle'dan çıkan adil oranla yan yana konur. Nesine daha yüksek veriyorsa fark bizim lehimize: buna "değer" diyoruz.</p></li>
+  <li><b>3 · Sadece matematiğe güvenir</b><p>Tahmin yok, his yok. Geçmiş 5.000 maçta test edildi: değer, 3.00 altı oranlarda gerçek; sürprizlerde yanıltıcı. Şimdi para koymadan canlı ölçüyoruz.</p></li>
+</ul>
+
+<footer>Sayfa her 20 dakikada otomatik yenilenir; yatırım tavsiyesi değildir. Gerçekçi hedef: uzun vadede yatırılan paranın %2–5'i. Fırsatsız günler normaldir.
+<br>Kaynak kod: <a href="https://github.com/boradmir/iddia-bot">github.com/boradmir/iddia-bot</a></footer>
+</div></body></html>
