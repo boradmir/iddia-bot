@@ -12,6 +12,7 @@ import match, odds, prob, value, stats, coupons
 
 TR = timezone(timedelta(hours=3))
 RECORD_COUPONS = False   # build_site.py --record-coupons ile açılır (yalnızca kayıtçı iş akışı)
+CLAUDE_ACC = "henüz ölçülmedi"   # build() içinde puanlanmış Claude tahminlerinden hesaplanır
 MARKET_TR = {"MS": "Maç sonucu", "AU25": "2.5 gol alt/üst", "KG": "Karşılıklı gol"}
 PICK_TR = {("MS", "1"): "Ev sahibi kazanır", ("MS", "X"): "Beraberlik", ("MS", "2"): "Deplasman kazanır",
            ("AU25", "Alt"): "2 veya daha az gol", ("AU25", "Üst"): "3 veya daha fazla gol",
@@ -431,7 +432,7 @@ def match_details(m, h2h_probs, sv, bets_by_code, cr=None):
 <div class="views"><table><tr><th>Bahis</th><th>Nesine</th><th>Piyasa</th><th>İstatistik</th><th>Claude</th><th>Değer</th></tr>{rows}</table>
 {why}
 {cbox}
-<p class="acc">İsabet geçmişi (5.200 maç): <b>piyasa</b> ±2 puan kalibre · <b>istatistik</b> piyasadan daha az isabetli, tek başına izlenirse geçmişte −12% · <b>Claude</b> henüz ölçülmedi (✓ = piyasayla 5 puan içinde uyuşuyor).</p>
+<p class="acc">İsabet geçmişi (5.200 maç): <b>piyasa</b> ±2 puan kalibre · <b>istatistik</b> piyasadan daha az isabetli, tek başına izlenirse geçmişte −12% · <b>Claude</b> {CLAUDE_ACC} (✓ = piyasayla 5 puan içinde uyuşuyor).</p>
 </div></details>"""
 
 
@@ -440,7 +441,17 @@ def build():
     nes_rows = read_jsonl("records/nesine/*.jsonl")
     pin_rows = read_jsonl("records/pinnacle/*.jsonl")
     alerts = read_jsonl("records/alerts/*.jsonl")
-    claude_rows = {r["code"]: r for r in read_jsonl("records/claude/*.jsonl") if r.get("blind")}
+    all_claude = [r for r in read_jsonl("records/claude/*.jsonl") if r.get("blind")]
+    claude_rows = {r["code"]: r for r in all_claude}
+    global CLAUDE_ACC
+    scored = [r for r in all_claude if isinstance(r.get("result"), dict) and r["result"].get("brier_market", {}).get("MS") is not None]
+    if scored:
+        bc = sum(r["result"]["brier_claude"]["MS"] for r in scored) / len(scored)
+        bm = sum(r["result"]["brier_market"]["MS"] for r in scored) / len(scored)
+        CLAUDE_ACC = (f"{len(scored)} maçta ölçüldü: isabet puanı {bc:.3f}, piyasa {bm:.3f} (küçük iyi) — "
+                      + ("Claude önde" if bc < bm else "piyasa önde") + "; 100 maçtan önce yorum yapmayın")
+    else:
+        CLAUDE_ACC = "henüz ölçülmedi"
     status = json.load(open("records/status.json", encoding="utf-8")) if os.path.exists("records/status.json") else {}
     watch = json.load(open("records/watch_status.json", encoding="utf-8")) if os.path.exists("records/watch_status.json") else {}
     t_nes, nes_last = latest_snapshot(nes_rows)

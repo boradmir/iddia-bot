@@ -19,11 +19,17 @@ MODEL = os.environ.get("CLAUDE_MODEL", "claude-opus-5-5")
 MAX_PER_DAY = int(os.environ.get("CLAUDE_MAX_PER_DAY", "3"))
 OUT_DIR = "records/claude"
 
-SYSTEM = """Sen bir futbol maçı analistisin. Görevin: verilen maç için GÜNCEL haberleri (sakatlık, ceza, kadro açıklaması,
-teknik direktör değişikliği, motivasyon/tur durumu, hava, seyahat) araştırıp, bahis oranı GÖRMEDEN kendi olasılık tahminini vermek.
-Kurallar: Yalnızca bulduğun somut bilgiye dayan; bulamadıysan "bilgi yok" de ve lig/form ortalamasına yakın, mütevazı tahminler ver.
-Olasılıklar toplamı her market için 1.0 olmalı. Türkçe yaz, kısa ve düz: teknik olmayan bir okuyucu anlayacak.
-Oran, Pinnacle, Nesine veya "value" hakkında yorum yapma; sadece maç gerçekleri ve ihtimaller."""
+SYSTEM = """Sen 20 yıllık profesyonel bir futbol analistisin: kulüplere ve yayıncılara maç önü raporu yazan türden.
+Üslubun: kendinden emin ama kanıta bağlı; genelleme yok, klişe yok ("iki takım da kazanmak isteyecek" gibi boş cümle yazma).
+Her iddianın arkasında bir gerçek olsun: kadro/sakatlık/ceza, son maçlardaki form ve gol üretimi, taktik eşleşme (pres, geçiş,
+kanat/orta, duran top), fikstür yoğunluğu ve motivasyon (küme hattı, tur durumu, derbi), saha/hava/seyahat.
+Görev: Verilen maç için GÜNCEL haberleri araştır (sakatlık, ceza, açıklanan kadro, teknik direktör değişikliği, motivasyon, hava),
+sonra bahis oranı GÖRMEDEN kendi olasılık tahminini ver.
+Yorum biçimi: önce maçın anahtarı (tek cümle), sonra iki takımın durumu, sonra beklenen senaryo. 3-5 cümle, Türkçe, net; bir
+spor gazetesinin analiz köşesi gibi okunmalı ama teknik olmayan biri de anlamalı.
+Olasılıklar toplamı her market için 1.0 olmalı. Somut bilgi bulamadığın yerde bunu söyle ve mütevazı, lig ortalamasına yakın kal;
+bulduğun bilginin tarihi eskiyse (bir haftadan öncesi) güvenini düşür.
+Oran, Pinnacle, Nesine, "value" veya bahis tavsiyesi hakkında yazma; sadece maç analizi ve ihtimaller."""
 
 BLIND_SCHEMA = {
     "type": "object",
@@ -31,7 +37,7 @@ BLIND_SCHEMA = {
         "p_home": {"type": "number"}, "p_draw": {"type": "number"}, "p_away": {"type": "number"},
         "p_over25": {"type": "number"}, "p_btts": {"type": "number"},
         "facts": {"type": "array", "items": {"type": "string"}, "description": "Bulunan somut haberler, en fazla 5, her biri tek cümle, kaynak adıyla"},
-        "comment": {"type": "string", "description": "2-3 cümle düz Türkçe maç yorumu"},
+        "comment": {"type": "string", "description": "3-5 cümle, profesyonel analist üslubunda Türkçe maç önü yorumu: anahtar faktör, iki takımın durumu, beklenen senaryo"},
         "risk": {"type": "string", "description": "Tek cümle: bu maçta bahis açısından en büyük belirsizlik"},
         "confidence": {"type": "string", "enum": ["düşük", "orta", "yüksek"]},
     },
@@ -123,7 +129,9 @@ def analyze_and_store(m, market_probs):
         return None
     res = analyze(m["home"], m["away"], m["league"], m["start"].isoformat(), market_probs)
     row = {"t": datetime.now(timezone.utc).isoformat(timespec="seconds"), "code": m["code"], "home": m["home"], "away": m["away"],
-           "league": m["league"], "start": m["start"].isoformat(), **res}
+           "league": m["league"], "sport": m.get("sport_key"), "start": m["start"].isoformat(),
+           "market": {k: {kk: round(vv, 4) for kk, vv in v.items()} for k, v in market_probs.items() if not k.startswith("_")},
+           "result": None, **res}
     os.makedirs(OUT_DIR, exist_ok=True)
     with open(f"{OUT_DIR}/{day}.jsonl", "a", encoding="utf-8") as f:
         f.write(json.dumps(row, ensure_ascii=False) + "\n")

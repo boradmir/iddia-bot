@@ -101,10 +101,44 @@ def settle_coupons(res_rows):
     return n
 
 
+def _brier(probs, actual):
+    """probs: {sonuç: p}, actual: gerçekleşen sonuç adı → Brier (küçük = iyi)."""
+    return sum((p - (1.0 if k == actual else 0.0)) ** 2 for k, p in probs.items())
+
+
+def settle_claude(res_rows):
+    """Claude'un kör tahminlerini ve o anki piyasa ihtimallerini aynı sonuçla puanlar (kalibrasyon ölçümü)."""
+    n = 0
+    for path in glob.glob("records/claude/*.jsonl"):
+        rows = read(path); changed = False
+        for c in rows:
+            if c.get("result") or not c.get("blind"):
+                continue
+            r = find_result(res_rows, c.get("sport"), c["start"], c["home"], c["away"])
+            if not r:
+                continue
+            hg, ag = r["hg"], r["ag"]
+            ms = "1" if hg > ag else "2" if hg < ag else "X"
+            ou = "Üst" if hg + ag > 2 else "Alt"
+            kg = "Var" if (hg > 0 and ag > 0) else "Yok"
+            bl = c["blind"]
+            cl = {"MS": {"1": bl["p_home"], "X": bl["p_draw"], "2": bl["p_away"]},
+                  "AU25": {"Üst": bl["p_over25"], "Alt": 1 - bl["p_over25"]}, "KG": {"Var": bl["p_btts"], "Yok": 1 - bl["p_btts"]}}
+            mk = c.get("market") or {}
+            c["result"] = {"score": f"{hg}-{ag}", "MS": ms, "AU25": ou, "KG": kg,
+                           "brier_claude": {k: round(_brier(cl[k], a), 4) for k, a in (("MS", ms), ("AU25", ou), ("KG", kg))},
+                           "brier_market": {k: round(_brier(mk[k], a), 4) for k, a in (("MS", ms), ("AU25", ou), ("KG", kg)) if k in mk}}
+            c["settled_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+            changed = True; n += 1
+        if changed:
+            write(path, rows)
+    return n
+
+
 def main():
     res = results.load_all()
     print(f"Sonuç havuzu: {len(res)} maç")
-    print(f"Puanlanan uyarı: {settle_alerts(res)}  |  puanlanan kupon: {settle_coupons(res)}")
+    print(f"Puanlanan uyarı: {settle_alerts(res)}  |  puanlanan kupon: {settle_coupons(res)}  |  puanlanan Claude tahmini: {settle_claude(res)}")
 
 
 if __name__ == "__main__":
