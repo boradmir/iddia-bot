@@ -193,7 +193,7 @@ def main():
                         continue
                     if age_min > 10:
                         continue
-                    a = {"t": ts, "code": b["code"], "home": b["home"], "away": b["away"], "league": b["league"], "start": m["start"].isoformat(),
+                    a = {"t": ts, "code": b["code"], "home": b["home"], "away": b["away"], "league": b["league"], "sport": m["sport_key"], "start": m["start"].isoformat(),
                          "market": b["market"], "pick": b["pick"], "nesine_odds": b["nesine_odds"], "fair_prob": round(b["fair_prob"], 4),
                          "fair_odds": b["fair_odds"], "pinnacle_odds": b["pinnacle_odds"], "ev_pct": b["ev_pct"], "stake": b["stake"],
                          "mbs": b["mbs"], "match_score": round(score, 2), "mins_before": int(mins_to_ko), "result": None}

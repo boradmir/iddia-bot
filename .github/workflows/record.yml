@@ -39,7 +39,7 @@ jobs:
       - name: Sayfayı üret
         env:
           PYTHONIOENCODING: utf-8
-        run: python build_site.py
+        run: python build_site.py --record-coupons
       - name: Repoya yaz
         run: |
           git config user.name "iddia-bot"

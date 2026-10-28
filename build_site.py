@@ -11,6 +11,7 @@ from datetime import datetime, timezone, timedelta
 import match, odds, prob, value, stats, coupons
 
 TR = timezone(timedelta(hours=3))
+RECORD_COUPONS = False   # build_site.py --record-coupons ile açılır (yalnızca kayıtçı iş akışı)
 MARKET_TR = {"MS": "Maç sonucu", "AU25": "2.5 gol alt/üst", "KG": "Karşılıklı gol"}
 PICK_TR = {("MS", "1"): "Ev sahibi kazanır", ("MS", "X"): "Beraberlik", ("MS", "2"): "Deplasman kazanır",
            ("AU25", "Alt"): "2 veya daha az gol", ("AU25", "Üst"): "3 veya daha fazla gol",
@@ -217,6 +218,9 @@ details.match summary .tm{font-weight:600}
 details.match summary .lg{font-size:13px;color:var(--chalk-dim)}
 details.match summary .tag{font-size:12.5px;padding:3px 8px;border-radius:999px;background:#0A1812;color:var(--chalk-dim);white-space:nowrap}
 details.match summary .tag.hit{background:rgba(46,212,122,.15);color:var(--signal)}
+details.match summary .tag.miss{background:rgba(240,138,75,.15);color:var(--ember)}
+.plainlegs{list-style:none;margin:0;padding:0}.plainlegs li{display:grid;grid-template-columns:1fr auto auto;gap:10px;padding:6px 0;border-bottom:1px solid var(--line);font-size:15px}.plainlegs small{display:block;color:var(--chalk-dim);font-size:13px}.plainlegs .o{font-family:"JetBrains Mono",monospace}
+.facts .good{color:var(--signal)}.facts .bad{color:var(--ember)}
 details.match[open] summary{border-bottom:1px solid var(--line)}
 .views{padding:12px 16px 16px}
 .views table{width:100%;border-collapse:collapse;font-size:15px}
@@ -253,6 +257,69 @@ footer a{color:var(--sodium)}
 details.match summary{grid-template-columns:1fr auto}details.match summary time{grid-column:1/-1}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.verdict,.sub,.facts,.coupon{opacity:1;transform:none}.meter .bar{width:var(--w)}}
 """
+
+
+# ----------------------------------------------------------------- kupon defteri
+COUPON_DIR = "records/coupons"
+KIND_TR = {"safest": "En güvenli", "least_loss": "En az kayıplı", "value": "Değerli"}
+
+
+def coupon_key(kind, c):
+    legs = sorted((b["code"], b["market"], b["pick"]) for b in c["legs"])
+    first_day = min(b["start"] for b in c["legs"]).astimezone(TR).strftime("%Y-%m-%d")
+    return f"{kind}:{c['n']}:{first_day}"
+
+
+def record_coupons(cps, now):
+    """Önerilen kuponları ilk görüldükleri anda kilitler (o an oynanmış gibi). Tür+maç sayısı+gün başına bir kez."""
+    existing = {c["key"] for c in read_jsonl(f"{COUPON_DIR}/*.jsonl")}
+    new = []
+    items = [("value", cps["value"])] if cps.get("value") else []
+    items += [("safest", c) for c in cps.get("safest", [])] + [("least_loss", c) for c in cps.get("least_loss", [])]
+    for kind, c in items:
+        k = coupon_key(kind, c)
+        if k in existing:
+            continue
+        existing.add(k)
+        new.append({"key": k, "t": now.isoformat(timespec="seconds"), "kind": kind, "n": c["n"], "odds": round(c["odds"], 2),
+                    "prob": round(c["prob"], 4), "ev_pct": round(c["ev_pct"], 1), "result": None,
+                    "legs": [{"code": b["code"], "home": b["home"], "away": b["away"], "league": b["league"], "sport": b.get("sport_key"),
+                              "start": b["start"].isoformat(), "market": b["market"], "pick": b["pick"], "odds": b["nesine_odds"],
+                              "prob": round(b["fair_prob"], 4)} for b in c["legs"]]})
+    if new:
+        os.makedirs(COUPON_DIR, exist_ok=True)
+        with open(f"{COUPON_DIR}/{now:%Y-%m-%d}.jsonl", "a", encoding="utf-8") as f:
+            for c in new:
+                f.write(json.dumps(c, ensure_ascii=False) + "\n")
+    return len(new)
+
+
+def past_coupons_html(rows):
+    rows = sorted(rows, key=lambda c: c["t"], reverse=True)
+    settled = [c for c in rows if c.get("result") in ("won", "lost")]
+    # tür başına özet
+    summ = ""
+    for kind in ("safest", "least_loss", "value"):
+        ks = [c for c in settled if c["kind"] == kind]
+        if not ks:
+            continue
+        won = sum(1 for c in ks if c["result"] == "won")
+        pnl = sum((c["odds"] - 1) if c["result"] == "won" else -1 for c in ks)
+        summ += (f'<li><div class="n">{won}/{len(ks)}</div><div class="l">{KIND_TR[kind]} kupon tuttu (%{100*won/len(ks):.0f}) · '
+                 f'1 birimle oynansa net <b class="{"good" if pnl >= 0 else "bad"}">{pnl:+.1f}</b></div></li>')
+    summ = f'<ul class="facts" style="animation:none;opacity:1">{summ}</ul>' if summ else         '<p class="lead">Henüz sonuçlanmış kupon yok. Kuponlar önerildikleri anda kilitlenir, maçlar bitince burada puanlanır.</p>'
+    items = ""
+    for c in rows[:30]:
+        res = c.get("result")
+        tag = ('<span class="tag hit">tuttu ✓</span>' if res == "won" else '<span class="tag miss">tutmadı ✗</span>' if res == "lost"
+               else f'<span class="tag">bekliyor · {c.get("legs_hit", 0)}/{c["n"]} tuttu</span>')
+        legs = "".join(f'<li><div>{esc(l["home"])} – {esc(l["away"])}<small>{esc(PICK_SHORT.get((l["market"], l["pick"]), l["pick"]))} · {tr_time(l["start"], day=True)}'
+                       f'{(" · skor " + l["score"]) if l.get("score") else ""}</small></div>'
+                       f'<div class="p">{"✓" if l.get("result") == "won" else "✗" if l.get("result") == "lost" else "…"}</div><div class="o">{l["odds"]:.2f}</div></li>' for l in c["legs"])
+        items += f"""<details class="match"><summary><time>{tr_time(c['t'], day=True)}</time><div><div class="tm">{KIND_TR.get(c['kind'], c['kind'])} · {c['n']} maç · oran {c['odds']:.2f}</div>
+<div class="lg">gelme ihtimali %{c['prob']*100:.0f} · beklenen değer {c['ev_pct']:+.0f}%</div></div>{tag}</summary>
+<div class="views"><ul class="legs plainlegs">{legs}</ul></div></details>"""
+    return summ + (items or "")
 
 
 # ----------------------------------------------------------------- parçalar
@@ -380,6 +447,9 @@ def build():
     soon = [m for m in nm if m["start"] <= now + timedelta(hours=48)]
     soon_bets = [b for b in all_bets if b["start"] <= now + timedelta(hours=48)]
     cps = coupons.build_all(soon_bets)
+    if RECORD_COUPONS:
+        record_coupons(cps, now)
+    past = read_jsonl(f"{COUPON_DIR}/*.jsonl")
 
     # --- hero
     verdict = (f'<em>{len(cards)} fırsat</em> var.' if cards else 'Şu an oynanacak<br><em>fırsat yok.</em>')
@@ -473,7 +543,7 @@ def build():
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>{CSS}</style></head><body><div class="wrap">
 <header><div><div class="brand">İddia Bot<small>Nesine oranı dünya piyasasından yüksek mi?</small></div>
-<nav><a href="#uyarilar">Uyarılar</a><a href="#firsatlar">Fırsatlar</a><a href="#kuponlar">Kuponlar</a><a href="#maclar">Maçlar</a><a href="#sayac">Sayaç</a><a href="#degisim">Oran hareketi</a><a href="#nasil">Nasıl çalışır</a></nav></div>
+<nav><a href="#uyarilar">Uyarılar</a><a href="#firsatlar">Fırsatlar</a><a href="#kuponlar">Kuponlar</a><a href="#gecmis">Geçmiş kuponlar</a><a href="#maclar">Maçlar</a><a href="#sayac">Sayaç</a><a href="#degisim">Oran hareketi</a><a href="#nasil">Nasıl çalışır</a></nav></div>
 <div class="brand" style="color:var(--chalk-dim);font-size:15px;font-weight:600">{tr_time(now)} TSİ</div></header>
 
 <section class="hero">
@@ -496,6 +566,10 @@ def build():
 <p class="plain"><b>Bu ne demek?</b> Kombine = birkaç maçı tek kupona yazmak; hepsi tutmalı. Oranlar çarpılır ama ihtimaller de çarpılır: %70 ihtimalli 3 maç bir arada %34 eder. Nesine her maçtan payını aldığı için (buna "marj" denir) kombinede bu pay katlanır.</p>
 <p class="note"><b>Açık konuşalım:</b> "En güvenli" kupon en sık tutan kupondur ama uzun vadede en çok kaybettiren de odur. Her kuponun altında 100 TL yatırsanız uzun vadede kaçının gideceği yazıyor. Karar sizin.</p>
 {cp_html}
+
+<h2 id="gecmis">Geçmiş kuponlar <small>önerilenler tuttu mu?</small></h2>
+<p class="plain"><b>Bu ne demek?</b> Yukarıda önerilen her kupon, ilk göründüğü anda "kilitlenir": o an oynanmış sayılır. Maçlar bitince tuttu mu bakılır. Böylece "en güvenli" denen kuponun gerçekten kazandırıp kazandırmadığını sayılarla görürsünüz; tahmin değil, kayıt.</p>
+{past_coupons_html(past)}
 
 <h2 id="maclar">Yaklaşan maçlar <small>üç görüş yan yana · 48 saat</small></h2>
 <p class="plain"><b>Bu ne demek?</b> Her maç için "bu sonuç yüzde kaç ihtimalle olur?" sorusuna üç ayrı kaynak cevap verir: <b>Piyasa</b> (dünyanın en keskin bahis borsası Pinnacle'ın oranından hesaplanır), <b>İstatistik</b> (iki takımın son 2-3 sezondaki gollerinden hesaplanır), <b>Claude</b> (haberleri ve kadroları okuyan yapay zekâ; yakında). "Değer" sütunu: Nesine'nin oranı, piyasanın ihtimaline göre fazla mı az mı. Artıysa iyi.</p>
@@ -526,6 +600,8 @@ def build():
 
 
 if __name__ == "__main__":
+    import sys
+    RECORD_COUPONS = "--record-coupons" in sys.argv
     os.makedirs("docs", exist_ok=True)
     page = build()
     with open("docs/index.html", "w", encoding="utf-8") as f:
