@@ -1,0 +1,16 @@
+data/
+*.db
+__pycache__/
+.env
+
+# Sadece yerelde kalan dosyalar (GitHub'a gitmez)
+PLAN.md
+db.py
+match.py
+prob.py
+value.py
+scan.py
+web.py
+record.py
+test_prob.py
+inspect_bulten.py
