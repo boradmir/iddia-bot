@@ -33,6 +33,9 @@ def main():
                              "mbs": max(m.get("mbs") or 1, d.get("mbs") or 1)})
     append(f"records/nesine/{day}.jsonl", rows)
     print(f"Nesine: {len(nm)} maç, {len(rows)} oran kaydedildi")
+    status_path = "records/status.json"
+    status = json.load(open(status_path, encoding="utf-8")) if os.path.exists(status_path) else {}
+    status["last_nesine"] = ts
 
     if "--pinnacle" in sys.argv:
         sports = sorted({m["sport_key"] for m in nm if m["sport_key"] and m["start"] > now})
@@ -53,6 +56,10 @@ def main():
                                          "point": o.get("point")})
         append(f"records/pinnacle/{day}.jsonl", prow)
         print(f"Pinnacle: {len(sports)} lig, {len(prow)} oran kaydedildi, kalan kota {remaining}")
+        status["last_pinnacle"] = ts
+        status["quota"] = remaining
+    with open(status_path, "w", encoding="utf-8") as f:
+        json.dump(status, f)
 
 
 if __name__ == "__main__":
