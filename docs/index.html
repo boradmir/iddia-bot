@@ -10,10 +10,13 @@
 html{background:var(--pitch)}
 body{margin:0;font-family:"Source Sans 3",system-ui,sans-serif;font-size:17px;line-height:1.5;color:var(--chalk);
 background:radial-gradient(1200px 600px at 50% -200px,#1B4A36 0%,var(--pitch) 60%)}
-.wrap{max-width:860px;margin:0 auto;padding:0 20px 80px}
+.wrap{max-width:900px;margin:0 auto;padding:0 20px 80px}
 header{padding:40px 0 8px;display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
 .brand{font-family:"Barlow Condensed",sans-serif;font-weight:600;font-size:22px;letter-spacing:.08em;text-transform:uppercase;color:var(--sodium)}
 .brand small{display:block;font-family:"Source Sans 3",sans-serif;font-weight:400;font-size:14px;letter-spacing:0;text-transform:none;color:var(--chalk-dim)}
+nav{display:flex;gap:6px 16px;flex-wrap:wrap;font-size:14.5px;margin:6px 0 0}
+nav a{color:var(--chalk-dim);text-decoration:none;border-bottom:1px solid transparent}
+nav a:hover,nav a:focus{color:var(--sodium);border-color:var(--sodium)}
 .pulse{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--signal);margin-right:8px;box-shadow:0 0 0 0 rgba(46,212,122,.6);animation:pulse 2.2s infinite}
 .pulse.off{background:var(--ember);box-shadow:none;animation:none}
 @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(46,212,122,.6)}70%{box-shadow:0 0 0 12px rgba(46,212,122,0)}100%{box-shadow:0 0 0 0 rgba(46,212,122,0)}}
@@ -29,8 +32,14 @@ opacity:0;transform:translateY(14px);animation:rise .7s .1s cubic-bezier(.2,.7,.
 .facts .n{font-family:"Barlow Condensed",sans-serif;font-size:34px;font-weight:600;line-height:1;color:var(--chalk)}
 .facts .l{font-size:14px;color:var(--chalk-dim);margin-top:4px}
 h2{font-family:"Barlow Condensed",sans-serif;font-weight:600;font-size:30px;letter-spacing:.02em;margin:48px 0 6px;color:var(--chalk)}
+h2 small{font-family:"Source Sans 3",sans-serif;font-size:14px;letter-spacing:0;color:var(--chalk-dim);font-weight:400;margin-left:8px}
 .lead{margin:0 0 18px;color:var(--chalk-dim)}
 .lead b{color:var(--chalk);font-weight:600}
+.note{background:rgba(245,192,74,.08);border-left:3px solid var(--sodium);padding:10px 14px;border-radius:0 8px 8px 0;color:var(--chalk-dim);font-size:15px;margin:0 0 18px}
+.note b{color:var(--chalk)}
+.plain{margin:0 0 12px;color:var(--chalk-dim);font-size:15.5px;line-height:1.55}
+.plain b{color:var(--chalk)}
+.sub .plain{display:block;margin-top:10px;font-size:15.5px}
 /* kupon kartı */
 .coupon{position:relative;background:var(--paper);color:var(--ink);border-radius:6px;padding:18px 22px 20px;margin:16px 0;
 box-shadow:0 10px 30px rgba(0,0,0,.35);opacity:0;animation:rise .6s forwards}
@@ -45,12 +54,22 @@ radial-gradient(circle at 6px 4px,var(--pitch) 4px,transparent 4.5px) 0 0/16px 8
 .coupon dl{display:grid;grid-template-columns:1fr auto;gap:6px 16px;margin:0;font-size:15.5px}
 .coupon dt{color:var(--ink-dim)}
 .coupon dd{margin:0;font-family:"JetBrains Mono",monospace;font-weight:600;text-align:right}
-.coupon dd.good{color:#117A45}
+.coupon dd.good{color:#117A45}.coupon dd.bad{color:#9A4F12}
 .coupon .status{margin-top:12px;padding-top:10px;border-top:1px dashed var(--rule);font-size:14.5px;color:var(--ink-dim)}
 .coupon .status.warn{color:#9A4F12}
+.coupon .why{margin-top:10px;font-size:14.5px;color:var(--ink-dim)}
+.coupon .why b{color:var(--ink)}
+.coupon .legs{list-style:none;margin:0 0 10px;padding:0;font-size:15.5px}
+.coupon .legs li{display:grid;grid-template-columns:1fr auto auto;gap:10px;padding:5px 0;border-bottom:1px dotted var(--rule)}
+.coupon .legs .p{font-family:"JetBrains Mono",monospace;color:var(--ink-dim)}
+.coupon .legs .o{font-family:"JetBrains Mono",monospace;font-weight:600}
+.coupon .legs small{display:block;color:var(--ink-dim);font-size:13px}
+.coupon .title{font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:22px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:14px}
+.grid .coupon{margin:8px 0}
 .empty{background:var(--pitch-2);border:1px dashed var(--line);border-radius:10px;padding:20px 22px;color:var(--chalk-dim)}
 .empty b{color:var(--chalk)}
-/* değer sayacı listesi */
+/* değer sayacı */
 .list{list-style:none;margin:0;padding:0}
 .row{display:grid;grid-template-columns:1fr 150px 64px;gap:14px;align-items:center;padding:11px 0;border-bottom:1px solid var(--line)}
 .row .m{min-width:0}
@@ -59,7 +78,7 @@ radial-gradient(circle at 6px 4px,var(--pitch) 4px,transparent 4.5px) 0 0/16px 8
 .row .d code{font-family:"JetBrains Mono",monospace;font-size:13px;color:var(--chalk)}
 .row .v{font-family:"JetBrains Mono",monospace;font-size:15px;text-align:right;color:var(--chalk-dim)}
 .row.hit .v{color:var(--signal);font-weight:700}
-.meter{position:relative;height:10px;background:#0A1812;border-radius:5px;overflow:visible}
+.meter{position:relative;height:10px;background:#0A1812;border-radius:5px}
 .meter .bar{height:100%;width:0;border-radius:5px;background:#3E5A4D;animation:grow 1.1s cubic-bezier(.2,.7,.2,1) forwards}
 .meter.near .bar{background:var(--sodium)}
 .meter.hit .bar{background:var(--signal)}
@@ -67,56 +86,204 @@ radial-gradient(circle at 6px 4px,var(--pitch) 4px,transparent 4.5px) 0 0/16px 8
 @keyframes grow{to{width:var(--w)}}
 .legend{display:flex;gap:18px;flex-wrap:wrap;font-size:13.5px;color:var(--chalk-dim);margin:10px 0 0}
 .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
-/* değişim listesi */
+/* maç detayları: üç görüş */
+details.match{background:var(--pitch-2);border:1px solid var(--line);border-radius:10px;margin:10px 0;overflow:hidden}
+details.match summary{list-style:none;cursor:pointer;display:grid;grid-template-columns:110px 1fr auto;gap:12px;padding:12px 16px;align-items:center}
+details.match summary::-webkit-details-marker{display:none}
+details.match summary time{font-family:"JetBrains Mono",monospace;font-size:13px;color:var(--chalk-dim)}
+details.match summary .tm{font-weight:600}
+details.match summary .lg{font-size:13px;color:var(--chalk-dim)}
+details.match summary .tag{font-size:12.5px;padding:3px 8px;border-radius:999px;background:#0A1812;color:var(--chalk-dim);white-space:nowrap}
+details.match summary .tag.hit{background:rgba(46,212,122,.15);color:var(--signal)}
+details.match[open] summary{border-bottom:1px solid var(--line)}
+.views{padding:12px 16px 16px}
+.views table{width:100%;border-collapse:collapse;font-size:15px}
+.views th{font-weight:600;color:var(--chalk-dim);font-size:13px;text-align:right;padding:6px 8px;border-bottom:1px solid var(--line)}
+.views th:first-child,.views td:first-child{text-align:left}
+.views td{padding:6px 8px;text-align:right;font-family:"JetBrains Mono",monospace;font-size:14px;border-bottom:1px solid rgba(30,58,46,.5)}
+.views td:first-child{font-family:"Source Sans 3",sans-serif;font-size:15px}
+.views td.good{color:var(--signal);font-weight:600}
+.views td.dim{color:var(--chalk-dim)}
+.views .why{margin:12px 0 0;font-size:14.5px;color:var(--chalk-dim)}
+.views .why b{color:var(--chalk)}
+.views .acc{margin:10px 0 0;font-size:13px;color:var(--chalk-dim)}
+/* uyarılar */
+.alerts{list-style:none;margin:0;padding:0}
+.alerts li{display:grid;grid-template-columns:90px 1fr auto;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);align-items:baseline}
+.alerts time{font-family:"JetBrains Mono",monospace;font-size:13px;color:var(--chalk-dim)}
+.alerts .r{font-family:"JetBrains Mono",monospace;font-size:14px;text-align:right}
+.alerts .r.good{color:var(--signal)}.alerts .r.bad{color:var(--ember)}
+.alerts small{display:block;color:var(--chalk-dim);font-size:13.5px}
+/* değişimler */
 .changes{list-style:none;margin:0;padding:0}
 .changes li{display:grid;grid-template-columns:72px 1fr auto;gap:12px;padding:9px 0;border-bottom:1px solid var(--line);font-size:15.5px;align-items:baseline}
 .changes time{font-family:"JetBrains Mono",monospace;font-size:13px;color:var(--chalk-dim)}
 .changes .o{font-family:"JetBrains Mono",monospace;white-space:nowrap}
 .changes .o.up{color:var(--signal)}.changes .o.down{color:var(--ember)}
 .changes small{color:var(--chalk-dim)}
-/* nasıl çalışır */
 .steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin:0;padding:0;list-style:none}
 .steps li{background:var(--pitch-2);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
 .steps b{display:block;font-family:"Barlow Condensed",sans-serif;font-size:22px;font-weight:600;margin-bottom:4px}
 .steps p{margin:0;color:var(--chalk-dim);font-size:15.5px}
 footer{margin-top:56px;padding-top:18px;border-top:1px solid var(--line);color:var(--chalk-dim);font-size:14px}
 footer a{color:var(--sodium)}
-@media (max-width:560px){.row{grid-template-columns:1fr 100px 56px}.changes li{grid-template-columns:60px 1fr}.changes .o{grid-column:2}}
+@media (max-width:560px){.row{grid-template-columns:1fr 100px 56px}.changes li,.alerts li{grid-template-columns:60px 1fr}.changes .o,.alerts .r{grid-column:2}
+details.match summary{grid-template-columns:1fr auto}details.match summary time{grid-column:1/-1}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.verdict,.sub,.facts,.coupon{opacity:1;transform:none}.meter .bar{width:var(--w)}}
 </style></head><body><div class="wrap">
-<header><div class="brand">İddia Bot<small>Nesine oranı dünya piyasasından yüksek mi?</small></div>
-<div class="brand" style="color:var(--chalk-dim);font-size:15px;font-weight:600">28.10 22:00 TSİ</div></header>
+<header><div><div class="brand">İddia Bot<small>Nesine oranı dünya piyasasından yüksek mi?</small></div>
+<nav><a href="#uyarilar">Uyarılar</a><a href="#firsatlar">Fırsatlar</a><a href="#kuponlar">Kuponlar</a><a href="#maclar">Maçlar</a><a href="#sayac">Sayaç</a><a href="#degisim">Oran hareketi</a><a href="#nasil">Nasıl çalışır</a></nav></div>
+<div class="brand" style="color:var(--chalk-dim);font-size:15px;font-weight:600">28.10 22:25 TSİ</div></header>
 
 <section class="hero">
   <h1 class="verdict">Şu an oynanacak<br><em>fırsat yok.</em></h1>
-  <p class="sub"><span class="pulse"></span>Nesine oranları en son <b>6 dk önce</b> kontrol edildi. Dünya piyasası verisi <b>6 dk önce</b> alındı.</p>
+  <p class="sub"><span class="pulse"></span>Nesine oranları en son <b>31 dk önce</b> kontrol edildi. Dünya piyasası verisi <b>31 dk önce</b> alındı. Şu an <b>deneme aşamasındayız</b>: para oynanmıyor, sadece ölçüyoruz.<br><span class="plain">Kısaca: Bu sayfa, Nesine'nin verdiği oranı dünyadaki en iyi bahis borsasının oranıyla karşılaştırır. Nesine fazla veriyorsa "fırsat" der. Vermiyorsa (çoğu zaman) "fırsat yok" der.</span></p>
   
 <ul class="facts">
   <li><div class="n">61</div><div class="l">yaklaşan maç takipte</div></li>
   <li><div class="n">60</div><div class="l">dünya piyasasıyla karşılaştırılan</div></li>
   <li><div class="n">-16%</div><div class="l">Nesine oranı ortalama bu kadar düşük</div></li>
-  <li><div class="n">59</div><div class="l">oran değişimi yakalandı</div></li>
+  <li><div class="n">0</div><div class="l">gözcü uyarısı (toplam)</div></li>
 </ul>
 </section>
 
-<h2>Fırsatlar</h2>
-<p class="lead">Fırsat demek için üç şart: Nesine oranı adil orandan en az <b>%3</b> yüksek, oran <b>3.00'ın altında</b> (sürprizlerde "değer" yanıltıcı çıkıyor) ve dünya piyasası verisi <b>10 dakikadan taze</b>.</p>
+<h2 id="uyarilar">Gözcü uyarıları <small>maç saatine yakın yakalananlar</small></h2>
+<p class="plain"><b>Bu ne demek?</b> Maçtan 1-2 saat önce kadrolar açıklanır, sakatlıklar duyulur. Dünya piyasası bunu saniyeler içinde orana yansıtır; Nesine bazen geç kalır. "Gözcü", o anları yakalamak için maç saatine yakın sürekli bakar. Yakaladığında burada bir satır çıkar.</p>
+<p class="lead">Gözcü, maç saatine yakın dünya piyasasını izler; Nesine geç kaldığında burada uyarı düşer. Her uyarı sonradan maç sonucu ve kapanış oranıyla puanlanır. <b>Henüz uyarı yok.</b></p>
+<ul class="alerts"><li><time>—</time><div>Henüz uyarı yok.</div></li></ul>
+
+<h2 id="firsatlar">Fırsatlar <small>şu anki kayıtlara göre</small></h2>
+<p class="plain"><b>Bu ne demek?</b> Diyelim bir maçta ev sahibinin kazanma ihtimali gerçekte %50. Buna denk gelen "adil oran" 2.00'dır (100 ÷ 50). Nesine 2.10 veriyorsa, bize hak ettiğimizden fazla ödüyor demektir: işte "fırsat" bu. Nesine 1.85 veriyorsa (çoğu zaman öyle) fırsat yoktur.</p>
+<p class="lead">Fırsat demek için üç şart: Nesine oranı adil orandan en az <b>%3</b> yüksek, oran <b>3.00'ın altında</b> (yüksek oranlı sürprizlerde bu hesap yanıltıyor, geçmiş veriyle gördük) ve dünya piyasası verisi <b>10 dakikadan taze</b>.</p>
 <div class="empty"><b>Hiçbir maçta Nesine, dünya piyasasından yüksek oran vermiyor.</b> Bu normaldir; fırsat haber çıkıp dünya piyasası hareket ettiğinde, Nesine geç kaldığında doğar. En yakını <b>Barcelona – Alaves</b>, en az bir takım gol atamaz: Nesine 1.60 veriyor, adil oran 1.76; yani hâlâ %8.9 geride.</div>
 
-<h2>Eşiğe en yakın bahisler</h2>
-<p class="lead">Her çubuk, Nesine oranının adil orana göre nerede durduğunu gösterir. Beyaz çizgi <b>+%3</b> eşiği; çubuk onu geçince yeşil yanar ve yukarıda kart olur.</p>
+<h2 id="kuponlar">Kupon önerileri <small>önümüzdeki 48 saat, 3–5 maç</small></h2>
+<p class="plain"><b>Bu ne demek?</b> Kombine = birkaç maçı tek kupona yazmak; hepsi tutmalı. Oranlar çarpılır ama ihtimaller de çarpılır: %70 ihtimalli 3 maç bir arada %34 eder. Nesine her maçtan payını aldığı için (buna "marj" denir) kombinede bu pay katlanır.</p>
+<p class="note"><b>Açık konuşalım:</b> "En güvenli" kupon en sık tutan kupondur ama uzun vadede en çok kaybettiren de odur. Her kuponun altında 100 TL yatırsanız uzun vadede kaçının gideceği yazıyor. Karar sizin.</p>
+<div class="grid">
+<article class="coupon" style="animation-delay:0.50s">
+  <div class="top"><div class="title">En güvenli</div><div class="meta">3 maç · en yüksek gelme ihtimali</div></div>
+  <ul class="legs"><li><div>Frosinone – Lecce<small>2.5 Üst · Per 29.10 20:30</small></div><div class="p">%68</div><div class="o">1.26</div></li><li><div>Le Havre – PSG<small>Deplasman · Cum 30.10 21:00</small></div><div class="p">%80</div><div class="o">1.09</div></li><li><div>Nice – Rennes<small>KG Var · Cum 30.10 21:00</small></div><div class="p">%64</div><div class="o">1.33</div></li></ul>
+  <dl>
+    <dt>Toplam oran</dt><dd>1.83</dd>
+    <dt>Gelme ihtimali</dt><dd>%34</dd>
+    <dt>Bu ihtimale denk adil oran</dt><dd>2.90</dd>
+    <dt>Beklenen değer</dt><dd class="bad">-37%</dd>
+  </dl>
+  <div class="status warn">Uzun vadede bu kupona yatırılan her 100 TL'nin yaklaşık <b>37 TL'si kaybedilir</b>.</div>
+</article>
+<article class="coupon" style="animation-delay:0.60s">
+  <div class="top"><div class="title">En güvenli</div><div class="meta">4 maç · en yüksek gelme ihtimali</div></div>
+  <ul class="legs"><li><div>Frosinone – Lecce<small>2.5 Üst · Per 29.10 20:30</small></div><div class="p">%68</div><div class="o">1.26</div></li><li><div>Fiorentina – Atalanta<small>KG Var · Per 29.10 22:45</small></div><div class="p">%62</div><div class="o">1.36</div></li><li><div>Le Havre – PSG<small>Deplasman · Cum 30.10 21:00</small></div><div class="p">%80</div><div class="o">1.09</div></li><li><div>Nice – Rennes<small>KG Var · Cum 30.10 21:00</small></div><div class="p">%64</div><div class="o">1.33</div></li></ul>
+  <dl>
+    <dt>Toplam oran</dt><dd>2.48</dd>
+    <dt>Gelme ihtimali</dt><dd>%21</dd>
+    <dt>Bu ihtimale denk adil oran</dt><dd>4.68</dd>
+    <dt>Beklenen değer</dt><dd class="bad">-47%</dd>
+  </dl>
+  <div class="status warn">Uzun vadede bu kupona yatırılan her 100 TL'nin yaklaşık <b>47 TL'si kaybedilir</b>.</div>
+</article>
+<article class="coupon" style="animation-delay:0.70s">
+  <div class="top"><div class="title">En güvenli</div><div class="meta">5 maç · en yüksek gelme ihtimali</div></div>
+  <ul class="legs"><li><div>Genoa – Juventus<small>2.5 Alt · Çar 28.10 22:45</small></div><div class="p">%62</div><div class="o">1.37</div></li><li><div>Frosinone – Lecce<small>2.5 Üst · Per 29.10 20:30</small></div><div class="p">%68</div><div class="o">1.26</div></li><li><div>Fiorentina – Atalanta<small>KG Var · Per 29.10 22:45</small></div><div class="p">%62</div><div class="o">1.36</div></li><li><div>Le Havre – PSG<small>Deplasman · Cum 30.10 21:00</small></div><div class="p">%80</div><div class="o">1.09</div></li><li><div>Nice – Rennes<small>KG Var · Cum 30.10 21:00</small></div><div class="p">%64</div><div class="o">1.33</div></li></ul>
+  <dl>
+    <dt>Toplam oran</dt><dd>3.40</dd>
+    <dt>Gelme ihtimali</dt><dd>%13</dd>
+    <dt>Bu ihtimale denk adil oran</dt><dd>7.61</dd>
+    <dt>Beklenen değer</dt><dd class="bad">-55%</dd>
+  </dl>
+  <div class="status warn">Uzun vadede bu kupona yatırılan her 100 TL'nin yaklaşık <b>55 TL'si kaybedilir</b>.</div>
+</article>
+<article class="coupon" style="animation-delay:0.80s">
+  <div class="top"><div class="title">En az kayıplı</div><div class="meta">3 maç · oran/ihtimal dengesi en iyi</div></div>
+  <ul class="legs"><li><div>Frosinone – Lecce<small>Ev · Per 29.10 20:30</small></div><div class="p">%59</div><div class="o">1.47</div></li><li><div>Konyaspor – Galatasaray<small>KG Var · Cum 30.10 20:00</small></div><div class="p">%57</div><div class="o">1.52</div></li><li><div>Le Havre – PSG<small>KG Yok · Cum 30.10 21:00</small></div><div class="p">%47</div><div class="o">1.89</div></li></ul>
+  <dl>
+    <dt>Toplam oran</dt><dd>4.22</dd>
+    <dt>Gelme ihtimali</dt><dd>%16</dd>
+    <dt>Bu ihtimale denk adil oran</dt><dd>6.43</dd>
+    <dt>Beklenen değer</dt><dd class="bad">-34%</dd>
+  </dl>
+  <div class="status warn">Uzun vadede bu kupona yatırılan her 100 TL'nin yaklaşık <b>34 TL'si kaybedilir</b>.</div>
+</article>
+<article class="coupon" style="animation-delay:0.90s">
+  <div class="top"><div class="title">En az kayıplı</div><div class="meta">4 maç · oran/ihtimal dengesi en iyi</div></div>
+  <ul class="legs"><li><div>Frosinone – Lecce<small>Ev · Per 29.10 20:30</small></div><div class="p">%59</div><div class="o">1.47</div></li><li><div>Fiorentina – Atalanta<small>2.5 Üst · Per 29.10 22:45</small></div><div class="p">%60</div><div class="o">1.43</div></li><li><div>Konyaspor – Galatasaray<small>KG Var · Cum 30.10 20:00</small></div><div class="p">%57</div><div class="o">1.52</div></li><li><div>Le Havre – PSG<small>KG Yok · Cum 30.10 21:00</small></div><div class="p">%47</div><div class="o">1.89</div></li></ul>
+  <dl>
+    <dt>Toplam oran</dt><dd>6.04</dd>
+    <dt>Gelme ihtimali</dt><dd>%9</dd>
+    <dt>Bu ihtimale denk adil oran</dt><dd>10.69</dd>
+    <dt>Beklenen değer</dt><dd class="bad">-44%</dd>
+  </dl>
+  <div class="status warn">Uzun vadede bu kupona yatırılan her 100 TL'nin yaklaşık <b>44 TL'si kaybedilir</b>.</div>
+</article>
+<article class="coupon" style="animation-delay:1.00s">
+  <div class="top"><div class="title">En az kayıplı</div><div class="meta">5 maç · oran/ihtimal dengesi en iyi</div></div>
+  <ul class="legs"><li><div>AC Monza – Napoli<small>Deplasman · Çar 28.10 22:45</small></div><div class="p">%59</div><div class="o">1.47</div></li><li><div>Frosinone – Lecce<small>Ev · Per 29.10 20:30</small></div><div class="p">%59</div><div class="o">1.47</div></li><li><div>Fiorentina – Atalanta<small>2.5 Üst · Per 29.10 22:45</small></div><div class="p">%60</div><div class="o">1.43</div></li><li><div>Konyaspor – Galatasaray<small>KG Var · Cum 30.10 20:00</small></div><div class="p">%57</div><div class="o">1.52</div></li><li><div>Le Havre – PSG<small>KG Yok · Cum 30.10 21:00</small></div><div class="p">%47</div><div class="o">1.89</div></li></ul>
+  <dl>
+    <dt>Toplam oran</dt><dd>8.88</dd>
+    <dt>Gelme ihtimali</dt><dd>%5</dd>
+    <dt>Bu ihtimale denk adil oran</dt><dd>18.28</dd>
+    <dt>Beklenen değer</dt><dd class="bad">-51%</dd>
+  </dl>
+  <div class="status warn">Uzun vadede bu kupona yatırılan her 100 TL'nin yaklaşık <b>51 TL'si kaybedilir</b>.</div>
+</article></div>
+
+<h2 id="maclar">Yaklaşan maçlar <small>üç görüş yan yana · 48 saat</small></h2>
+<p class="plain"><b>Bu ne demek?</b> Her maç için "bu sonuç yüzde kaç ihtimalle olur?" sorusuna üç ayrı kaynak cevap verir: <b>Piyasa</b> (dünyanın en keskin bahis borsası Pinnacle'ın oranından hesaplanır), <b>İstatistik</b> (iki takımın son 2-3 sezondaki gollerinden hesaplanır), <b>Claude</b> (haberleri ve kadroları okuyan yapay zekâ; yakında). "Değer" sütunu: Nesine'nin oranı, piyasanın ihtimaline göre fazla mı az mı. Artıysa iyi.</p>
+<p class="lead">Maça tıklayın, tablo açılır. Altında iki takımın son maçları düz yazıyla anlatılır. En makul görüşü siz seçersiniz; hangisinin geçmişte ne kadar tuttuğu da yazıyor.</p>
+
+<details class="match"><summary><time>Çar 28.10 22:45</time><div><div class="tm">AC Monza – Napoli</div><div class="lg">İtalya Serie A</div></div><span class="tag">en iyisi -14.0%</span></summary>
+<div class="views"><table><tr><th>Bahis</th><th>Nesine</th><th>Piyasa</th><th>İstatistik</th><th>Claude</th><th>Değer</th></tr><tr><td>Ev sahibi kazanır</td><td>4.36</td><td>%19</td><td>%16</td><td class="dim">—</td><td class="">-19.3%</td></tr><tr><td>Beraberlik</td><td>3.61</td><td>%23</td><td>%19</td><td class="dim">—</td><td class="">-17.0%</td></tr><tr><td>Deplasman kazanır</td><td>1.47</td><td>%59</td><td>%64</td><td class="dim">—</td><td class="">-14.0%</td></tr><tr><td>2 veya daha az gol</td><td>1.96</td><td>%42</td><td>%38</td><td class="dim">—</td><td class="">-18.2%</td></tr><tr><td>3 veya daha fazla gol</td><td>1.47</td><td>%58</td><td>%62</td><td class="dim">—</td><td class="">-14.3%</td></tr><tr><td>İki takım da gol atar</td><td>1.51</td><td>%56</td><td>%57</td><td class="dim">—</td><td class="">-15.6%</td></tr><tr><td>En az bir takım gol atamaz</td><td>1.90</td><td>%44</td><td>%43</td><td class="dim">—</td><td class="">-16.2%</td></tr></table>
+<p class="why"><b>AC Monza</b> son 10 maçta: 2 galibiyet, maç başı 1.6 gol attı / 2.3 yedi, KG %80, 3+ gol %80. <b>Napoli</b> son 10 maçta: 5 galibiyet, maç başı 1.7 gol attı / 1.0 yedi, KG %40, 3+ gol %50.</p>
+<p class="acc">İsabet geçmişi (5.200 maç): <b>piyasa</b> ±2 puan kalibre · <b>istatistik</b> piyasadan daha az isabetli, tek başına izlenirse geçmişte −12% · <b>Claude</b> henüz ölçülmedi.</p>
+</div></details>
+<details class="match"><summary><time>Çar 28.10 22:45</time><div><div class="tm">Genoa – Juventus</div><div class="lg">İtalya Serie A</div></div><span class="tag">en iyisi -14.3%</span></summary>
+<div class="views"><table><tr><th>Bahis</th><th>Nesine</th><th>Piyasa</th><th>İstatistik</th><th>Claude</th><th>Değer</th></tr><tr><td>Ev sahibi kazanır</td><td>4.38</td><td>%19</td><td>%20</td><td class="dim">—</td><td class="">-18.3%</td></tr><tr><td>Beraberlik</td><td>2.98</td><td>%28</td><td>%27</td><td class="dim">—</td><td class="">-16.2%</td></tr><tr><td>Deplasman kazanır</td><td>1.60</td><td>%53</td><td>%53</td><td class="dim">—</td><td class="">-14.8%</td></tr><tr><td>2 veya daha az gol</td><td>1.37</td><td>%62</td><td>%63</td><td class="dim">—</td><td class="">-15.7%</td></tr><tr><td>3 veya daha fazla gol</td><td>2.19</td><td>%38</td><td>%37</td><td class="dim">—</td><td class="">-15.7%</td></tr><tr><td>İki takım da gol atar</td><td>2.01</td><td>%41</td><td>%40</td><td class="dim">—</td><td class="">-17.8%</td></tr><tr><td>En az bir takım gol atamaz</td><td>1.45</td><td>%59</td><td>%60</td><td class="dim">—</td><td class="">-14.3%</td></tr></table>
+<p class="why"><b>Genoa</b> son 10 maçta: 2 galibiyet, maç başı 0.7 gol attı / 1.6 yedi, KG %50, 3+ gol %40. <b>Juventus</b> son 10 maçta: 4 galibiyet, maç başı 1.3 gol attı / 1.2 yedi, KG %40, 3+ gol %30.</p>
+<p class="acc">İsabet geçmişi (5.200 maç): <b>piyasa</b> ±2 puan kalibre · <b>istatistik</b> piyasadan daha az isabetli, tek başına izlenirse geçmişte −12% · <b>Claude</b> henüz ölçülmedi.</p>
+</div></details>
+<details class="match"><summary><time>Per 29.10 20:30</time><div><div class="tm">Frosinone – Lecce</div><div class="lg">İtalya Serie A</div></div><span class="tag">en iyisi -13.7%</span></summary>
+<div class="views"><table><tr><th>Bahis</th><th>Nesine</th><th>Piyasa</th><th>İstatistik</th><th>Claude</th><th>Değer</th></tr><tr><td>Ev sahibi kazanır</td><td>1.47</td><td>%59</td><td>%65</td><td class="dim">—</td><td class="">-13.7%</td></tr><tr><td>Beraberlik</td><td>3.76</td><td>%22</td><td>%19</td><td class="dim">—</td><td class="">-17.5%</td></tr><tr><td>Deplasman kazanır</td><td>4.09</td><td>%19</td><td>%16</td><td class="dim">—</td><td class="">-20.9%</td></tr><tr><td>2 veya daha az gol</td><td>2.53</td><td>%32</td><td>%38</td><td class="dim">—</td><td class="">-19.8%</td></tr><tr><td>3 veya daha fazla gol</td><td>1.26</td><td>%68</td><td>%62</td><td class="dim">—</td><td class="">-13.9%</td></tr><tr><td>İki takım da gol atar</td><td>1.31</td><td>%64</td><td>%56</td><td class="dim">—</td><td class="">-15.8%</td></tr><tr><td>En az bir takım gol atamaz</td><td>2.36</td><td>%36</td><td>%44</td><td class="dim">—</td><td class="">-15.7%</td></tr></table>
+<p class="why"><b>Frosinone</b> son 10 maçta: 5 galibiyet, maç başı 1.8 gol attı / 1.4 yedi, KG %40, 3+ gol %50. <b>Lecce</b> son 10 maçta: 5 galibiyet, maç başı 1.3 gol attı / 1.6 yedi, KG %30, 3+ gol %60.</p>
+<p class="acc">İsabet geçmişi (5.200 maç): <b>piyasa</b> ±2 puan kalibre · <b>istatistik</b> piyasadan daha az isabetli, tek başına izlenirse geçmişte −12% · <b>Claude</b> henüz ölçülmedi.</p>
+</div></details>
+<details class="match"><summary><time>Per 29.10 22:45</time><div><div class="tm">Fiorentina – Atalanta</div><div class="lg">İtalya Serie A</div></div><span class="tag">en iyisi -14.0%</span></summary>
+<div class="views"><table><tr><th>Bahis</th><th>Nesine</th><th>Piyasa</th><th>İstatistik</th><th>Claude</th><th>Değer</th></tr><tr><td>Ev sahibi kazanır</td><td>2.02</td><td>%42</td><td>%27</td><td class="dim">—</td><td class="">-15.2%</td></tr><tr><td>Beraberlik</td><td>3.20</td><td>%27</td><td>%25</td><td class="dim">—</td><td class="">-14.6%</td></tr><tr><td>Deplasman kazanır</td><td>2.63</td><td>%31</td><td>%48</td><td class="dim">—</td><td class="">-17.6%</td></tr><tr><td>2 veya daha az gol</td><td>2.04</td><td>%40</td><td>%48</td><td class="dim">—</td><td class="">-18.7%</td></tr><tr><td>3 veya daha fazla gol</td><td>1.43</td><td>%60</td><td>%52</td><td class="dim">—</td><td class="">-14.0%</td></tr><tr><td>İki takım da gol atar</td><td>1.36</td><td>%62</td><td>%55</td><td class="dim">—</td><td class="">-15.8%</td></tr><tr><td>En az bir takım gol atamaz</td><td>2.21</td><td>%38</td><td>%45</td><td class="dim">—</td><td class="">-15.9%</td></tr></table>
+<p class="why"><b>Fiorentina</b> son 10 maçta: 2 galibiyet, maç başı 1.2 gol attı / 2.0 yedi, KG %70, 3+ gol %70. <b>Atalanta</b> son 10 maçta: 3 galibiyet, maç başı 1.5 gol attı / 1.7 yedi, KG %70, 3+ gol %60.</p>
+<p class="acc">İsabet geçmişi (5.200 maç): <b>piyasa</b> ±2 puan kalibre · <b>istatistik</b> piyasadan daha az isabetli, tek başına izlenirse geçmişte −12% · <b>Claude</b> henüz ölçülmedi.</p>
+</div></details>
+<details class="match"><summary><time>Cum 30.10 20:00</time><div><div class="tm">Konyaspor – Galatasaray</div><div class="lg">Türkiye Süper Ligi</div></div><span class="tag">en iyisi -13.7%</span></summary>
+<div class="views"><table><tr><th>Bahis</th><th>Nesine</th><th>Piyasa</th><th>İstatistik</th><th>Claude</th><th>Değer</th></tr><tr><td>Ev sahibi kazanır</td><td>4.44</td><td>%19</td><td>%19</td><td class="dim">—</td><td class="">-14.9%</td></tr><tr><td>Beraberlik</td><td>3.76</td><td>%22</td><td>%23</td><td class="dim">—</td><td class="">-16.2%</td></tr><tr><td>Deplasman kazanır</td><td>1.43</td><td>%59</td><td>%58</td><td class="dim">—</td><td class="">-16.3%</td></tr><tr><td>2 veya daha az gol</td><td>2.00</td><td>%41</td><td>%49</td><td class="dim">—</td><td class="">-18.2%</td></tr><tr><td>3 veya daha fazla gol</td><td>1.46</td><td>%59</td><td>%51</td><td class="dim">—</td><td class="">-13.7%</td></tr><tr><td>İki takım da gol atar</td><td>1.52</td><td>%57</td><td>%50</td><td class="dim">—</td><td class="">-13.7%</td></tr><tr><td>En az bir takım gol atamaz</td><td>1.90</td><td>%43</td><td>%50</td><td class="dim">—</td><td class="">-17.9%</td></tr></table>
+<p class="why"><b>Konyaspor</b> son 10 maçta: 2 galibiyet, maç başı 0.7 gol attı / 1.1 yedi, KG %30, 3+ gol %30. <b>Galatasaray</b> son 10 maçta: 7 galibiyet, maç başı 1.9 gol attı / 1.3 yedi, KG %50, 3+ gol %70.</p>
+<p class="acc">İsabet geçmişi (5.200 maç): <b>piyasa</b> ±2 puan kalibre · <b>istatistik</b> piyasadan daha az isabetli, tek başına izlenirse geçmişte −12% · <b>Claude</b> henüz ölçülmedi.</p>
+</div></details>
+<details class="match"><summary><time>Cum 30.10 21:00</time><div><div class="tm">Le Havre – PSG</div><div class="lg">Fransa Ligue 1</div></div><span class="tag">en iyisi -11.9%</span></summary>
+<div class="views"><table><tr><th>Bahis</th><th>Nesine</th><th>Piyasa</th><th>İstatistik</th><th>Claude</th><th>Değer</th></tr><tr><td>Ev sahibi kazanır</td><td>9.07</td><td>%8</td><td>%12</td><td class="dim">—</td><td class="">-25.3%</td></tr><tr><td>Beraberlik</td><td>6.26</td><td>%12</td><td>%18</td><td class="dim">—</td><td class="">-23.3%</td></tr><tr><td>Deplasman kazanır</td><td>1.09</td><td>%80</td><td>%70</td><td class="dim">—</td><td class="">-13.3%</td></tr><tr><td>2 veya daha az gol</td><td>2.99</td><td>%28</td><td>%43</td><td class="dim">—</td><td class="">-15.2%</td></tr><tr><td>3 veya daha fazla gol</td><td>1.17</td><td>%72</td><td>%57</td><td class="dim">—</td><td class="">-16.2%</td></tr><tr><td>İki takım da gol atar</td><td>1.52</td><td>%53</td><td>%48</td><td class="dim">—</td><td class="">-18.9%</td></tr><tr><td>En az bir takım gol atamaz</td><td>1.89</td><td>%47</td><td>%52</td><td class="dim">—</td><td class="">-11.9%</td></tr></table>
+<p class="why"><b>Le Havre</b> son 10 maçta: 1 galibiyet, maç başı 1.0 gol attı / 1.6 yedi, KG %50, 3+ gol %40. <b>PSG</b> son 10 maçta: 6 galibiyet, maç başı 1.9 gol attı / 1.1 yedi, KG %70, 3+ gol %70.</p>
+<p class="acc">İsabet geçmişi (5.200 maç): <b>piyasa</b> ±2 puan kalibre · <b>istatistik</b> piyasadan daha az isabetli, tek başına izlenirse geçmişte −12% · <b>Claude</b> henüz ölçülmedi.</p>
+</div></details>
+<details class="match"><summary><time>Cum 30.10 21:00</time><div><div class="tm">Nice – Rennes</div><div class="lg">Fransa Ligue 1</div></div><span class="tag">en iyisi -14.6%</span></summary>
+<div class="views"><table><tr><th>Bahis</th><th>Nesine</th><th>Piyasa</th><th>İstatistik</th><th>Claude</th><th>Değer</th></tr><tr><td>Ev sahibi kazanır</td><td>2.43</td><td>%35</td><td>%33</td><td class="dim">—</td><td class="">-15.7%</td></tr><tr><td>Beraberlik</td><td>3.34</td><td>%25</td><td>%23</td><td class="dim">—</td><td class="">-16.7%</td></tr><tr><td>Deplasman kazanır</td><td>2.10</td><td>%40</td><td>%44</td><td class="dim">—</td><td class="">-15.3%</td></tr><tr><td>2 veya daha az gol</td><td>2.16</td><td>%38</td><td>%39</td><td class="dim">—</td><td class="">-17.6%</td></tr><tr><td>3 veya daha fazla gol</td><td>1.38</td><td>%62</td><td>%61</td><td class="dim">—</td><td class="">-14.6%</td></tr><tr><td>İki takım da gol atar</td><td>1.33</td><td>%64</td><td>%63</td><td class="dim">—</td><td class="">-15.5%</td></tr><tr><td>En az bir takım gol atamaz</td><td>2.31</td><td>%36</td><td>%37</td><td class="dim">—</td><td class="">-15.7%</td></tr></table>
+<p class="why"><b>Nice</b> son 10 maçta: 3 galibiyet, maç başı 0.9 gol attı / 1.2 yedi, KG %60, 3+ gol %60. <b>Rennes</b> son 10 maçta: 6 galibiyet, maç başı 2.1 gol attı / 1.8 yedi, KG %70, 3+ gol %90.</p>
+<p class="acc">İsabet geçmişi (5.200 maç): <b>piyasa</b> ±2 puan kalibre · <b>istatistik</b> piyasadan daha az isabetli, tek başına izlenirse geçmişte −12% · <b>Claude</b> henüz ölçülmedi.</p>
+</div></details>
+
+<h2 id="sayac">Eşiğe en yakın bahisler</h2>
+<p class="plain"><b>Bu ne demek?</b> Fırsat yoksa bile "en yakın neresi?" diye bakmak için. Her çubuk bir bahis. Çubuk ne kadar sağdaysa Nesine o kadar cömert. Beyaz çizgiye (+%3) ulaşan yeşil yanar ve yukarıda fırsat kartı olur. Çoğu çubuk solda kalır; bu Nesine'nin normal hâlidir.</p>
 <ul class="list"><li class="row "><div class="m"><div class="t">Barcelona – Alaves</div><div class="d">En az bir takım gol atamaz · Nesine <code>1.60</code> · adil <code>1.76</code></div></div><div class="meter "><div class="bar" style="--w:48.7%"></div><div class="tick"></div></div><div class="v">-8.9%</div></li><li class="row "><div class="m"><div class="t">Santander – Real Madrid</div><div class="d">En az bir takım gol atamaz · Nesine <code>2.19</code> · adil <code>2.43</code></div></div><div class="meter "><div class="bar" style="--w:46.3%"></div><div class="tick"></div></div><div class="v">-9.7%</div></li><li class="row "><div class="m"><div class="t">Bayern Münih – B. Dortmund</div><div class="d">Beraberlik · Nesine <code>5.38</code> · adil <code>6.01</code></div></div><div class="meter "><div class="bar" style="--w:44.2%"></div><div class="tick"></div></div><div class="v">-10.4%</div></li><li class="row "><div class="m"><div class="t">Kocaelispor – Rizespor</div><div class="d">Ev sahibi kazanır · Nesine <code>2.36</code> · adil <code>2.65</code></div></div><div class="meter "><div class="bar" style="--w:42.3%"></div><div class="tick"></div></div><div class="v">-11.1%</div></li><li class="row "><div class="m"><div class="t">Vallecano – Celta Vigo</div><div class="d">En az bir takım gol atamaz · Nesine <code>1.72</code> · adil <code>1.93</code></div></div><div class="meter "><div class="bar" style="--w:42.2%"></div><div class="tick"></div></div><div class="v">-11.1%</div></li><li class="row "><div class="m"><div class="t">Trabzonspor – Gaziantep FK</div><div class="d">Ev sahibi kazanır · Nesine <code>1.21</code> · adil <code>1.37</code></div></div><div class="meter "><div class="bar" style="--w:40.4%"></div><div class="tick"></div></div><div class="v">-11.7%</div></li><li class="row "><div class="m"><div class="t">Como 1907 – Venezia</div><div class="d">En az bir takım gol atamaz · Nesine <code>1.92</code> · adil <code>2.17</code></div></div><div class="meter "><div class="bar" style="--w:40.2%"></div><div class="tick"></div></div><div class="v">-11.7%</div></li><li class="row "><div class="m"><div class="t">Elche – Valencia</div><div class="d">En az bir takım gol atamaz · Nesine <code>1.84</code> · adil <code>2.09</code></div></div><div class="meter "><div class="bar" style="--w:40.1%"></div><div class="tick"></div></div><div class="v">-11.8%</div></li><li class="row "><div class="m"><div class="t">Real Betis – Malaga</div><div class="d">Ev sahibi kazanır · Nesine <code>1.21</code> · adil <code>1.37</code></div></div><div class="meter "><div class="bar" style="--w:40.0%"></div><div class="tick"></div></div><div class="v">-11.8%</div></li><li class="row "><div class="m"><div class="t">Schalke 04 – Leipzig</div><div class="d">Beraberlik · Nesine <code>3.46</code> · adil <code>3.93</code></div></div><div class="meter "><div class="bar" style="--w:39.8%"></div><div class="tick"></div></div><div class="v">-11.9%</div></li><li class="row "><div class="m"><div class="t">Le Havre – PSG</div><div class="d">En az bir takım gol atamaz · Nesine <code>1.89</code> · adil <code>2.14</code></div></div><div class="meter "><div class="bar" style="--w:39.7%"></div><div class="tick"></div></div><div class="v">-11.9%</div></li><li class="row "><div class="m"><div class="t">AC Milan – Inter</div><div class="d">Deplasman kazanır · Nesine <code>1.86</code> · adil <code>2.11</code></div></div><div class="meter "><div class="bar" style="--w:39.7%"></div><div class="tick"></div></div><div class="v">-11.9%</div></li></ul>
 <div class="legend"><span><i style="background:#3E5A4D"></i>geride</span><span><i style="background:var(--sodium)"></i>yaklaşıyor (−%5 içinde)</span><span><i style="background:var(--signal)"></i>eşiği geçti</span></div>
 
-<h2>İddaa oranları hareket ediyor mu?</h2>
-<p class="lead"><b>4 kontrolde 59 oran değişimi</b> gördük (32 yükseliş, 27 düşüş). Oranlar hareket ediyor; sorumuz, dünya piyasasından ne kadar <b>geç</b> hareket ettiği. Veri biriktikçe cevap netleşecek.</p>
+<h2 id="degisim">İddaa oranları hareket ediyor mu?</h2>
+<p class="plain"><b>Bu ne demek?</b> Nesine'nin oranları sabit değil; her 20 dakikada bir bakıp değişenleri yazıyoruz. Yeşil ▲ oran yükseldi (daha cömert), turuncu ▼ düştü. "Maça kalan" sütunu, değişimin maçtan ne kadar önce olduğunu gösterir: kadro saatine (60-90 dk kala) yakın değişimler bizim için en önemlisi.</p>
+<p class="lead"><b>4 kontrolde 59 oran değişimi</b> gördük (32 yükseliş, 27 düşüş). Oranlar hareket ediyor; sorumuz, dünya piyasasından ne kadar <b>geç</b> hareket ettiği.</p>
 <ul class="changes"><li><time>28.10 21:54</time><div>AC Monza – Napoli <small>· ev sahibi kazanır · maça 0 sa 50 dk kala</small></div><div class="o up">4.16 ▲ 4.36</div></li><li><time>28.10 21:54</time><div>AC Monza – Napoli <small>· beraberlik · maça 0 sa 50 dk kala</small></div><div class="o up">3.54 ▲ 3.61</div></li><li><time>28.10 21:54</time><div>AC Monza – Napoli <small>· deplasman kazanır · maça 0 sa 50 dk kala</small></div><div class="o down">1.51 ▼ 1.47</div></li><li><time>28.10 21:54</time><div>AC Monza – Napoli <small>· i̇ki takım da gol atar · maça 0 sa 50 dk kala</small></div><div class="o up">1.50 ▲ 1.51</div></li><li><time>28.10 21:54</time><div>AC Monza – Napoli <small>· en az bir takım gol atamaz · maça 0 sa 50 dk kala</small></div><div class="o down">1.92 ▼ 1.90</div></li><li><time>28.10 21:54</time><div>AC Monza – Napoli <small>· 2 veya daha az gol · maça 0 sa 50 dk kala</small></div><div class="o up">1.94 ▲ 1.96</div></li><li><time>28.10 21:54</time><div>AC Monza – Napoli <small>· 3 veya daha fazla gol · maça 0 sa 50 dk kala</small></div><div class="o down">1.49 ▼ 1.47</div></li><li><time>28.10 21:54</time><div>Genoa – Juventus <small>· ev sahibi kazanır · maça 0 sa 50 dk kala</small></div><div class="o up">4.31 ▲ 4.38</div></li><li><time>28.10 21:54</time><div>Genoa – Juventus <small>· beraberlik · maça 0 sa 50 dk kala</small></div><div class="o up">2.96 ▲ 2.98</div></li><li><time>28.10 21:54</time><div>Genoa – Juventus <small>· deplasman kazanır · maça 0 sa 50 dk kala</small></div><div class="o down">1.62 ▼ 1.60</div></li><li><time>28.10 21:54</time><div>Genoa – Juventus <small>· i̇ki takım da gol atar · maça 0 sa 50 dk kala</small></div><div class="o up">2.00 ▲ 2.01</div></li><li><time>28.10 21:26</time><div>AC Monza – Napoli <small>· ev sahibi kazanır · maça 1 sa 18 dk kala</small></div><div class="o up">4.08 ▲ 4.16</div></li><li><time>28.10 21:26</time><div>AC Monza – Napoli <small>· beraberlik · maça 1 sa 18 dk kala</small></div><div class="o up">3.52 ▲ 3.54</div></li><li><time>28.10 21:26</time><div>AC Monza – Napoli <small>· deplasman kazanır · maça 1 sa 18 dk kala</small></div><div class="o down">1.52 ▼ 1.51</div></li><li><time>28.10 21:26</time><div>AC Monza – Napoli <small>· i̇ki takım da gol atar · maça 1 sa 18 dk kala</small></div><div class="o down">1.53 ▼ 1.50</div></li><li><time>28.10 21:26</time><div>AC Monza – Napoli <small>· en az bir takım gol atamaz · maça 1 sa 18 dk kala</small></div><div class="o up">1.88 ▲ 1.92</div></li><li><time>28.10 21:26</time><div>AC Monza – Napoli <small>· 2 veya daha az gol · maça 1 sa 18 dk kala</small></div><div class="o up">1.89 ▲ 1.94</div></li><li><time>28.10 21:26</time><div>AC Monza – Napoli <small>· 3 veya daha fazla gol · maça 1 sa 18 dk kala</small></div><div class="o down">1.52 ▼ 1.49</div></li><li><time>28.10 21:26</time><div>Genoa – Juventus <small>· ev sahibi kazanır · maça 1 sa 18 dk kala</small></div><div class="o down">4.38 ▼ 4.31</div></li><li><time>28.10 21:26</time><div>Genoa – Juventus <small>· beraberlik · maça 1 sa 18 dk kala</small></div><div class="o down">2.99 ▼ 2.96</div></li></ul>
 
-<h2>Bu sayfa ne yapıyor?</h2>
+<h2 id="nasil">Bu sayfa ne yapıyor?</h2>
 <ul class="steps">
   <li><b>1 · Dünya piyasasını okur</b><p>Pinnacle, dünyanın en keskin bahis borsası sayılır: oranları milyonlarca dolarlık parayla saniyeler içinde düzelir. Onu "gerçek ihtimal" ölçütü olarak kullanıyoruz; orada hesabımız yok.</p></li>
   <li><b>2 · Nesine ile karşılaştırır</b><p>Her maçta Nesine'nin oranı, Pinnacle'dan çıkan adil oranla yan yana konur. Nesine daha yüksek veriyorsa fark bizim lehimize: buna "değer" diyoruz.</p></li>
-  <li><b>3 · Sadece matematiğe güvenir</b><p>Tahmin yok, his yok. Geçmiş 5.000 maçta test edildi: değer, 3.00 altı oranlarda gerçek; sürprizlerde yanıltıcı. Şimdi para koymadan canlı ölçüyoruz.</p></li>
+  <li><b>3 · Üç görüşü yan yana koyar</b><p>Piyasa, takım geçmişinden istatistik, Claude'un haber okuması. Hepsinin geçmiş isabeti yazılır. Geçmiş 5.000 maçta: piyasa en isabetli; değer, 3.00 altı oranlarda gerçek, sürprizlerde yanıltıcı.</p></li>
+  <li><b>4 · Kararı size bırakır</b><p>Bot para yatırmaz. Uyarıları, ihtimalleri ve kuponların gerçek maliyetini gösterir; sonradan her uyarıyı puanlar ki hangi görüşe güvenileceğini zamanla veri söylesin.</p></li>
 </ul>
 
 <footer>Sayfa her 20 dakikada otomatik yenilenir; yatırım tavsiyesi değildir. Gerçekçi hedef: uzun vadede yatırılan paranın %2–5'i. Fırsatsız günler normaldir.
