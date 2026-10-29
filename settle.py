@@ -29,8 +29,8 @@ def find_result(res_rows, sport, start, home, away):
     start = datetime.fromisoformat(start)
     best, score = None, 0.0
     for r in res_rows:
-        if r["sport"] != sport:
-            continue
+        if sport and r["sport"] != sport:
+            continue  # lig bilgisi yoksa yalnızca saat + isimle eşle
         d = datetime.fromisoformat(r["date"].replace("Z", "+00:00"))
         if abs((d - start).total_seconds()) > 3 * 3600:
             continue

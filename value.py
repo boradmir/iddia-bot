@@ -43,7 +43,7 @@ def evaluate(nesine_match, probs, pinnacle_odds=None, bankroll=250.0, threshold=
             if threshold is None or ev >= threshold:
                 out.append({
                     "code": nesine_match["code"], "home": nesine_match["home"], "away": nesine_match["away"],
-                    "start": nesine_match["start"], "league": nesine_match["league"],
+                    "start": nesine_match["start"], "league": nesine_match["league"], "sport_key": nesine_match.get("sport_key"),
                     "market": market, "pick": pick, "nesine_odds": o, "fair_prob": p, "fair_odds": round(1 / p, 2),
                     "pinnacle_odds": pinnacle_odds.get(pick) if market == "MS" else None,
                     "ev_pct": round(ev, 2), "stake": stake(o, p, bankroll),
