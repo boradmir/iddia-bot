@@ -13,6 +13,7 @@ import match, odds, prob, value, stats, coupons
 TR = timezone(timedelta(hours=3))
 RECORD_COUPONS = False   # build_site.py --record-coupons ile açılır (yalnızca kayıtçı iş akışı)
 CLAUDE_ACC = "henüz ölçülmedi"   # build() içinde puanlanmış Claude tahminlerinden hesaplanır
+SHADOW = True   # gölge test: para oynanmaz, her şey kaydedilip puanlanır (29.10.2026 karar)
 MARKET_TR = {"MS": "Maç sonucu", "AU25": "2.5 gol alt/üst", "KG": "Karşılıklı gol"}
 PICK_TR = {("MS", "1"): "Ev sahibi kazanır", ("MS", "X"): "Beraberlik", ("MS", "2"): "Deplasman kazanır",
            ("AU25", "Alt"): "2 veya daha az gol", ("AU25", "Üst"): "3 veya daha fazla gol",
@@ -336,8 +337,12 @@ def past_coupons_html(rows):
 # ----------------------------------------------------------------- parçalar
 def coupon_card(b, i, stale, sv, cr=None):
     ok = not stale
-    status = ('<div class="status">✅ Oynanabilir: değer eşiğin üstünde, dünya piyasası verisi güncel.</div>' if ok else
-              '<div class="status warn">⏸ Şimdilik sadece izliyoruz: dünya piyasası verisi eski, deneme aşamasındayız.</div>')
+    if ok and SHADOW:
+        status = '<div class="status">✅ Şartlar sağlandı — gölge testte kaydedildi. Para oynanmıyor; sonucu ve kapanış oranı puanlanacak.</div>'
+    elif ok:
+        status = '<div class="status">✅ Oynanabilir: değer eşiğin üstünde, dünya piyasası verisi güncel.</div>'
+    else:
+        status = '<div class="status warn">⏸ Şimdilik sadece izliyoruz: dünya piyasası verisi eski, deneme aşamasındayız.</div>'
     mbs = f" · tek başına oynanamaz (en az {b['mbs']} maç)" if b["mbs"] > 1 else ""
     why = ""
     if sv:
@@ -518,6 +523,8 @@ def build():
            f'{"" if live else " — kayıt gecikmiş olabilir"}. Dünya piyasası verisi <b>{ago(pin_age)}</b> alındı.')
     if watch.get("active"):
         sub += f' <b>Gözcü açık:</b> {esc(watch.get("note", ""))}'
+    if SHADOW:
+        sub += ' <b>Gölge test:</b> para oynanmıyor; her fırsat kaydedilip maç sonunda puanlanıyor. 200 uyarı sonunda kapanış oranını ortalama +%2 geçiyorsa yöntem kanıtlanmış sayılır.'
     elif stale:
         sub += ' Şu an <b>deneme aşamasındayız</b>: para oynanmıyor, sadece ölçüyoruz.'
     sub += ("<br><span class=\"plain\">Kısaca: Bu sayfa, Nesine'nin verdiği oranı dünyadaki en iyi bahis borsasının oranıyla karşılaştırır. "
