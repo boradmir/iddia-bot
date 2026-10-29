@@ -129,149 +129,169 @@ def form_line(name, f):
 
 # ----------------------------------------------------------------- CSS
 CSS = """
-:root{--pitch:#0B1F17;--pitch-2:#122B21;--pitch-3:#17352A;--line:#20402F;--chalk:#F2F5F0;--chalk-dim:#A9B8AF;--sodium:#F5C04A;
---paper:#FBF7EA;--ink:#1B1B1B;--ink-dim:#6B665C;--signal:#2ED47A;--ember:#F08A4B;--rule:#E5DCC3}
+:root{--bg:#F4F1EA;--card:#FFFFFF;--line:#E3DED2;--ink:#14261F;--ink-2:#4A5A52;--muted:#7D8A83;--board:#0F3326;--board-2:#164B38;
+--sodium:#E8A800;--sodium-soft:#FFF3CC;--signal:#1D9A5B;--signal-soft:#E3F5EB;--ember:#D1612A;--ember-soft:#FBE9DF;--chalk:#F2F5F0;--chalk-dim:#B9C7BF}
 *{box-sizing:border-box;min-width:0}
-html{background:var(--pitch)}
-body{margin:0;font-family:"Source Sans 3",system-ui,sans-serif;font-size:16.5px;line-height:1.5;color:var(--chalk);overflow-x:hidden;
-background:radial-gradient(1100px 520px at 50% -180px,#1B4A36 0%,var(--pitch) 60%)}
-.wrap{max-width:960px;margin:0 auto;padding:0 18px 80px}
-header{padding:28px 0 6px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
-.brand{font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:22px;letter-spacing:.08em;text-transform:uppercase;color:var(--sodium)}
-.brand small{display:block;font-family:"Source Sans 3",sans-serif;font-weight:400;font-size:13.5px;letter-spacing:0;text-transform:none;color:var(--chalk-dim)}
-.clock{font-family:"JetBrains Mono",monospace;font-size:13px;color:var(--chalk-dim);padding-top:6px}
-nav{position:sticky;top:0;z-index:5;background:rgba(11,31,23,.92);backdrop-filter:blur(6px);margin:10px -18px 0;padding:8px 18px;border-bottom:1px solid var(--line);display:flex;gap:4px 14px;flex-wrap:wrap;font-size:14px}
-nav a{color:var(--chalk-dim);text-decoration:none;padding:4px 0;border-bottom:2px solid transparent}
-nav a:hover,nav a:focus{color:var(--sodium);border-color:var(--sodium)}
-/* hero */
-.hero{padding:34px 0 26px}
-.verdict{font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:clamp(46px,9vw,88px);line-height:.95;letter-spacing:-.01em;margin:0;
-opacity:0;transform:translateY(14px);animation:rise .7s .1s cubic-bezier(.2,.7,.2,1) forwards}
-.verdict em{font-style:normal;color:var(--sodium)}
+html{background:var(--bg)}
+body{margin:0;font-family:"Source Sans 3",system-ui,sans-serif;font-size:16.5px;line-height:1.5;color:var(--ink);background:var(--bg);overflow-x:hidden}
+a{color:var(--board-2)}
+.wrap{max-width:1040px;margin:0 auto;padding:0 20px 80px}
+/* üst bar */
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:18px 0 14px;gap:12px;flex-wrap:wrap}
+.brand{font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:24px;letter-spacing:.06em;text-transform:uppercase;color:var(--board)}
+.brand small{display:block;font-family:"Source Sans 3",sans-serif;font-weight:400;font-size:13.5px;letter-spacing:0;text-transform:none;color:var(--muted)}
+.clock{font-family:"JetBrains Mono",monospace;font-size:13px;color:var(--muted)}
+/* skorbord */
+.board{background:linear-gradient(135deg,var(--board) 0%,var(--board-2) 100%);color:var(--chalk);border-radius:18px;padding:28px 28px 24px;box-shadow:0 14px 40px rgba(15,51,38,.25);position:relative;overflow:hidden}
+.board::after{content:"";position:absolute;inset:auto -60px -120px auto;width:320px;height:320px;border-radius:50%;border:2px solid rgba(255,255,255,.08)}
+.verdict{font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:clamp(42px,7vw,76px);line-height:.95;letter-spacing:-.01em;margin:0;opacity:0;transform:translateY(10px);animation:rise .6s .05s cubic-bezier(.2,.7,.2,1) forwards}
+.verdict em{font-style:normal;color:#FFCF4D}
 @keyframes rise{to{opacity:1;transform:none}}
-.pills{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0 0;padding:0;list-style:none;opacity:0;animation:rise .7s .3s forwards}
-.pills li{display:inline-flex;align-items:center;gap:8px;background:var(--pitch-2);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:14px;color:var(--chalk-dim)}
+.pills{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 0;padding:0;list-style:none}
+.pills li{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);border-radius:999px;padding:5px 12px;font-size:13.5px;color:var(--chalk-dim)}
 .pills b{color:var(--chalk);font-weight:600}
-.pills .shadow{border-color:rgba(245,192,74,.45);color:var(--sodium)}
-.pulse{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--signal);box-shadow:0 0 0 0 rgba(46,212,122,.6);animation:pulse 2.2s infinite}
+.pills .shadow{border-color:rgba(255,207,77,.6);color:#FFCF4D}
+.pulse{display:inline-block;width:9px;height:9px;border-radius:50%;background:#3EE38C;box-shadow:0 0 0 0 rgba(62,227,140,.6);animation:pulse 2.2s infinite}
 .pulse.off{background:var(--ember);box-shadow:none;animation:none}
-@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(46,212,122,.6)}70%{box-shadow:0 0 0 10px rgba(46,212,122,0)}100%{box-shadow:0 0 0 0 rgba(46,212,122,0)}}
-.facts{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:22px 0 0;padding:0;list-style:none;opacity:0;animation:rise .7s .45s forwards}
-.facts li{background:var(--pitch-2);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
-.facts .n{font-family:"Barlow Condensed",sans-serif;font-size:34px;font-weight:700;line-height:1;color:var(--chalk)}
-.facts .l{font-size:13.5px;color:var(--chalk-dim);margin-top:4px}
-.facts .good{color:var(--signal)}.facts .bad{color:var(--ember)}
-/* bölümler */
-section.block{margin-top:44px;padding-top:22px;border-top:1px solid var(--line)}
-h2{font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:30px;letter-spacing:.02em;margin:0 0 4px;color:var(--chalk)}
-h2 small{font-family:"Source Sans 3",sans-serif;font-size:14px;letter-spacing:0;color:var(--chalk-dim);font-weight:400;margin-left:8px}
-.lead{margin:0 0 14px;color:var(--chalk-dim);font-size:15.5px}
-.lead b{color:var(--chalk);font-weight:600}
-details.help{margin:0 0 16px}
-details.help summary{list-style:none;cursor:pointer;display:inline-block;font-size:13.5px;color:var(--sodium);border:1px solid rgba(245,192,74,.4);border-radius:999px;padding:3px 11px}
-details.help summary::-webkit-details-marker{display:none}
-details.help[open] summary{background:rgba(245,192,74,.12)}
-details.help .plain{margin:10px 0 0;padding:12px 14px;border-left:3px solid var(--sodium);background:rgba(245,192,74,.06);border-radius:0 8px 8px 0}
-.plain{color:var(--chalk-dim);font-size:15px;line-height:1.55}
-.plain b{color:var(--chalk)}
-.note{background:rgba(245,192,74,.08);border-left:3px solid var(--sodium);padding:10px 14px;border-radius:0 8px 8px 0;color:var(--chalk-dim);font-size:14.5px;margin:0 0 16px}
-.note b{color:var(--chalk)}
-.empty{background:var(--pitch-2);border:1px dashed var(--line);border-radius:12px;padding:18px 20px;color:var(--chalk-dim);font-size:15px}
-.empty b{color:var(--chalk)}
-/* kupon kartı */
-.coupon{position:relative;background:var(--paper);color:var(--ink);border-radius:8px;padding:18px 20px 18px;margin:14px 0;
-box-shadow:0 10px 28px rgba(0,0,0,.35);opacity:0;animation:rise .6s forwards}
-.coupon::before,.coupon::after{content:"";position:absolute;left:0;right:0;height:8px;background:
-radial-gradient(circle at 6px 4px,var(--pitch) 4px,transparent 4.5px) 0 0/16px 8px repeat-x}
-.coupon::before{top:-4px}.coupon::after{bottom:-4px;transform:scaleY(-1)}
-.coupon .top{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;border-bottom:1px dashed var(--rule);padding-bottom:10px;margin-bottom:12px}
-.coupon .teams{font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:26px;line-height:1.05}
-.coupon .meta{font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--ink-dim);text-align:right}
-.coupon .title{font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:22px}
-.pickbadge{display:inline-block;background:var(--sodium);color:#1B1B1B;font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:22px;letter-spacing:.02em;padding:4px 12px;border-radius:6px;margin:2px 0 6px}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(62,227,140,.6)}70%{box-shadow:0 0 0 10px rgba(62,227,140,0)}100%{box-shadow:0 0 0 0 rgba(62,227,140,0)}}
+.facts{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:20px 0 0;padding:0;list-style:none}
+.facts li{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:12px 14px}
+.facts .n{font-family:"Barlow Condensed",sans-serif;font-size:34px;font-weight:700;line-height:1;color:#fff}
+.facts .l{font-size:13px;color:var(--chalk-dim);margin-top:4px}
+.facts .good{color:#3EE38C}.facts .bad{color:#FF9A6B}
+/* sekmeler */
+.tabs{position:sticky;top:0;z-index:5;background:rgba(244,241,234,.94);backdrop-filter:blur(6px);margin:18px -20px 0;padding:10px 20px;border-bottom:1px solid var(--line);display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tabs a{flex:0 0 auto;text-decoration:none;color:var(--ink-2);font-weight:600;font-size:14.5px;padding:8px 14px;border-radius:999px;border:1px solid transparent;white-space:nowrap}
+.tabs a:hover{background:#fff;border-color:var(--line)}
+.tabs a.on{background:var(--board);color:#fff;border-color:var(--board)}
+.tabs a .cnt{display:inline-block;margin-left:6px;background:rgba(255,255,255,.18);border-radius:999px;padding:0 7px;font-size:12px}
+.tabs a:not(.on) .cnt{background:var(--sodium-soft);color:#6b4d00}
+.panel{display:none;padding-top:26px;animation:fade .35s}
+.panel.on{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+h2{font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:30px;letter-spacing:.01em;margin:0 0 4px;color:var(--board)}
+h2 small{font-family:"Source Sans 3",sans-serif;font-size:14px;letter-spacing:0;color:var(--muted);font-weight:400;margin-left:8px}
+h3{font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:22px;margin:30px 0 8px;color:var(--board)}
+.lead{margin:0 0 16px;color:var(--ink-2);font-size:15.5px;max-width:760px}
+.lead b{color:var(--ink);font-weight:600}
+.lead a.q{font-size:13px;margin-left:6px;color:var(--board-2);text-decoration:underline dotted}
+.note{background:var(--sodium-soft);border-left:4px solid var(--sodium);padding:10px 14px;border-radius:0 10px 10px 0;color:#4a3a00;font-size:14.5px;margin:0 0 16px;max-width:900px}
+.note b{color:#2f2500}
+.empty{background:var(--card);border:1px dashed var(--line);border-radius:14px;padding:18px 20px;color:var(--ink-2);font-size:15px}
+.empty b{color:var(--ink)}
+.plain{color:var(--ink-2);font-size:15px;line-height:1.55}
+.plain b{color:var(--ink)}
+/* kart genel */
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;box-shadow:0 2px 10px rgba(20,38,31,.05)}
+/* fırsat kartı */
+.coupon{position:relative;background:var(--card);color:var(--ink);border:1px solid var(--line);border-left:6px solid var(--signal);border-radius:14px;padding:18px 20px;margin:14px 0;box-shadow:0 6px 20px rgba(20,38,31,.07);opacity:0;animation:rise .5s forwards}
+.coupon.combo{border-left-color:var(--board-2)}
+.coupon .top{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:12px}
+.coupon .teams{font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:26px;line-height:1.05;color:var(--board)}
+.coupon .meta{font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--muted);text-align:right}
+.coupon .title{font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:22px;color:var(--board)}
+.pickbadge{display:inline-block;background:var(--sodium);color:#1B1B1B;font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:22px;letter-spacing:.02em;padding:4px 12px;border-radius:8px;margin:2px 0 6px}
 .pickbadge small{display:block;font-family:"Source Sans 3",sans-serif;font-weight:600;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#5a4a12;margin-bottom:-2px}
 .coupon .pick{font-size:18px;font-weight:600;margin:0 0 10px}
-.coupon .pick small{display:block;font-weight:400;font-size:13.5px;color:var(--ink-dim)}
-.coupon dl{display:grid;grid-template-columns:1fr auto;gap:5px 16px;margin:0;font-size:15px}
-.coupon dt{color:var(--ink-dim)}
+.coupon .pick small{display:block;font-weight:400;font-size:13.5px;color:var(--muted)}
+.coupon dl{display:grid;grid-template-columns:1fr auto;gap:6px 16px;margin:0;font-size:15px}
+.coupon dt{color:var(--ink-2)}
 .coupon dd{margin:0;font-family:"JetBrains Mono",monospace;font-weight:600;text-align:right;white-space:nowrap}
-.coupon dd.good{color:#117A45}.coupon dd.bad{color:#9A4F12}
-.coupon .status{margin-top:12px;padding-top:10px;border-top:1px dashed var(--rule);font-size:14px;color:var(--ink-dim)}
-.coupon .status.warn{color:#9A4F12}
-.coupon .why{margin-top:10px;font-size:14px;color:var(--ink-dim)}
+.coupon dd.good{color:var(--signal)}.coupon dd.bad{color:var(--ember)}
+.coupon .status{margin-top:12px;padding:10px 12px;border-radius:10px;background:var(--signal-soft);font-size:14px;color:#145c3a}
+.coupon .status.warn{background:var(--ember-soft);color:#8a3d12}
+.coupon .why{margin-top:10px;font-size:14px;color:var(--ink-2)}
 .coupon .why b{color:var(--ink)}
-.coupon .legs{list-style:none;margin:0 0 10px;padding:0;font-size:15px}
-.coupon .legs li{display:grid;grid-template-columns:1fr auto auto;gap:10px;padding:6px 0;border-bottom:1px dotted var(--rule);align-items:center}
-.coupon .legs .p{font-family:"JetBrains Mono",monospace;color:var(--ink-dim);font-size:13.5px}
+.coupon .legs{list-style:none;margin:0 0 12px;padding:0;font-size:15px}
+.coupon .legs li{display:grid;grid-template-columns:1fr auto auto;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);align-items:center}
+.coupon .legs .p{font-family:"JetBrains Mono",monospace;color:var(--muted);font-size:13.5px}
 .coupon .legs .o{font-family:"JetBrains Mono",monospace;font-weight:700}
-.coupon .legs small{display:block;color:var(--ink-dim);font-size:12.5px}
-.pb{display:inline-block;background:var(--sodium);color:#1B1B1B;font-weight:700;font-size:12px;padding:1px 7px;border-radius:4px;margin-right:5px}
+.coupon .legs small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}
+.pb{display:inline-block;background:var(--sodium-soft);color:#5a4a12;border:1px solid #F0D98A;font-weight:700;font-size:12px;padding:1px 7px;border-radius:5px;margin-right:5px}
 .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
-.grid .coupon{margin:6px 0}
-.claudebox{margin:12px 0 0;padding:12px 14px;border-radius:8px;background:rgba(245,192,74,.07);border:1px solid rgba(245,192,74,.25);font-size:14.5px}
-.claudebox p{margin:6px 0 0}.claudebox ul{margin:8px 0 0;padding-left:18px;color:var(--chalk-dim);font-size:13.5px}.claudebox .muted{color:var(--chalk-dim);font-size:13px}
-.coupon .claudebox{background:#F3EBD3;border-color:#E0D2A6;color:var(--ink)}.coupon .claudebox ul{color:var(--ink-dim)}
+.grid .coupon{margin:4px 0}
+.claudebox{margin:12px 0 0;padding:12px 14px;border-radius:10px;background:var(--sodium-soft);border:1px solid #F0D98A;font-size:14.5px;color:var(--ink)}
+.claudebox p{margin:6px 0 0}.claudebox ul{margin:8px 0 0;padding-left:18px;color:var(--ink-2);font-size:13.5px}.claudebox .muted{color:var(--muted);font-size:13px}
 /* değer sayacı */
 .list{list-style:none;margin:0;padding:0}
-.row{display:grid;grid-template-columns:1fr 150px 64px;gap:14px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.row{display:grid;grid-template-columns:1fr 160px 64px;gap:14px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
 .row .t{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.row .d{font-size:13.5px;color:var(--chalk-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.row .d code{font-family:"JetBrains Mono",monospace;font-size:13px;color:var(--chalk)}
-.row .v{font-family:"JetBrains Mono",monospace;font-size:14.5px;text-align:right;color:var(--chalk-dim)}
+.row .d{font-size:13.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .d code{font-family:"JetBrains Mono",monospace;font-size:13px;color:var(--ink)}
+.row .v{font-family:"JetBrains Mono",monospace;font-size:14.5px;text-align:right;color:var(--ink-2)}
 .row.hit .v{color:var(--signal);font-weight:700}
-.meter{position:relative;height:10px;background:#0A1812;border-radius:5px}
-.meter .bar{height:100%;width:0;border-radius:5px;background:#3E5A4D;animation:grow 1.1s cubic-bezier(.2,.7,.2,1) forwards}
+.meter{position:relative;height:10px;background:#E6E1D5;border-radius:5px}
+.meter .bar{height:100%;width:0;border-radius:5px;background:#A9B5AE;animation:grow 1s cubic-bezier(.2,.7,.2,1) forwards}
 .meter.near .bar{background:var(--sodium)}
 .meter.hit .bar{background:var(--signal)}
-.meter .tick{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--chalk);opacity:.7;left:calc(100% * (3 - (-25)) / (8 - (-25)))}
+.meter .tick{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--board);opacity:.8;left:calc(100% * (3 - (-25)) / (8 - (-25)))}
 @keyframes grow{to{width:var(--w)}}
-.legend{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--chalk-dim);margin:10px 0 0}
+.legend{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin:10px 0 0}
 .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
-/* maç detayları */
-details.match{background:var(--pitch-2);border:1px solid var(--line);border-radius:12px;margin:8px 0;overflow:hidden}
-details.match summary{list-style:none;cursor:pointer;display:grid;grid-template-columns:104px 1fr auto;gap:12px;padding:11px 14px;align-items:center}
+/* maç kartları */
+details.match{background:var(--card);border:1px solid var(--line);border-radius:14px;margin:10px 0;overflow:hidden;box-shadow:0 2px 10px rgba(20,38,31,.04)}
+details.match summary{list-style:none;cursor:pointer;display:grid;grid-template-columns:104px 1fr auto;gap:12px;padding:13px 16px;align-items:center}
 details.match summary::-webkit-details-marker{display:none}
-details.match summary:hover{background:var(--pitch-3)}
-details.match summary time{font-family:"JetBrains Mono",monospace;font-size:12.5px;color:var(--chalk-dim)}
-details.match summary .tm{font-weight:600}
-details.match summary .lg{font-size:12.5px;color:var(--chalk-dim)}
-details.match summary .tag{font-size:12px;padding:3px 8px;border-radius:999px;background:#0A1812;color:var(--chalk-dim);white-space:nowrap}
-details.match summary .tag.hit{background:rgba(46,212,122,.15);color:var(--signal)}
-details.match summary .tag.miss{background:rgba(240,138,75,.15);color:var(--ember)}
-details.match[open] summary{border-bottom:1px solid var(--line)}
-.views{padding:12px 14px 14px;overflow-x:auto}
+details.match summary:hover{background:#FBFAF6}
+details.match summary time{font-family:"JetBrains Mono",monospace;font-size:12.5px;color:var(--muted)}
+details.match summary .tm{font-weight:700;color:var(--board)}
+details.match summary .lg{font-size:12.5px;color:var(--muted)}
+details.match summary .tag{font-size:12px;padding:3px 9px;border-radius:999px;background:#EFEBE0;color:var(--ink-2);white-space:nowrap}
+details.match summary .tag.hit{background:var(--signal-soft);color:#145c3a}
+details.match summary .tag.miss{background:var(--ember-soft);color:#8a3d12}
+details.match[open] summary{border-bottom:1px solid var(--line);background:#FBFAF6}
+.views{padding:14px 16px 16px;overflow-x:auto}
 .views table{width:100%;border-collapse:collapse;font-size:14.5px;min-width:520px}
-.views th{font-weight:600;color:var(--chalk-dim);font-size:12.5px;text-align:right;padding:6px 8px;border-bottom:1px solid var(--line)}
+.views th{font-weight:600;color:var(--muted);font-size:12.5px;text-align:right;padding:6px 8px;border-bottom:1px solid var(--line)}
 .views th:first-child,.views td:first-child{text-align:left}
-.views td{padding:6px 8px;text-align:right;font-family:"JetBrains Mono",monospace;font-size:13.5px;border-bottom:1px solid rgba(30,58,46,.5)}
+.views td{padding:7px 8px;text-align:right;font-family:"JetBrains Mono",monospace;font-size:13.5px;border-bottom:1px solid #F0ECE2}
 .views td:first-child{font-family:"Source Sans 3",sans-serif;font-size:14.5px}
-.views td.good{color:var(--signal);font-weight:600}
-.views td.dim{color:var(--chalk-dim)}
-.views tr.rec td{background:rgba(46,212,122,.12)}
-.views tr.rec td:first-child{font-weight:700;color:var(--signal)}
+.views td.good{color:var(--signal);font-weight:700}
+.views td.dim{color:var(--muted)}
+.views tr.rec td{background:var(--signal-soft)}
+.views tr.rec td:first-child{font-weight:700;color:#145c3a}
 .views tr.rec td:first-child::before{content:"▶ ";font-size:11px}
-.views .why{margin:12px 0 0;font-size:14px;color:var(--chalk-dim)}
-.views .why b{color:var(--chalk)}
-.views .acc{margin:10px 0 0;font-size:12.5px;color:var(--chalk-dim)}
-.plainlegs{list-style:none;margin:0;padding:0}.plainlegs li{display:grid;grid-template-columns:1fr auto auto;gap:10px;padding:6px 0;border-bottom:1px solid var(--line);font-size:14.5px}.plainlegs small{display:block;color:var(--chalk-dim);font-size:12.5px}.plainlegs .o{font-family:"JetBrains Mono",monospace}
+.views .why{margin:12px 0 0;font-size:14px;color:var(--ink-2)}
+.views .why b{color:var(--ink)}
+.views .acc{margin:10px 0 0;font-size:12.5px;color:var(--muted)}
+.plainlegs{list-style:none;margin:0;padding:0}.plainlegs li{display:grid;grid-template-columns:1fr auto auto;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:14.5px}.plainlegs small{display:block;color:var(--muted);font-size:12.5px}.plainlegs .o{font-family:"JetBrains Mono",monospace}
 /* listeler */
 .alerts,.changes{list-style:none;margin:0;padding:0}
-.alerts li,.changes li{display:grid;grid-template-columns:84px 1fr auto;gap:12px;padding:9px 0;border-bottom:1px solid var(--line);font-size:15px;align-items:baseline}
-.alerts time,.changes time{font-family:"JetBrains Mono",monospace;font-size:12.5px;color:var(--chalk-dim)}
+.alerts li,.changes li{display:grid;grid-template-columns:84px 1fr auto;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);font-size:15px;align-items:baseline}
+.alerts time,.changes time{font-family:"JetBrains Mono",monospace;font-size:12.5px;color:var(--muted)}
 .alerts .r,.changes .o{font-family:"JetBrains Mono",monospace;font-size:14px;text-align:right;white-space:nowrap}
 .alerts .r.good,.changes .o.up{color:var(--signal)}.alerts .r.bad,.changes .o.down{color:var(--ember)}
-.alerts small,.changes small{display:block;color:var(--chalk-dim);font-size:13px}
+.alerts small,.changes small{display:block;color:var(--muted);font-size:13px}
 .changes small{display:inline}
-.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:0;padding:0;list-style:none}
-.steps li{background:var(--pitch-2);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
-.steps b{display:block;font-family:"Barlow Condensed",sans-serif;font-size:21px;font-weight:700;margin-bottom:4px}
-.steps p{margin:0;color:var(--chalk-dim);font-size:14.5px}
-footer{margin-top:56px;padding-top:18px;border-top:1px solid var(--line);color:var(--chalk-dim);font-size:13.5px}
-footer a{color:var(--sodium)}
-@media (max-width:720px){.grid{grid-template-columns:1fr}.facts{grid-template-columns:repeat(2,1fr)}}
+/* claude kartları */
+.cl{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+.cl .card{opacity:0;animation:rise .5s forwards}
+.cl .head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:8px}
+.cl .tm{font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:22px;color:var(--board);line-height:1.05}
+.cl .when{font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--muted)}
+.cl .vd{font-size:12px;padding:3px 9px;border-radius:999px;white-space:nowrap}
+.cl .vd.ok{background:var(--signal-soft);color:#145c3a}.cl .vd.warn{background:var(--ember-soft);color:#8a3d12}
+.cl .probs{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:10px 0}
+.cl .probs div{background:#F7F5EF;border-radius:8px;padding:6px 8px;text-align:center}
+.cl .probs b{display:block;font-family:"JetBrains Mono",monospace;font-size:15px}
+.cl .probs small{font-size:11px;color:var(--muted)}
+.cl .probs .hitp{background:var(--signal-soft)}.cl .probs .missp{background:var(--ember-soft)}
+.cl p{margin:8px 0 0;font-size:14.5px;color:var(--ink-2)}
+.cl ul{margin:8px 0 0;padding-left:18px;font-size:13.5px;color:var(--ink-2)}
+.cl .res{margin-top:10px;font-size:13.5px;color:var(--ink-2);border-top:1px solid var(--line);padding-top:8px}
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin:0;padding:0;list-style:none}
+.steps li{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+.steps b{display:block;font-family:"Barlow Condensed",sans-serif;font-size:22px;font-weight:700;margin-bottom:4px;color:var(--board)}
+.steps p{margin:0;color:var(--ink-2);font-size:14.5px}
+.gloss{margin:16px 0 0;padding:0;list-style:none;display:grid;gap:10px}
+.gloss li{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 16px}
+.gloss b{display:block;color:var(--board);margin-bottom:2px}
+footer{margin-top:56px;padding-top:18px;border-top:1px solid var(--line);color:var(--muted);font-size:13.5px}
+@media (max-width:760px){.grid,.cl{grid-template-columns:1fr}.facts{grid-template-columns:repeat(2,1fr)}.board{padding:22px 18px 18px;border-radius:14px}}
 @media (max-width:560px){.row{grid-template-columns:1fr 92px 54px}.alerts li,.changes li{grid-template-columns:64px 1fr}.alerts .r,.changes .o{grid-column:2;text-align:left}
-details.match summary{grid-template-columns:1fr auto}details.match summary time{grid-column:1/-1}.coupon{padding:16px 14px}.coupon .meta{text-align:left}}
-@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.verdict,.pills,.facts,.coupon{opacity:1;transform:none}.meter .bar{width:var(--w)}}
+details.match summary{grid-template-columns:1fr auto}details.match summary time{grid-column:1/-1}.coupon{padding:16px 14px}.coupon .meta{text-align:left}.cl .probs{grid-template-columns:repeat(3,1fr)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.verdict,.coupon,.cl .card{opacity:1;transform:none}.meter .bar{width:var(--w)}}
 """
 
 
@@ -386,7 +406,7 @@ def combo_card(title, c, i, kind):
                f"uzun vadede her {tl} TL'nin yaklaşık <b>{loss*tl/100:.0f} TL'si kaybedilir</b>." if c["ev_pct"] < 0 else
                f"Nesine'nin en küçük kuponu {tl} TL; tutarsa <b>{tl*c['odds']:.0f} TL</b> öder. Beklenen değer artı: {tl} TL'ye yaklaşık <b>{c['ev_pct']*tl/100:.0f} TL kazanç</b> beklenir.")
     return f"""
-<article class="coupon" style="animation-delay:{.4 + i*.1:.2f}s">
+<article class="coupon combo" style="animation-delay:{.4 + i*.1:.2f}s">
   <div class="top"><div class="title">{title}</div><div class="meta">{c['n']} maç · {kind}</div></div>
   <ul class="legs">{legs}</ul>
   <dl>
@@ -421,6 +441,40 @@ def claude_box(cr):
         html_ += f'<p><b>İtiraz gerekçesi:</b> {esc(ob.get("reason", ""))}</p>'
     html_ += (f"<ul>{facts}</ul>" if facts else '<p class="muted">Somut haber bulunamadı.</p>') + "</div>"
     return html_
+
+
+def claude_section(rows):
+    """Claude'un tüm analizleri (maç bitince de kalır): yorum, risk, haberler, kör ihtimaller ve varsa sonuç."""
+    rows = sorted(rows, key=lambda r: r["t"], reverse=True)[:12]
+    if not rows:
+        return '<div class="empty"><b>Henüz analiz yok.</b> Claude, gözcü açıkken maça 100 dakika kala devreye girer: haberleri okur, oranı görmeden tahmin eder.</div>'
+    out = ""
+    for i, r in enumerate(rows):
+        bl = r["blind"]; ob = r.get("objection") or {}; res = r.get("result") if isinstance(r.get("result"), dict) else None
+        vd = ('<span class="vd ok">piyasaya itiraz yok</span>' if ob.get("verdict") == "ok" else
+              '<span class="vd warn">⚠ itiraz var</span>' if ob.get("verdict") == "warn" else "")
+        def cell(label, p, key, want):
+            cls = ""
+            if res:
+                cls = " hitp" if res.get(key) == want else " missp"
+            return f'<div class="{cls.strip()}"><b>%{p*100:.0f}</b><small>{label}</small></div>'
+        probs = (cell("Ev", bl["p_home"], "MS", "1") + cell("Beraberlik", bl["p_draw"], "MS", "X") + cell("Deplasman", bl["p_away"], "MS", "2")
+                 + cell("3+ gol", bl["p_over25"], "AU25", "Üst") + cell("KG var", bl["p_btts"], "KG", "Var"))
+        facts = "".join(f"<li>{esc(x)}</li>" for x in bl.get("facts", [])[:4])
+        resline = ""
+        if res:
+            bc = res.get("brier_claude", {}).get("MS"); bm = res.get("brier_market", {}).get("MS")
+            resline = (f'<div class="res">Sonuç <b>{esc(res.get("score", ""))}</b> · yeşil kutular tutan tahminler. İsabet puanı (küçük iyi): Claude {bc:.2f}, piyasa {bm:.2f}.</div>'
+                       if bc is not None and bm is not None else f'<div class="res">Sonuç <b>{esc(res.get("score", ""))}</b></div>')
+        out += f"""<article class="card" style="animation-delay:{i*.06:.2f}s"><div class="head"><div><div class="tm">{esc(r['home'])} – {esc(r['away'])}</div>
+<div class="when">{tr_time(r['start'], day=True)} · {esc(r.get('league', ''))} · analiz {tr_time(r['t'])}</div></div>{vd}</div>
+<div class="probs">{probs}</div>
+<p>{esc(bl.get('comment', ''))}</p>
+<p><b>Risk:</b> {esc(bl.get('risk', ''))} <span class="when">(güven: {esc(bl.get('confidence', ''))})</span></p>
+{f'<p><b>İtiraz gerekçesi:</b> {esc(ob.get("reason", ""))}</p>' if ob.get("verdict") == "warn" else ''}
+{f'<ul>{facts}</ul>' if facts else ''}
+{resline}</article>"""
+    return f'<div class="cl">{out}</div>'
 
 
 def match_details(m, h2h_probs, sv, bets_by_code, cr=None):
@@ -605,72 +659,80 @@ def build():
     else:
         ch_lead = "Henüz oran değişimi görmedik; kayıtlar birikiyor."
 
+    n_alerts = len(alerts); n_cards = len(cards); n_claude = len(all_claude); n_soon = len(soon)
+    cnt = lambda n: f'<span class="cnt">{n}</span>' if n else ""
     return f"""<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>İddia Bot</title>
 <meta name="description" content="Nesine oranlarını dünya piyasasıyla karşılaştıran deneme sayfası.">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>{CSS}</style></head><body><div class="wrap">
-<header><div><div class="brand">İddia Bot<small>Nesine oranı dünya piyasasından yüksek mi?</small></div>
-<nav><a href="#uyarilar">Uyarılar</a><a href="#firsatlar">Fırsatlar</a><a href="#kuponlar">Kuponlar</a><a href="#gecmis">Geçmiş kuponlar</a><a href="#maclar">Maçlar</a><a href="#sayac">Sayaç</a><a href="#degisim">Oran hareketi</a><a href="#nasil">Nasıl çalışır</a></nav></div>
-<div class="clock">{tr_time(now)} TSİ</div></header>
+<div class="topbar"><div class="brand">İddia Bot<small>Nesine oranı dünya piyasasından yüksek mi? · gölge test</small></div><div class="clock">{tr_time(now)} TSİ</div></div>
 
-<section class="hero">
+<section class="board">
   <h1 class="verdict">{verdict}</h1>
-  <p class="sub">{sub}</p>
+  {sub}
   {facts}
 </section>
 
-<section class="block" id="uyarilar">
-<h2>Gözcü uyarıları <small>maç saatine yakın yakalananlar</small></h2>
-<details class="help"><summary>Bu ne demek?</summary><p class="plain">Maçtan 1-2 saat önce kadrolar açıklanır, sakatlıklar duyulur. Dünya piyasası bunu saniyeler içinde orana yansıtır; Nesine bazen geç kalır. "Gözcü", o anları yakalamak için maç saatine yakın sürekli bakar. Yakaladığında burada bir satır çıkar.</p></details>
-<p class="lead">{al_lead}</p>
-{f'<ul class="alerts">{al_html}</ul>' if al_html else '<div class="empty"><b>Henüz uyarı yok.</b> Gözcü maç saatine yakın açılır; Nesine dünya piyasasından geç kaldığında ilk satır burada belirir.</div>'}
+<nav class="tabs" id="tabs">
+  <a href="#bugun" data-tab="bugun" class="on">Bugün{cnt(n_cards)}</a>
+  <a href="#uyarilar" data-tab="uyarilar">Uyarılar{cnt(n_alerts)}</a>
+  <a href="#kuponlar" data-tab="kuponlar">Kuponlar</a>
+  <a href="#gecmis" data-tab="gecmis">Geçmiş</a>
+  <a href="#maclar" data-tab="maclar">Maçlar{cnt(n_soon)}</a>
+  <a href="#claude" data-tab="claude">Claude{cnt(n_claude)}</a>
+  <a href="#hareket" data-tab="hareket">Oran hareketi</a>
+  <a href="#nasil" data-tab="nasil">Nasıl çalışır</a>
+</nav>
 
-</section>
-<section class="block" id="firsatlar">
+<section class="panel on" id="p-bugun">
 <h2>Fırsatlar <small>şu anki kayıtlara göre</small></h2>
-<details class="help"><summary>Bu ne demek?</summary><p class="plain">Diyelim bir maçta ev sahibinin kazanma ihtimali gerçekte %50. Buna denk gelen "adil oran" 2.00'dır (100 ÷ 50). Nesine 2.10 veriyorsa, bize hak ettiğimizden fazla ödüyor demektir: işte "fırsat" bu. Nesine 1.85 veriyorsa (çoğu zaman öyle) fırsat yoktur.</p></details>
-<p class="lead">Fırsat demek için üç şart: Nesine oranı adil orandan en az <b>%3</b> yüksek, oran <b>3.00'ın altında</b> (yüksek oranlı sürprizlerde bu hesap yanıltıyor, geçmiş veriyle gördük) ve dünya piyasası verisi <b>10 dakikadan taze</b>.</p>
-<details class="help"><summary>Yatırım tutarı nasıl okunur?</summary><p class="plain">Kartta "kasanın %2'si" gibi bir oran yazar; bu, matematiğin önerdiği pay. Nesine'de bir kupon en az <b>50 TL</b> olduğu için kartta ayrıca "bu oran için gereken kasa" yazar (örn. %2 için 2.500 TL). Kasanız daha küçükse, 50 TL'lik tek kupon bile önerilenden çok daha büyük risk demektir.</p></details>
+<p class="lead">Fırsat = Nesine oranı adil orandan en az <b>%3</b> yüksek, oran <b>3.00'ın altında</b>, dünya piyasası verisi <b>10 dakikadan taze</b>. <a class="q" href="#nasil" data-go="nasil">Bu ne demek?</a></p>
 {cards_html}
-
+<h3>Eşiğe en yakın bahisler</h3>
+<p class="lead">Çubuk ne kadar sağdaysa Nesine o kadar cömert; koyu çizgi +%3 eşiği. Çoğunun solda kalması Nesine'nin normal hâlidir.</p>
+<div class="card">{f'<ul class="list">{rows_html}</ul>' if rows_html else '<div class="empty">Henüz karşılaştırma yok.</div>'}
+<div class="legend"><span><i style="background:#A9B5AE"></i>geride</span><span><i style="background:var(--sodium)"></i>yaklaşıyor (−%5 içinde)</span><span><i style="background:var(--signal)"></i>eşiği geçti</span></div></div>
 </section>
-<section class="block" id="kuponlar">
+
+<section class="panel" id="p-uyarilar">
+<h2>Gözcü uyarıları <small>maç saatine yakın yakalananlar</small></h2>
+<p class="lead">{al_lead} <a class="q" href="#nasil" data-go="nasil">Gözcü nedir?</a></p>
+{f'<div class="card"><ul class="alerts">{al_html}</ul></div>' if al_html else '<div class="empty"><b>Henüz uyarı yok.</b> Gözcü maç saatine yakın açılır; Nesine dünya piyasasından geç kaldığında ilk satır burada belirir.</div>'}
+</section>
+
+<section class="panel" id="p-kuponlar">
 <h2>Kupon önerileri <small>önümüzdeki 48 saat, 3–5 maç</small></h2>
-<details class="help"><summary>Bu ne demek?</summary><p class="plain">Kombine = birkaç maçı tek kupona yazmak; hepsi tutmalı. Oranlar çarpılır ama ihtimaller de çarpılır: %70 ihtimalli 3 maç bir arada %34 eder. Nesine her maçtan payını aldığı için (buna "marj" denir) kombinede bu pay katlanır.</p></details>
-<p class="note"><b>Açık konuşalım:</b> "En güvenli" kupon en sık tutan kupondur ama uzun vadede en çok kaybettiren de odur. Nesine'de bir kupon en az <b>50 TL</b>; her kuponun altında 50 TL yatırsanız ne ödeyeceği ve uzun vadede kaçının gideceği yazıyor. Karar sizin.</p>
+<p class="note"><b>Açık konuşalım:</b> "En güvenli" kupon en sık tutan kupondur ama uzun vadede en çok kaybettiren de odur. Nesine'de bir kupon en az <b>50 TL</b>; her kuponun altında 50 TL yatırsanız ne ödeyeceği ve uzun vadede kaçının gideceği yazıyor. Karar sizin. <a class="q" href="#nasil" data-go="nasil">Kombine nasıl hesaplanır?</a></p>
 {cp_html}
-
 </section>
-<section class="block" id="gecmis">
+
+<section class="panel" id="p-gecmis">
 <h2>Geçmiş kuponlar <small>önerilenler tuttu mu?</small></h2>
-<details class="help"><summary>Bu ne demek?</summary><p class="plain">Yukarıda önerilen her kupon, ilk göründüğü anda "kilitlenir": o an oynanmış sayılır. Maçlar bitince tuttu mu bakılır. Böylece "en güvenli" denen kuponun gerçekten kazandırıp kazandırmadığını sayılarla görürsünüz; tahmin değil, kayıt.</p></details>
+<p class="lead">Her önerilen kupon ilk göründüğü anda kilitlenir; maçlar bitince tuttu mu bakılır. Tahmin değil, kayıt. <a class="q" href="#nasil" data-go="nasil">Ayrıntı</a></p>
 {past_coupons_html(past)}
-
 </section>
-<section class="block" id="maclar">
+
+<section class="panel" id="p-maclar">
 <h2>Yaklaşan maçlar <small>üç görüş yan yana · 48 saat</small></h2>
-<details class="help"><summary>Bu ne demek?</summary><p class="plain">Her maç için "bu sonuç yüzde kaç ihtimalle olur?" sorusuna üç ayrı kaynak cevap verir: <b>Piyasa</b> (dünyanın en keskin bahis borsası Pinnacle'ın oranından hesaplanır), <b>İstatistik</b> (iki takımın son 2-3 sezondaki gollerinden hesaplanır), <b>Claude</b> (maç saatine yakın haberleri ve kadroları okuyan yapay zekâ; oranı görmeden tahmin eder, sonra piyasaya itirazı var mı söyler). "Değer" sütunu: Nesine'nin oranı, piyasanın ihtimaline göre fazla mı az mı. Artıysa iyi.</p></details>
-<p class="lead">Maça tıklayın, tablo açılır. Altında iki takımın son maçları düz yazıyla anlatılır. En makul görüşü siz seçersiniz; hangisinin geçmişte ne kadar tuttuğu da yazıyor.</p>
+<p class="lead">Maça tıklayın: Nesine oranı · <b>Piyasa</b> ihtimali · <b>İstatistik</b> ihtimali · <b>Claude</b> ihtimali · Değer. Altında iki takımın son maçları. <a class="q" href="#nasil" data-go="nasil">Üç görüş nedir?</a></p>
 {md_html}
-
 </section>
-<section class="block" id="sayac">
-<h2>Eşiğe en yakın bahisler</h2>
-<details class="help"><summary>Bu ne demek?</summary><p class="plain">Fırsat yoksa bile "en yakın neresi?" diye bakmak için. Her çubuk bir bahis. Çubuk ne kadar sağdaysa Nesine o kadar cömert. Beyaz çizgiye (+%3) ulaşan yeşil yanar ve yukarıda fırsat kartı olur. Çoğu çubuk solda kalır; bu Nesine'nin normal hâlidir.</p></details>
-{f'<ul class="list">{rows_html}</ul>' if rows_html else '<div class="empty">Henüz karşılaştırma yok.</div>'}
-<div class="legend"><span><i style="background:#3E5A4D"></i>geride</span><span><i style="background:var(--sodium)"></i>yaklaşıyor (−%5 içinde)</span><span><i style="background:var(--signal)"></i>eşiği geçti</span></div>
 
+<section class="panel" id="p-claude">
+<h2>Claude'un analizleri <small>son 12 · maç bitince de kalır</small></h2>
+<p class="lead">Claude maça 100 dk kala haberleri okur, <b>oranı görmeden</b> ihtimal verir, sonra piyasaya itirazı var mı söyler. Maç bitince tahminleri puanlanır (yeşil = tuttu). İsabet: <b>{CLAUDE_ACC}</b>.</p>
+{claude_section(all_claude)}
 </section>
-<section class="block" id="degisim">
+
+<section class="panel" id="p-hareket">
 <h2>İddaa oranları hareket ediyor mu?</h2>
-<details class="help"><summary>Bu ne demek?</summary><p class="plain">Nesine'nin oranları sabit değil; her 20 dakikada bir bakıp değişenleri yazıyoruz. Yeşil ▲ oran yükseldi (daha cömert), turuncu ▼ düştü. "Maça kalan" sütunu, değişimin maçtan ne kadar önce olduğunu gösterir: kadro saatine (60-90 dk kala) yakın değişimler bizim için en önemlisi.</p></details>
-<p class="lead">{ch_lead}</p>
-{f'<ul class="changes">{ch_html}</ul>' if ch_html else '<div class="empty">Henüz oran değişimi görülmedi; kayıtlar birikiyor.</div>'}
-
+<p class="lead">{ch_lead} Yeşil ▲ oran yükseldi, turuncu ▼ düştü; "maça kalan" değişimin maçtan ne kadar önce olduğunu gösterir.</p>
+{f'<div class="card"><ul class="changes">{ch_html}</ul></div>' if ch_html else '<div class="empty">Henüz oran değişimi görülmedi; kayıtlar birikiyor.</div>'}
 </section>
-<section class="block" id="nasil">
+
+<section class="panel" id="p-nasil">
 <h2>Bu sayfa ne yapıyor?</h2>
 <ul class="steps">
   <li><b>1 · Dünya piyasasını okur</b><p>Pinnacle, dünyanın en keskin bahis borsası sayılır: oranları milyonlarca dolarlık parayla saniyeler içinde düzelir. Onu "gerçek ihtimal" ölçütü olarak kullanıyoruz; orada hesabımız yok.</p></li>
@@ -678,11 +740,41 @@ def build():
   <li><b>3 · Üç görüşü yan yana koyar</b><p>Piyasa, takım geçmişinden istatistik, Claude'un haber okuması. Hepsinin geçmiş isabeti yazılır. Geçmiş 5.000 maçta: piyasa en isabetli; değer, 3.00 altı oranlarda gerçek, sürprizlerde yanıltıcı.</p></li>
   <li><b>4 · Kararı size bırakır</b><p>Bot para yatırmaz. Uyarıları, ihtimalleri ve kuponların gerçek maliyetini gösterir; sonradan her uyarıyı puanlar ki hangi görüşe güvenileceğini zamanla veri söylesin.</p></li>
 </ul>
-
+<h3>Sözlük</h3>
+<ul class="gloss">
+  <li><b>Adil oran ve fırsat</b><span class="plain">Bir maçta ev sahibinin kazanma ihtimali gerçekte %50 ise adil oran 2.00'dır (100 ÷ 50). Nesine 2.10 veriyorsa hak ettiğinizden fazla ödüyor demektir: fırsat. 1.85 veriyorsa (çoğu zaman öyle) fırsat yoktur.</span></li>
+  <li><b>Gözcü</b><span class="plain">Maçtan 1-2 saat önce kadrolar açıklanır, sakatlıklar duyulur. Dünya piyasası bunu saniyeler içinde orana yansıtır; Nesine bazen geç kalır. Gözcü o anları yakalamak için maç saatine yakın sürekli bakar. Ücretsiz veri kotası yüzünden dünya piyasası verisi yalnızca bu pencerede çekilir; diğer saatlerde "X saat önce" yazar.</span></li>
+  <li><b>Yatırım tutarı ve 50 TL kuralı</b><span class="plain">Kartta "kasa payı %2" gibi bir oran yazar; bu matematiğin önerdiği pay. Nesine'de bir kupon en az 50 TL olduğu için kartta ayrıca "bu oran için gereken kasa" yazar (örn. %2 için 2.500 TL). Kasanız daha küçükse 50 TL'lik tek kupon bile önerilenden çok daha büyük risktir.</span></li>
+  <li><b>Kombine (kupon)</b><span class="plain">Birkaç maçı tek kupona yazmak; hepsi tutmalı. Oranlar çarpılır ama ihtimaller de çarpılır: %70 ihtimalli 3 maç bir arada %34 eder. Nesine her maçtan payını aldığı için (marj) kombinede bu pay katlanır.</span></li>
+  <li><b>Geçmiş kuponlar</b><span class="plain">Önerilen her kupon ilk göründüğü anda kilitlenir (o an oynanmış sayılır). Maçlar bitince tuttu mu bakılır; bir bacağı kaybettiği an "tutmadı" olur. Böylece "en güvenli" kuponun gerçekten kazandırıp kazandırmadığı sayılarla görünür.</span></li>
+  <li><b>Üç görüş</b><span class="plain"><b>Piyasa</b>: Pinnacle oranından hesaplanan ihtimal. <b>İstatistik</b>: iki takımın son 2-3 sezondaki gollerinden Poisson modeli (geçmişte piyasadan daha az isabetli; tek başına izlenirse −12%). <b>Claude</b>: haberleri okuyan yapay zekâ; oranı görmeden tahmin eder, sonra piyasaya itirazı var mı söyler. "Değer" sütunu: Nesine oranı piyasa ihtimaline göre fazla mı az mı.</span></li>
+  <li><b>Gölge test</b><span class="plain">Para oynanmıyor. Her fırsat kaydediliyor, maç bitince sonucu ve kapanış oranıyla puanlanıyor. 200 uyarı sonunda kapanış oranını ortalama +%2 geçiyorsa yöntem kanıtlanmış sayılır; o zaman kasa konuşulur.</span></li>
+</ul>
 </section>
+
 <footer>Sayfa her 20 dakikada otomatik yenilenir; yatırım tavsiyesi değildir. Gerçekçi hedef: uzun vadede yatırılan paranın %2–5'i. Fırsatsız günler normaldir.
 <br>Kaynak kod: <a href="https://github.com/boradmir/iddia-bot">github.com/boradmir/iddia-bot</a></footer>
-</div></body></html>"""
+</div>
+<script>
+(function(){{
+  var tabs=document.querySelectorAll('#tabs a[data-tab]'),panels=document.querySelectorAll('.panel');
+  function show(id){{
+    var ok=false; tabs.forEach(function(a){{ if(a.dataset.tab===id) ok=true; }});
+    if(!ok) id='bugun';
+    tabs.forEach(function(a){{ a.classList.toggle('on', a.dataset.tab===id); }});
+    panels.forEach(function(p){{ p.classList.toggle('on', p.id==='p-'+id); }});
+    try{{ localStorage.setItem('tab', id); }}catch(e){{}}
+  }}
+  document.addEventListener('click', function(ev){{
+    var a=ev.target.closest('a[data-tab],a[data-go]'); if(!a) return;
+    ev.preventDefault(); var id=a.dataset.tab||a.dataset.go; show(id); history.replaceState(null,'','#'+id);
+    if(a.dataset.go) document.getElementById('tabs').scrollIntoView({{behavior:'smooth',block:'start'}});
+  }});
+  var h=location.hash.replace('#',''); var saved=null; try{{ saved=localStorage.getItem('tab'); }}catch(e){{}}
+  show(h||saved||'bugun');
+}})();
+</script>
+</body></html>"""
 
 
 if __name__ == "__main__":
