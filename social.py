@@ -19,6 +19,7 @@ C = {"bg": (244, 241, 234), "board": (15, 51, 38), "board2": (22, 75, 56), "ink"
 FONT_DIR = "assets/fonts"
 TR = timezone(timedelta(hours=3))
 OUT = "docs/social"
+HANDLE = "@analizveotesi"
 DISCLAIMER = "18+ · Bilgi amaçlıdır; bahis veya yatırım tavsiyesi değildir. Veri: dünya bahis borsası (Pinnacle), ESPN; haberler yapay zekâ özetidir."
 
 
@@ -57,6 +58,7 @@ def rounded(d, box, r, fill, outline=None):
 def header(d, title, sub, h=250):
     d.rectangle((0, 0, W, h), fill=C["board"])
     text(d, (60, 44), "MAÇ ANALİZİ", font("semi", 24), C["chalkdim"])
+    text(d, (W - 60, 44), HANDLE, font("semi", 24), C["sodium"], anchor="ra")
     f = font("display", 76)
     lines = wrap(title, f, W - 120)[:2]
     y = 86
@@ -72,6 +74,7 @@ def footer(d):
     d.line((60, y - 18, W - 60, y - 18), fill=C["line"], width=2)
     for ln in lines:
         text(d, (60, y), ln, f, C["muted"]); y += 26
+    text(d, (W - 60, H - 36 - 26 * len(lines) - 44), HANDLE, font("semi", 22), C["board"], anchor="ra")
 
 
 def section(d, y, label):
