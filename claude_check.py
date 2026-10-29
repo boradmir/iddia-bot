@@ -33,7 +33,9 @@ spor gazetesinin analiz köşesi gibi okunmalı ama teknik olmayan biri de anlam
 Olasılıklar toplamı her market için 1.0 olmalı. Somut bilgi bulamadığın yerde bunu söyle ve mütevazı, lig ortalamasına yakın kal;
 bulduğun bilginin tarihi eskiyse (bir haftadan öncesi) güvenini düşür.
 Oran, Pinnacle, Nesine, "value" veya bahis tavsiyesi hakkında yazma; sadece maç analizi ve ihtimaller.
-JSON'daki comment alanı her zaman dolu olmalı (3-5 cümle); facts bulunamadıysa comment yine yazılır."""
+JSON'daki comment alanı her zaman dolu olmalı (3-5 cümle); facts bulunamadıysa comment yine yazılır.
+absences listesi: haberlerde adı geçen her eksik/şüpheli/dönen oyuncu için takımdaki yeri (as/rotasyon/yedek), son maçlardaki durumu
+ve bu maça somut etkisi (yerine kim oynar, hangi bölge zayıflar). Emin olmadığın yeri 'bilinmiyor' yaz, uydurma."""
 
 BLIND_SCHEMA = {
     "type": "object",
@@ -44,8 +46,17 @@ BLIND_SCHEMA = {
         "comment": {"type": "string", "description": "ZORUNLU, asla boş bırakma: 3-5 cümle, profesyonel analist üslubunda Türkçe maç önü yorumu — anahtar faktör, iki takımın durumu, beklenen senaryo. Haber bulunamadıysa da genel değerlendirme yaz."},
         "risk": {"type": "string", "description": "Tek cümle: bu maçta bahis açısından en büyük belirsizlik"},
         "confidence": {"type": "string", "enum": ["düşük", "orta", "yüksek"]},
+        "absences": {"type": "array", "description": "Haberlerde geçen eksik/şüpheli oyuncular (en fazla 10). Bilgi yoksa boş liste.",
+                     "items": {"type": "object", "properties": {
+                         "team": {"type": "string"}, "player": {"type": "string"},
+                         "status": {"type": "string", "enum": ["sakat", "cezalı", "şüpheli", "döndü"]},
+                         "role": {"type": "string", "enum": ["as", "rotasyon", "yedek", "bilinmiyor"], "description": "Takımdaki yeri"},
+                         "recent": {"type": "string", "description": "Son maçlarda durumu, kısa (örn. 'son 5 maçın 4'ünde ilk 11', 'Eylül'den beri yok')"},
+                         "impact": {"type": "string", "description": "Bu maça etkisi tek cümle (yerine kim oynar, hangi bölge zayıflar)"}},
+                         "required": ["team", "player", "status", "role", "recent", "impact"], "additionalProperties": False}},
+        "lineup_note": {"type": "string", "description": "Muhtemel 11 / diziliş / kadro notu, 1-2 cümle; bilgi yoksa boş"},
     },
-    "required": ["p_home", "p_draw", "p_away", "p_over25", "p_btts", "facts", "comment", "risk", "confidence"],
+    "required": ["p_home", "p_draw", "p_away", "p_over25", "p_btts", "facts", "comment", "risk", "confidence", "absences", "lineup_note"],
     "additionalProperties": False,
 }
 OBJECT_SCHEMA = {

@@ -280,6 +280,16 @@ details.match[open] summary{border-bottom:1px solid var(--line);background:#FBFA
 .cl .probs em{display:block;font-style:normal;font-size:11px;color:var(--muted);margin-top:2px}
 .cl .probs i{display:block;font-style:normal;font-size:11px;font-weight:700;color:#145c3a;margin-top:2px}
 .cl .plabel{font-size:13px;color:var(--muted);margin-top:6px}.cl .plabel b{color:var(--ink-2)}
+.cl .abs{margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
+.cl .tbl{overflow-x:auto;margin-top:6px}
+.cl .tbl table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:560px}
+.cl .tbl th{text-align:left;font-weight:600;color:var(--muted);font-size:12px;padding:5px 8px;border-bottom:1px solid var(--line)}
+.cl .tbl td{padding:6px 8px;border-bottom:1px solid #F0ECE2;vertical-align:top;color:var(--ink-2)}
+.cl .tbl td b{color:var(--ink)}
+.cl .st{display:inline-block;font-size:12px;padding:1px 8px;border-radius:999px;background:#EFEBE0;white-space:nowrap}
+.cl .st.miss{background:var(--ember-soft);color:#8a3d12}.cl .st.warn{background:var(--sodium-soft);color:#6b4d00}.cl .st.ok{background:var(--signal-soft);color:#145c3a}
+.cl .lnote{margin:8px 0 0;font-size:14px;color:var(--ink-2)}
+.cl{grid-template-columns:1fr}
 .cl p{margin:8px 0 0;font-size:14.5px;color:var(--ink-2)}
 .cl ul{margin:8px 0 0;padding-left:18px;font-size:13.5px;color:var(--ink-2)}
 .cl .res{margin-top:10px;font-size:13.5px;color:var(--ink-2);border-top:1px solid var(--line);padding-top:8px}
@@ -470,6 +480,16 @@ def claude_section(rows):
         probs = (cell("Ev kazanır", bl["p_home"], "MS", "1") + cell("Beraberlik", bl["p_draw"], "MS", "X") + cell("Deplasman kazanır", bl["p_away"], "MS", "2")
                  + cell("3+ gol", bl["p_over25"], "AU25", "Üst") + cell("KG var", bl["p_btts"], "KG", "Var"))
         facts = "".join(f"<li>{esc(x)}</li>" for x in bl.get("facts", [])[:4])
+        abs_rows = ""
+        for a in (bl.get("absences") or [])[:10]:
+            st = a.get("status", ""); cls = {"sakat": "miss", "cezalı": "miss", "şüpheli": "warn", "döndü": "ok"}.get(st, "")
+            abs_rows += (f'<tr><td>{esc(a.get("team", ""))}</td><td><b>{esc(a.get("player", ""))}</b></td><td><span class="st {cls}">{esc(st)}</span></td>'
+                         f'<td>{esc(a.get("role", ""))}</td><td>{esc(a.get("recent", ""))}</td><td>{esc(a.get("impact", ""))}</td></tr>')
+        abs_html = ""
+        if abs_rows or bl.get("lineup_note"):
+            abs_html = ('<div class="abs"><div class="plabel"><b>Eksikler ve kadro</b> · haberlere göre</div>'
+                        + (f'<div class="tbl"><table><tr><th>Takım</th><th>Oyuncu</th><th>Durum</th><th>Yeri</th><th>Son maçlar</th><th>Bu maça etkisi</th></tr>{abs_rows}</table></div>' if abs_rows else '')
+                        + (f'<p class="lnote">{esc(bl.get("lineup_note", ""))}</p>' if bl.get("lineup_note") else '') + '</div>')
         resline = ""
         if res:
             ms = res.get("MS"); lab = {"1": "ev galibiyetine", "X": "beraberliğe", "2": "deplasman galibiyetine"}.get(ms, "")
@@ -486,6 +506,7 @@ def claude_section(rows):
 <p>{esc(bl.get('comment') or 'Bu analizde yazılı yorum üretilmedi; haberler ve ihtimaller aşağıda.')}</p>
 <p><b>Risk:</b> {esc(bl.get('risk', ''))} <span class="when">(güven: {esc(bl.get('confidence', ''))})</span></p>
 {f'<p><b>İtiraz gerekçesi:</b> {esc(ob.get("reason", ""))}</p>' if ob.get("verdict") == "warn" else ''}
+{abs_html}
 {f'<ul>{facts}</ul>' if facts else ''}
 {resline}</article>"""
     return f'<div class="cl">{out}</div>'
