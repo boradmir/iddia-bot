@@ -77,7 +77,8 @@ def load_log():
 def caption_for(m, ai, pm):
     bl = (ai or {}).get("blind") or {}
     start = m["start"].astimezone(TR)
-    parts = [f"{m['home']} – {m['away']} | {start:%d.%m %H:%M} | {m['league']}"]
+    import social
+    parts = [f"{m['home']} – {m['away']} | {social.tr_date(m['start'])}, {start:%H:%M} | {m['league']}"]
     abs_ = [f"{a['player']} ({a['status']})" for a in (bl.get("absences") or [])[:4]]
     if abs_:
         parts.append("Eksikler: " + ", ".join(abs_))

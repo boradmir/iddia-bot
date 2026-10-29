@@ -25,6 +25,14 @@ FONT_DIR = "assets/fonts"
 TR = timezone(timedelta(hours=3))
 OUT = "docs/social"
 HANDLE = "@analizveotesi"
+DAYS_TR = ["Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi", "Pazar"]
+MONTHS_TR = ["", "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"]
+
+
+def tr_date(dt):
+    """'Cuma, 30 Ekim' biçimi (TSİ)."""
+    dt = dt.astimezone(TR)
+    return f"{DAYS_TR[dt.weekday()]}, {dt.day} {MONTHS_TR[dt.month]}"
 DISCLAIMER = "18+ · Bilgi amaçlıdır; bahis veya yatırım tavsiyesi değildir. Veri: uluslararası piyasa oranları, ESPN. Haber özetleri basından derlenmiştir."
 
 
@@ -189,7 +197,7 @@ def match_card(m, pm, ai, er, out_path):
     y = 104 + 2 * fh.size + 4
     ft = font("display", 46)
     text(d, (60, y), f"{start:%H:%M}", ft, WHITE)
-    text(d, (60 + ft.getlength(f"{start:%H:%M}") + 16, y + 10), "başlama saati · TSİ", font("body", 24), PALE)
+    text(d, (60 + ft.getlength(f"{start:%H:%M}") + 16, y + 10), f"{tr_date(m['start'])} · TSİ", font("semi", 26), PALE)
     y += 80
     if pm and "MS" in pm:
         text(d, (60, y), "ULUSLARARASI PİYASANIN İHTİMALİ", font("displaysemi", 26), YELLOW); y += 40
@@ -255,7 +263,7 @@ def comment_card(m, ai, out_path):
     img = Image.new("RGB", (W, H), CREAM); d = ImageDraw.Draw(img)
     d.rectangle((0, 0, W, 230), fill=GREEN)
     start = m["start"].astimezone(TR)
-    text(d, (60, 50), f"MAÇ ÖNÜ DEĞERLENDİRME · {start:%d.%m %H:%M}", font("displaysemi", 28), YELLOW)
+    text(d, (60, 50), tr_upper(f"Maç önü değerlendirme · {tr_date(m['start'])} · {start:%H:%M}"), font("displaysemi", 28), YELLOW)
     text(d, (W - 60, 50), HANDLE, font("semi", 26), WHITE, anchor="ra")
     mk = logo.mark_image(54); d._image.paste(mk, (int(W - 60 - font("semi", 26).getlength(HANDLE) - 14 - mk.width), 62 - mk.height // 2), mk)
     fh = font("display", 70); title = f"{m['home']} – {m['away']}"
