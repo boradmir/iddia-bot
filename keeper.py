@@ -74,12 +74,22 @@ def record_once():
     sh([sys.executable, "build_site.py", "--record-coupons"], capture_output=True, text=True)
 
 
+RESULT_SLOTS = ((4, 30), (13, 0), (19, 30), (22, 40))   # UTC: sabah, öğle, akşam ve gece maçları sonrası
+
+
 def maybe_results(s, now):
+    """Günde birkaç kez skorları çekip puanla: bir dilimin saati geçtiyse ve o dilim bugün çalışmadıysa tetikle."""
     day = now.strftime("%Y-%m-%d")
-    if (now.hour, now.minute) >= (4, 30) and s.get("results_day") != day:
-        if True:
+    done = s.get("results_slots", {})
+    if s.get("results_day") != day:
+        done = {}
+    for h, m in RESULT_SLOTS:
+        key = f"{h:02d}:{m:02d}"
+        if (now.hour, now.minute) >= (h, m) and key not in done:
             if dispatch("results.yml"):
-                s["results_day"] = day; save_status(s)
+                done[key] = now.isoformat(timespec="seconds")
+                s["results_day"] = day; s["results_slots"] = done; save_status(s)
+            break
 
 
 def fix_watch_status():
