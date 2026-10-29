@@ -25,6 +25,13 @@ def canvas(w, h, light=False):
     if not light:
         for y in range(H):
             t = y / H; d.line((0, y, W, y), fill=tuple(int(GREEN[i] + (GREEN2[i] - GREEN[i]) * t) for i in range(3)))
+        # vinyet: kenarlara doğru hafif koyulaşma
+        vig = Image.new("L", (W, H), 0); vd = ImageDraw.Draw(vig)
+        steps = 24
+        for i in range(steps):
+            k = i / steps
+            vd.ellipse((W * (-0.35 + 0.35 * k), H * (-0.35 + 0.35 * k), W * (1.35 - 0.35 * k), H * (1.35 - 0.35 * k)), fill=int(70 * (1 - k)))
+        img = Image.composite(Image.new("RGB", (W, H), (4, 18, 12)), img, vig)
     return img
 
 
@@ -37,6 +44,8 @@ def pitch_lines(d, W, H, color):
     r = int(min(W, H) * 0.40)
     d.ellipse((W / 2 - r, H / 2 - r, W / 2 + r, H / 2 + r), outline=color, width=max(2, W // 400))
     d.line((W * 0.06, H / 2, W * 0.94, H / 2), fill=color, width=max(2, W // 400))
+    r2 = int(min(W, H) * 0.47)
+    d.ellipse((W / 2 - r2, H / 2 - r2, W / 2 + r2, H / 2 + r2), outline=(36, 84, 62), width=max(2, W // 600))
 
 
 def a_mark(d, cx, cy, s, dot=WHITE, line=(255, 255, 255), beyond=YELLOW, dark_bg=True):
@@ -53,30 +62,45 @@ def a_mark(d, cx, cy, s, dot=WHITE, line=(255, 255, 255), beyond=YELLOW, dark_bg
     xl = apex[0] + (lf[0] - apex[0]) * 0.62
     xr = apex[0] + (rf[0] - apex[0]) * 0.62
     bar = [(xl + (xr - xl) * 1 / 3, yb), (xl + (xr - xl) * 2 / 3, yb)]
-    beyond_pt = (xr + (xr - xl) * 0.42, yb)
-    r = s * 0.072
-    lw = max(2, int(s * 0.018))
+    beyond_pt = (xr + (xr - xl) * 0.55, yb)
+    r = s * 0.068
+    lw = max(2, int(s * 0.02))
     # pas çizgileri
     for pts in legs:
         prev = apex
         for p in pts:
             d.line((prev, p), fill=line, width=lw); prev = p
     d.line(((xl, yb), beyond_pt), fill=line, width=lw)
-    # çizgi alfa etkisi yerine: çizgi rengi zaten yumuşak verilir
-    # noktalar
+    # ötesi için yumuşak hale (katmanlı yarı saydam daireler)
+    base_img = d._image
+    halo = Image.new("RGBA", base_img.size, (0, 0, 0, 0)); hd = ImageDraw.Draw(halo)
+    for i, k in enumerate((3.2, 2.6, 2.0)):
+        rr = r * k
+        hd.ellipse((beyond_pt[0] - rr, beyond_pt[1] - rr, beyond_pt[0] + rr, beyond_pt[1] + rr), fill=beyond + (22 + i * 18,))
+    base_img.paste(Image.alpha_composite(base_img.convert("RGBA"), halo).convert("RGB"))
+    d = ImageDraw.Draw(base_img)
+    # pullar: ince koyu kenar + minik parlama
+    edge = (8, 30, 22) if dark_bg else (200, 205, 200)
     for p in [apex] + legs[0] + legs[1] + bar:
+        d.ellipse((p[0] - r - lw * 0.6, p[1] - r - lw * 0.6, p[0] + r + lw * 0.6, p[1] + r + lw * 0.6), fill=edge)
         d.ellipse((p[0] - r, p[1] - r, p[0] + r, p[1] + r), fill=dot)
-    # ötesi noktası: sarı, biraz büyük, ince halka
-    rb = r * 1.18
-    d.ellipse((beyond_pt[0] - rb * 1.45, beyond_pt[1] - rb * 1.45, beyond_pt[0] + rb * 1.45, beyond_pt[1] + rb * 1.45), outline=beyond, width=lw)
+        d.ellipse((p[0] - r * 0.45, p[1] - r * 0.62, p[0] - r * 0.05, p[1] - r * 0.22), fill=(255, 255, 255) if dark_bg else (90, 110, 100))
+    # ötesi noktası: sarı pul, ince halka
+    rb = r * 1.15
+    d.ellipse((beyond_pt[0] - rb - lw * 0.6, beyond_pt[1] - rb - lw * 0.6, beyond_pt[0] + rb + lw * 0.6, beyond_pt[1] + rb + lw * 0.6), fill=edge)
     d.ellipse((beyond_pt[0] - rb, beyond_pt[1] - rb, beyond_pt[0] + rb, beyond_pt[1] + rb), fill=beyond)
+    d.ellipse((beyond_pt[0] - rb * 1.6, beyond_pt[1] - rb * 1.6, beyond_pt[0] + rb * 1.6, beyond_pt[1] + rb * 1.6), outline=beyond, width=max(2, lw // 2))
 
 
 def hex_mark(d, cx, cy, s, fg=WHITE, accent=YELLOW):
     """Alternatif: top paneli altıgen + içinde radar/veri çizgisi (ötesine taşan)."""
     pts = [(cx + s * 0.5 * math.cos(math.radians(60 * i - 30)), cy + s * 0.5 * math.sin(math.radians(60 * i - 30))) for i in range(6)]
     lw = max(3, int(s * 0.07))
-    d.polygon(pts, outline=fg, width=lw)
+    inner = [(cx + (p[0] - cx) * 0.995, cy + (p[1] - cy) * 0.995) for p in pts]
+    d.polygon(inner, fill=(20, 58, 44))
+    d.line(pts + [pts[0]], fill=fg, width=lw, joint="curve")
+    for p in pts:
+        d.ellipse((p[0] - lw / 2, p[1] - lw / 2, p[0] + lw / 2, p[1] + lw / 2), fill=fg)
     # veri çizgisi: altıgenin içinden girip sağ üstten dışarı çıkar
     path = [(cx - s * 0.32, cy + s * 0.22), (cx - s * 0.12, cy + 0.02 * s), (cx + s * 0.02, cy + s * 0.16), (cx + s * 0.18, cy - s * 0.12), (cx + s * 0.62, cy - s * 0.52)]
     d.line(path, fill=accent, width=lw, joint="curve")
@@ -93,7 +117,12 @@ def wordmark_text(d, cx, y, scale, fill1, fill2, center=True):
     # harf aralıklı alt satır
     sub = "VE ÖTESİ"
     spaced = " ".join(sub)  # geniş aralık
-    d.text((cx, y + 118 * scale), spaced, font=f2, fill=fill2, anchor=anchor)
+    yy = y + 118 * scale
+    d.text((cx, yy), spaced, font=f2, fill=fill2, anchor=anchor)
+    if center:
+        tw = f2.getlength(spaced); gap = 28 * scale; ln = 90 * scale
+        d.line((cx - tw / 2 - gap - ln, yy, cx - tw / 2 - gap, yy), fill=fill2, width=max(2, int(3 * scale)))
+        d.line((cx + tw / 2 + gap, yy, cx + tw / 2 + gap + ln, yy), fill=fill2, width=max(2, int(3 * scale)))
 
 
 def render_all():
@@ -117,7 +146,7 @@ def render_all():
     finish(img, 1600, 600).save(f"{OUT}/v2_wide.png")
     # v2 açık zemin
     img = canvas(1080, 1080, light=True); d = ImageDraw.Draw(img)
-    a_mark(d, W / 2, H / 2 - 150 * SS, 440 * SS, dot=INK, line=(170, 180, 172), beyond=(232, 168, 0))
+    a_mark(d, W / 2, H / 2 - 150 * SS, 440 * SS, dot=INK, line=(170, 180, 172), beyond=(232, 168, 0), dark_bg=False)
     wordmark_text(d, W / 2, 790 * SS, SS, INK, (232, 168, 0))
     finish(img, 1080, 1080).save(f"{OUT}/v2_light.png")
     # v3 alternatif
