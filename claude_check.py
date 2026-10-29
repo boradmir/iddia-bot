@@ -6,13 +6,13 @@
   2. İTİRAZ: piyasa ihtimalleri gösterilir; "bunları yanlış çıkaracak somut bir bilgi var mı?" → ok / warn + gerekçe.
 Claude rakam değiştirmez; sayfada 3. görüş olarak durur, isabeti zamanla ölçülür.
 
-Maliyet (Opus 5.5, kaba): maç başına ~0.15–0.20 $ (arama + ~20k giriş + ~2k çıkış). CLAUDE_MAX_PER_DAY ile sınırlanır.
+Maliyet (Opus 5.5, kaba): maç başına ~0.20–0.30 $ (≤8 arama + ~30k giriş + ~2k çıkış). CLAUDE_MAX_PER_DAY ile sınırlanır.
 Ortam: ANTHROPIC_API_KEY, CLAUDE_MODEL (varsayılan claude-opus-5-5), CLAUDE_MAX_PER_DAY (varsayılan 3).
 
 Kullanım (test): python claude_check.py "Galatasaray" "Fenerbahçe" "Türkiye Süper Ligi" 2026-11-01T17:00:00+00:00
 """
 import json, os, sys
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import config
 
 MODEL = os.environ.get("CLAUDE_MODEL", "claude-opus-5-5")
@@ -25,6 +25,8 @@ Her iddianın arkasında bir gerçek olsun: kadro/sakatlık/ceza, son maçlardak
 kanat/orta, duran top), fikstür yoğunluğu ve motivasyon (küme hattı, tur durumu, derbi), saha/hava/seyahat.
 Görev: Verilen maç için GÜNCEL haberleri araştır (sakatlık, ceza, açıklanan kadro, teknik direktör değişikliği, motivasyon, hava),
 sonra bahis oranı GÖRMEDEN kendi olasılık tahminini ver.
+Arama disiplini: en fazla 4-5 arama yap; her aramanın sonucunu okuyup değerlendirmeden yeni arama başlatma. Önce iki takımın
+son maç haberlerini ve 'probabili formazioni / predicted lineup / sakat-cezalı' sorgularını dene; bulunan haberin tarihine dikkat et.
 Yorum biçimi: önce maçın anahtarı (tek cümle), sonra iki takımın durumu, sonra beklenen senaryo. 3-5 cümle, Türkçe, net; bir
 spor gazetesinin analiz köşesi gibi okunmalı ama teknik olmayan biri de anlamalı.
 Olasılıklar toplamı her market için 1.0 olmalı. Somut bilgi bulamadığın yerde bunu söyle ve mütevazı, lig ortalamasına yakın kal;
@@ -66,8 +68,9 @@ def _run(client, messages, schema):
         resp = client.beta.messages.create(
             model=MODEL, max_tokens=4000,
             betas=["server-side-fallback-2026-07-01"], fallbacks="default",
+            cache_control={"type": "ephemeral"},  # 2. aşama ve pause_turn devamları 1. aşamanın arama sonuçlarını önbellekten okur
             system=SYSTEM, messages=messages,
-            tools=[{"type": "web_search_20260209", "name": "web_search", "max_uses": 4}],
+            tools=[{"type": "web_search_20260209", "name": "web_search", "max_uses": 8}],
             output_config={"format": {"type": "json_schema", "schema": schema}},
         )
         messages.append({"role": "assistant", "content": resp.content})
@@ -91,7 +94,7 @@ def analyze(home, away, league, start_iso, market_probs=None):
     blind, u1 = _run(client, messages, BLIND_SCHEMA)
     out = {"model": MODEL, "blind": blind, "objection": None, "usage": {}}
     if u1:
-        out["usage"] = {"in": u1.input_tokens, "out": u1.output_tokens}
+        out["usage"] = {"in": u1.input_tokens, "out": u1.output_tokens, "cache_read": getattr(u1, "cache_read_input_tokens", 0) or 0}
     if blind and market_probs and "MS" in market_probs:
         mp = market_probs
         q2 = ("Şimdi dünya piyasasının (Pinnacle) adil ihtimalleri: "
@@ -105,6 +108,7 @@ def analyze(home, away, league, start_iso, market_probs=None):
         if u2:
             out["usage"]["in"] = out["usage"].get("in", 0) + u2.input_tokens
             out["usage"]["out"] = out["usage"].get("out", 0) + u2.output_tokens
+            out["usage"]["cache_read"] = out["usage"].get("cache_read", 0) + (getattr(u2, "cache_read_input_tokens", 0) or 0)
     return out
 
 
