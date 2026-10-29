@@ -209,16 +209,13 @@ def match_card(m, pm, ai, er, out_path):
     d.rectangle((0, 0, W // 2, 14), fill=hc1); d.rectangle((W // 2, 0, W, 14), fill=ac1)
     d.rectangle((0, 14, W // 2, 20), fill=hc2); d.rectangle((W // 2, 14, W, 20), fill=ac2)
     topbar(d, f"Maç analizi · {start:%d.%m} · {m['league']}")
-    fh = font("display", 110)
+    fh = font("display", 118)
     home, away = tr_upper(m["home"]), tr_upper(m["away"])
-    bx = 60 + 58  # rozet yarıçapı 50 + boşluk
-    while fh.getlength(home) > W - bx - 60 - 70 or fh.getlength(away) > W - bx - 60 - 70:
+    while fh.getlength(home) > W - 120 or fh.getlength(away) > W - 120:
         fh = font("display", fh.size - 6)
     y1 = 104; y2 = 104 + fh.size - 6
-    badge(img, d, 60 + 50, y1 + fh.size * 0.55, 50, m["home"], er)
-    badge(img, d, 60 + 50, y2 + fh.size * 0.55, 50, m["away"], er)
-    text(d, (bx + 70, y1), home, fh, WHITE)
-    text(d, (bx + 70, y2), away, fh, YELLOW)
+    text(d, (60, y1), home, fh, WHITE)
+    text(d, (60, y2), away, fh, YELLOW)
     y = 104 + 2 * fh.size + 4
     ft = font("display", 46)
     text(d, (60, y), f"{start:%H:%M}", ft, WHITE)
