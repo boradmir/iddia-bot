@@ -12,7 +12,7 @@ import match, odds, prob, value, stats, coupons
 
 TR = timezone(timedelta(hours=3))
 RECORD_COUPONS = False   # build_site.py --record-coupons ile açılır (yalnızca kayıtçı iş akışı)
-CLAUDE_ACC = "henüz ölçülmedi"   # build() içinde puanlanmış Claude tahminlerinden hesaplanır
+CLAUDE_ACC = "henüz ölçülmedi"   # build() içinde puanlanmış Yapay zekâ tahminlerinden hesaplanır
 SHADOW = True   # gölge test: para oynanmaz, her şey kaydedilip puanlanır (29.10.2026 karar)
 MARKET_TR = {"MS": "Maç sonucu", "AU25": "2.5 gol alt/üst", "KG": "Karşılıklı gol"}
 PICK_TR = {("MS", "1"): "Ev sahibi kazanır", ("MS", "X"): "Beraberlik", ("MS", "2"): "Deplasman kazanır",
@@ -435,7 +435,7 @@ def claude_box(cr):
     facts = "".join(f"<li>{esc(x)}</li>" for x in bl.get("facts", [])[:5])
     verdict = ('<span class="tag hit">piyasaya itiraz yok ✓</span>' if ob.get("verdict") == "ok" else
                '<span class="tag miss">⚠ itiraz var</span>' if ob.get("verdict") == "warn" else "")
-    html_ = (f'<div class="claudebox"><b>Claude ne diyor?</b> {verdict}<p>{esc(bl.get("comment", ""))}</p>'
+    html_ = (f'<div class="claudebox"><b>Yapay zekâ ne diyor?</b> {verdict}<p>{esc(bl.get("comment", ""))}</p>'
              f'<p><b>Risk:</b> {esc(bl.get("risk", ""))} <span class="muted">(güven: {esc(bl.get("confidence", ""))})</span></p>')
     if ob.get("verdict") == "warn":
         html_ += f'<p><b>İtiraz gerekçesi:</b> {esc(ob.get("reason", ""))}</p>'
@@ -444,10 +444,10 @@ def claude_box(cr):
 
 
 def claude_section(rows):
-    """Claude'un tüm analizleri (maç bitince de kalır): yorum, risk, haberler, kör ihtimaller ve varsa sonuç."""
+    """Yapay zekânın tüm analizleri (maç bitince de kalır): yorum, risk, haberler, kör ihtimaller ve varsa sonuç."""
     rows = sorted(rows, key=lambda r: r["t"], reverse=True)[:12]
     if not rows:
-        return '<div class="empty"><b>Henüz analiz yok.</b> Claude, gözcü açıkken maça 100 dakika kala devreye girer: haberleri okur, oranı görmeden tahmin eder.</div>'
+        return '<div class="empty"><b>Henüz analiz yok.</b> Yapay zekâ, gözcü açıkken maça 100 dakika kala devreye girer: haberleri okur, oranı görmeden tahmin eder.</div>'
     out = ""
     for i, r in enumerate(rows):
         bl = r["blind"]; ob = r.get("objection") or {}; res = r.get("result") if isinstance(r.get("result"), dict) else None
@@ -464,7 +464,7 @@ def claude_section(rows):
         resline = ""
         if res:
             bc = res.get("brier_claude", {}).get("MS"); bm = res.get("brier_market", {}).get("MS")
-            resline = (f'<div class="res">Sonuç <b>{esc(res.get("score", ""))}</b> · yeşil kutular tutan tahminler. İsabet puanı (küçük iyi): Claude {bc:.2f}, piyasa {bm:.2f}.</div>'
+            resline = (f'<div class="res">Sonuç <b>{esc(res.get("score", ""))}</b> · yeşil kutular tutan tahminler. İsabet puanı (küçük iyi): Yapay zekâ {bc:.2f}, piyasa {bm:.2f}.</div>'
                        if bc is not None and bm is not None else f'<div class="res">Sonuç <b>{esc(res.get("score", ""))}</b></div>')
         out += f"""<article class="card" style="animation-delay:{i*.06:.2f}s"><div class="head"><div><div class="tm">{esc(r['home'])} – {esc(r['away'])}</div>
 <div class="when">{tr_time(r['start'], day=True)} · {esc(r.get('league', ''))} · analiz {tr_time(r['t'])}</div></div>{vd}</div>
@@ -506,10 +506,10 @@ def match_details(m, h2h_probs, sv, bets_by_code, cr=None):
     cbox = claude_box(cr)
     return f"""
 <details class="match"><summary><time>{tr_time(m['start'], day=True)}</time><div><div class="tm">{esc(m['home'])} – {esc(m['away'])}</div><div class="lg">{esc(m['league'])}{mbs}</div></div>{tag}</summary>
-<div class="views"><table><tr><th>Bahis</th><th>Nesine</th><th>Piyasa</th><th>İstatistik</th><th>Claude</th><th>Değer</th></tr>{rows}</table>
+<div class="views"><table><tr><th>Bahis</th><th>Nesine</th><th>Piyasa</th><th>İstatistik</th><th>Yapay zekâ</th><th>Değer</th></tr>{rows}</table>
 {why}
 {cbox}
-<p class="acc">İsabet geçmişi (5.200 maç): <b>piyasa</b> ±2 puan kalibre · <b>istatistik</b> piyasadan daha az isabetli, tek başına izlenirse geçmişte −12% · <b>Claude</b> {CLAUDE_ACC} (✓ = piyasayla 5 puan içinde uyuşuyor).</p>
+<p class="acc">İsabet geçmişi (5.200 maç): <b>piyasa</b> ±2 puan kalibre · <b>istatistik</b> piyasadan daha az isabetli, tek başına izlenirse geçmişte −12% · <b>Yapay zekâ</b> {CLAUDE_ACC} (✓ = piyasayla 5 puan içinde uyuşuyor).</p>
 </div></details>"""
 
 
@@ -526,7 +526,7 @@ def build():
         bc = sum(r["result"]["brier_claude"]["MS"] for r in scored) / len(scored)
         bm = sum(r["result"]["brier_market"]["MS"] for r in scored) / len(scored)
         CLAUDE_ACC = (f"{len(scored)} maçta ölçüldü: isabet puanı {bc:.3f}, piyasa {bm:.3f} (küçük iyi) — "
-                      + ("Claude önde" if bc < bm else "piyasa önde") + "; 100 maçtan önce yorum yapmayın")
+                      + ("Yapay zekâ önde" if bc < bm else "piyasa önde") + "; 100 maçtan önce yorum yapmayın")
     else:
         CLAUDE_ACC = "henüz ölçülmedi"
     status = json.load(open("records/status.json", encoding="utf-8")) if os.path.exists("records/status.json") else {}
@@ -681,7 +681,7 @@ def build():
   <a href="#kuponlar" data-tab="kuponlar">Kuponlar</a>
   <a href="#gecmis" data-tab="gecmis">Geçmiş</a>
   <a href="#maclar" data-tab="maclar">Maçlar{cnt(n_soon)}</a>
-  <a href="#claude" data-tab="claude">Claude{cnt(n_claude)}</a>
+  <a href="#claude" data-tab="claude">Yapay zekâ{cnt(n_claude)}</a>
   <a href="#hareket" data-tab="hareket">Oran hareketi</a>
   <a href="#nasil" data-tab="nasil">Nasıl çalışır</a>
 </nav>
@@ -716,13 +716,13 @@ def build():
 
 <section class="panel" id="p-maclar">
 <h2>Yaklaşan maçlar <small>üç görüş yan yana · 48 saat</small></h2>
-<p class="lead">Maça tıklayın: Nesine oranı · <b>Piyasa</b> ihtimali · <b>İstatistik</b> ihtimali · <b>Claude</b> ihtimali · Değer. Altında iki takımın son maçları. <a class="q" href="#nasil" data-go="nasil">Üç görüş nedir?</a></p>
+<p class="lead">Maça tıklayın: Nesine oranı · <b>Piyasa</b> ihtimali · <b>İstatistik</b> ihtimali · <b>Yapay zekâ</b> ihtimali · Değer. Altında iki takımın son maçları. <a class="q" href="#nasil" data-go="nasil">Üç görüş nedir?</a></p>
 {md_html}
 </section>
 
 <section class="panel" id="p-claude">
-<h2>Claude'un analizleri <small>son 12 · maç bitince de kalır</small></h2>
-<p class="lead">Claude maça 100 dk kala haberleri okur, <b>oranı görmeden</b> ihtimal verir, sonra piyasaya itirazı var mı söyler. Maç bitince tahminleri puanlanır (yeşil = tuttu). İsabet: <b>{CLAUDE_ACC}</b>.</p>
+<h2>Yapay zekânın analizleri <small>son 12 · maç bitince de kalır</small></h2>
+<p class="lead">Yapay zekâ maça 100 dk kala haberleri okur, <b>oranı görmeden</b> ihtimal verir, sonra piyasaya itirazı var mı söyler. Maç bitince tahminleri puanlanır (yeşil = tuttu). İsabet: <b>{CLAUDE_ACC}</b>.</p>
 {claude_section(all_claude)}
 </section>
 
@@ -737,7 +737,7 @@ def build():
 <ul class="steps">
   <li><b>1 · Dünya piyasasını okur</b><p>Pinnacle, dünyanın en keskin bahis borsası sayılır: oranları milyonlarca dolarlık parayla saniyeler içinde düzelir. Onu "gerçek ihtimal" ölçütü olarak kullanıyoruz; orada hesabımız yok.</p></li>
   <li><b>2 · Nesine ile karşılaştırır</b><p>Her maçta Nesine'nin oranı, Pinnacle'dan çıkan adil oranla yan yana konur. Nesine daha yüksek veriyorsa fark bizim lehimize: buna "değer" diyoruz.</p></li>
-  <li><b>3 · Üç görüşü yan yana koyar</b><p>Piyasa, takım geçmişinden istatistik, Claude'un haber okuması. Hepsinin geçmiş isabeti yazılır. Geçmiş 5.000 maçta: piyasa en isabetli; değer, 3.00 altı oranlarda gerçek, sürprizlerde yanıltıcı.</p></li>
+  <li><b>3 · Üç görüşü yan yana koyar</b><p>Piyasa, takım geçmişinden istatistik, Yapay zekânın haber okuması. Hepsinin geçmiş isabeti yazılır. Geçmiş 5.000 maçta: piyasa en isabetli; değer, 3.00 altı oranlarda gerçek, sürprizlerde yanıltıcı.</p></li>
   <li><b>4 · Kararı size bırakır</b><p>Bot para yatırmaz. Uyarıları, ihtimalleri ve kuponların gerçek maliyetini gösterir; sonradan her uyarıyı puanlar ki hangi görüşe güvenileceğini zamanla veri söylesin.</p></li>
 </ul>
 <h3>Sözlük</h3>
@@ -747,7 +747,7 @@ def build():
   <li><b>Yatırım tutarı ve 50 TL kuralı</b><span class="plain">Kartta "kasa payı %2" gibi bir oran yazar; bu matematiğin önerdiği pay. Nesine'de bir kupon en az 50 TL olduğu için kartta ayrıca "bu oran için gereken kasa" yazar (örn. %2 için 2.500 TL). Kasanız daha küçükse 50 TL'lik tek kupon bile önerilenden çok daha büyük risktir.</span></li>
   <li><b>Kombine (kupon)</b><span class="plain">Birkaç maçı tek kupona yazmak; hepsi tutmalı. Oranlar çarpılır ama ihtimaller de çarpılır: %70 ihtimalli 3 maç bir arada %34 eder. Nesine her maçtan payını aldığı için (marj) kombinede bu pay katlanır.</span></li>
   <li><b>Geçmiş kuponlar</b><span class="plain">Önerilen her kupon ilk göründüğü anda kilitlenir (o an oynanmış sayılır). Maçlar bitince tuttu mu bakılır; bir bacağı kaybettiği an "tutmadı" olur. Böylece "en güvenli" kuponun gerçekten kazandırıp kazandırmadığı sayılarla görünür.</span></li>
-  <li><b>Üç görüş</b><span class="plain"><b>Piyasa</b>: Pinnacle oranından hesaplanan ihtimal. <b>İstatistik</b>: iki takımın son 2-3 sezondaki gollerinden Poisson modeli (geçmişte piyasadan daha az isabetli; tek başına izlenirse −12%). <b>Claude</b>: haberleri okuyan yapay zekâ; oranı görmeden tahmin eder, sonra piyasaya itirazı var mı söyler. "Değer" sütunu: Nesine oranı piyasa ihtimaline göre fazla mı az mı.</span></li>
+  <li><b>Üç görüş</b><span class="plain"><b>Piyasa</b>: Pinnacle oranından hesaplanan ihtimal. <b>İstatistik</b>: iki takımın son 2-3 sezondaki gollerinden Poisson modeli (geçmişte piyasadan daha az isabetli; tek başına izlenirse −12%). <b>Yapay zekâ</b>: haberleri okuyan dil modeli; oranı görmeden tahmin eder, sonra piyasaya itirazı var mı söyler. "Değer" sütunu: Nesine oranı piyasa ihtimaline göre fazla mı az mı.</span></li>
   <li><b>Gölge test</b><span class="plain">Para oynanmıyor. Her fırsat kaydediliyor, maç bitince sonucu ve kapanış oranıyla puanlanıyor. 200 uyarı sonunda kapanış oranını ortalama +%2 geçiyorsa yöntem kanıtlanmış sayılır; o zaman kasa konuşulur.</span></li>
 </ul>
 </section>
