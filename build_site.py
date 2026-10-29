@@ -900,8 +900,7 @@ def build():
 (function(){{
   var tabs=document.querySelectorAll('#tabs a[data-tab]'),panels=document.querySelectorAll('.panel');
   function show(id){{
-    var ok=false; tabs.forEach(function(a){{ if(a.dataset.tab===id) ok=true; }});
-    if(!ok) id='bugun';
+    if(!document.getElementById('p-'+id)) id='bugun';   // menüde olmayan (gizli) paneller de açılabilir
     tabs.forEach(function(a){{ a.classList.toggle('on', a.dataset.tab===id); }});
     panels.forEach(function(p){{ p.classList.toggle('on', p.id==='p-'+id); }});
     try{{ localStorage.setItem('tab', id); }}catch(e){{}}
