@@ -26,6 +26,7 @@ LEAGUE_PRIORITY = ["soccer_turkey_super_league", "soccer_epl", "soccer_uefa_cham
                    "soccer_uefa_europa_league", "soccer_uefa_europa_conference_league", "soccer_uefa_nations_league"]
 ALERT_DIR = "records/alerts"
 STATUS = "records/status.json"
+QUOTA = "records/quota.json"      # yalnızca gözcü yazar (Bekçi status.json'u ezebiliyor)
 WSTATUS = "records/watch_status.json"
 
 
@@ -51,7 +52,7 @@ def append_jsonl(path, rows):
 
 
 def daily_budget(status, now):
-    """Bugün harcanabilecek Odds API isteği."""
+    """Bugün harcanabilecek Odds API isteği. status = quota.json içeriği."""
     remaining = status.get("quota")
     remaining = int(remaining) if remaining not in (None, "?") else 0
     days_left = calendar.monthrange(now.year, now.month)[1] - now.day + 1
@@ -148,7 +149,7 @@ def main():
     log(f"{len(targets)} maç izlenecek; ilki {targets[0]['home']}-{targets[0]['away']} {targets[0]['start']:%H:%M} UTC")
 
     aliases = load_json("aliases.json", {})
-    status = load_json(STATUS, {})
+    status = load_json(QUOTA, {})
     budget, remaining = daily_budget(status, now)
     log(f"Kota: kalan {remaining}, bugünkü bütçe {budget} istek")
 
@@ -197,7 +198,7 @@ def main():
                 pin_events[s] = (now, events)
                 append_jsonl(f"records/pinnacle/{day}.jsonl", pinnacle_rows(ts, s, events))
                 status.update(quota=rem, last_pinnacle=ts, spent_day=day, spent_today=spent_today)
-                save_json(STATUS, status)
+                save_json(QUOTA, status)
                 log(f"Pinnacle {s}: {len(events)} maç, kalan kota {rem}, bugün kalan bütçe {budget}")
             except Exception as e:
                 log(f"Odds API hatası {s}: {e}")

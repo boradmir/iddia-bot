@@ -534,6 +534,8 @@ def build():
     else:
         CLAUDE_ACC = "henüz ölçülmedi"
     status = json.load(open("records/status.json", encoding="utf-8")) if os.path.exists("records/status.json") else {}
+    if os.path.exists("records/quota.json"):  # kota ve son Pinnacle bilgisi gözcünün dosyasından
+        status.update(json.load(open("records/quota.json", encoding="utf-8")))
     watch = json.load(open("records/watch_status.json", encoding="utf-8")) if os.path.exists("records/watch_status.json") else {}
     t_nes, nes_last = latest_snapshot(nes_rows)
     now = datetime.now(timezone.utc)
