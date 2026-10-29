@@ -24,6 +24,7 @@ TOKEN = os.environ.get("IG_TOKEN", "")
 USER_ID = os.environ.get("IG_USER_ID", "")
 MAX_PER_DAY = int(os.environ.get("IG_MAX_PER_DAY", "2"))
 HASHTAGS = "#maçanalizi"
+NOTE = "18+ · Bilgi amaçlıdır; tavsiye niteliği taşımaz."
 LEAGUE_TAGS = {"soccer_turkey_super_league": "#SüperLig", "soccer_epl": "#PremierLeague", "soccer_spain_la_liga": "#LaLiga",
                "soccer_italy_serie_a": "#SerieA", "soccer_germany_bundesliga": "#Bundesliga", "soccer_france_ligue_one": "#Ligue1",
                "soccer_uefa_champs_league": "#ŞampiyonlarLigi", "soccer_uefa_europa_league": "#AvrupaLigi",
