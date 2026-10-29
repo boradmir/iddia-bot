@@ -276,7 +276,10 @@ details.match[open] summary{border-bottom:1px solid var(--line);background:#FBFA
 .cl .probs div{background:#F7F5EF;border-radius:8px;padding:6px 8px;text-align:center}
 .cl .probs b{display:block;font-family:"JetBrains Mono",monospace;font-size:15px}
 .cl .probs small{font-size:11px;color:var(--muted)}
-.cl .probs .hitp{background:var(--signal-soft)}.cl .probs .missp{background:var(--ember-soft)}
+.cl .probs .hitp{background:var(--signal-soft);outline:2px solid var(--signal)}
+.cl .probs em{display:block;font-style:normal;font-size:11px;color:var(--muted);margin-top:2px}
+.cl .probs i{display:block;font-style:normal;font-size:11px;font-weight:700;color:#145c3a;margin-top:2px}
+.cl .plabel{font-size:13px;color:var(--muted);margin-top:6px}.cl .plabel b{color:var(--ink-2)}
 .cl p{margin:8px 0 0;font-size:14.5px;color:var(--ink-2)}
 .cl ul{margin:8px 0 0;padding-left:18px;font-size:13.5px;color:var(--ink-2)}
 .cl .res{margin-top:10px;font-size:13.5px;color:var(--ink-2);border-top:1px solid var(--line);padding-top:8px}
@@ -448,30 +451,37 @@ def claude_box(cr):
 
 
 def claude_section(rows):
-    """Yapay zekânın tüm analizleri (maç bitince de kalır): yorum, risk, haberler, kör ihtimaller ve varsa sonuç."""
+    """Yapay zekânın tüm analizleri (maç bitince de kalır): kör ihtimaller (piyasa ile yan yana), yorum, risk, haberler, sonuç."""
     rows = sorted(rows, key=lambda r: r["t"], reverse=True)[:12]
     if not rows:
         return '<div class="empty"><b>Henüz analiz yok.</b> Yapay zekâ, gözcü açıkken maça 100 dakika kala devreye girer: haberleri okur, oranı görmeden tahmin eder.</div>'
     out = ""
     for i, r in enumerate(rows):
         bl = r["blind"]; ob = r.get("objection") or {}; res = r.get("result") if isinstance(r.get("result"), dict) else None
+        mk = r.get("market") or {}
         vd = ('<span class="vd ok">piyasaya itiraz yok</span>' if ob.get("verdict") == "ok" else
               '<span class="vd warn">⚠ itiraz var</span>' if ob.get("verdict") == "warn" else "")
-        def cell(label, p, key, want):
-            cls = ""
-            if res:
-                cls = " hitp" if res.get(key) == want else " missp"
-            return f'<div class="{cls.strip()}"><b>%{p*100:.0f}</b><small>{label}</small></div>'
-        probs = (cell("Ev", bl["p_home"], "MS", "1") + cell("Beraberlik", bl["p_draw"], "MS", "X") + cell("Deplasman", bl["p_away"], "MS", "2")
+        def cell(label, p_ai, key, want):
+            p_mk = mk.get(key, {}).get(want)
+            happened = bool(res) and res.get(key) == want
+            return (f'<div class="{"hitp" if happened else ""}"><b>%{p_ai*100:.0f}</b><small>{label}</small>'
+                    f'<em>{("piyasa %" + f"{p_mk*100:.0f}") if p_mk is not None else "&nbsp;"}</em>'
+                    f'{"<i>✓ oldu</i>" if happened else ""}</div>')
+        probs = (cell("Ev kazanır", bl["p_home"], "MS", "1") + cell("Beraberlik", bl["p_draw"], "MS", "X") + cell("Deplasman kazanır", bl["p_away"], "MS", "2")
                  + cell("3+ gol", bl["p_over25"], "AU25", "Üst") + cell("KG var", bl["p_btts"], "KG", "Var"))
         facts = "".join(f"<li>{esc(x)}</li>" for x in bl.get("facts", [])[:4])
         resline = ""
         if res:
-            bc = res.get("brier_claude", {}).get("MS"); bm = res.get("brier_market", {}).get("MS")
-            resline = (f'<div class="res">Sonuç <b>{esc(res.get("score", ""))}</b> · yeşil kutular tutan tahminler. İsabet puanı (küçük iyi): Yapay zekâ {bc:.2f}, piyasa {bm:.2f}.</div>'
-                       if bc is not None and bm is not None else f'<div class="res">Sonuç <b>{esc(res.get("score", ""))}</b></div>')
+            ms = res.get("MS"); lab = {"1": "ev galibiyetine", "X": "beraberliğe", "2": "deplasman galibiyetine"}.get(ms, "")
+            p_ai = {"1": bl["p_home"], "X": bl["p_draw"], "2": bl["p_away"]}.get(ms); p_mk = mk.get("MS", {}).get(ms)
+            who = ""
+            if p_ai is not None and p_mk is not None:
+                who = " → bu maçta <b>yapay zekâ</b> daha isabetliydi." if p_ai > p_mk else " → bu maçta <b>piyasa</b> daha isabetliydi."
+            resline = (f'<div class="res">Sonuç <b>{esc(res.get("score", ""))}</b>. Gerçekleşen sonuca ({lab}) yapay zekâ <b>%{(p_ai or 0)*100:.0f}</b>, '
+                       f'piyasa <b>%{(p_mk or 0)*100:.0f}</b> vermişti{who}</div>') if p_ai is not None else f'<div class="res">Sonuç <b>{esc(res.get("score", ""))}</b></div>'
         out += f"""<article class="card" style="animation-delay:{i*.06:.2f}s"><div class="head"><div><div class="tm">{esc(r['home'])} – {esc(r['away'])}</div>
 <div class="when">{tr_time(r['start'], day=True)} · {esc(r.get('league', ''))} · analiz {tr_time(r['t'])}</div></div>{vd}</div>
+<div class="plabel">Yapay zekânın <b>oranı görmeden</b> verdiği gerçekleşme ihtimalleri · altta piyasanın ihtimali</div>
 <div class="probs">{probs}</div>
 <p>{esc(bl.get('comment') or 'Bu analizde yazılı yorum üretilmedi; haberler ve ihtimaller aşağıda.')}</p>
 <p><b>Risk:</b> {esc(bl.get('risk', ''))} <span class="when">(güven: {esc(bl.get('confidence', ''))})</span></p>
@@ -729,7 +739,7 @@ def build():
 
 <section class="panel" id="p-claude">
 <h2>Yapay zekânın analizleri <small>son 12 · maç bitince de kalır</small></h2>
-<p class="lead">Yapay zekâ maça 100 dk kala haberleri okur, <b>oranı görmeden</b> ihtimal verir, sonra piyasaya itirazı var mı söyler. Maç bitince tahminleri puanlanır (yeşil = tuttu). İsabet: <b>{CLAUDE_ACC}</b>.</p>
+<p class="lead">Yapay zekâ maça 100 dk kala haberleri okur, <b>oranı görmeden</b> ihtimal verir, sonra piyasaya itirazı var mı söyler. Her kartta üç sistemden ikisi yan yana: büyük yüzde yapay zekânın, küçük yüzde piyasanın ihtimali (üçüncü sistem, takım istatistiği, Maçlar sekmesinde). Maç bitince gerçekleşen sonuç yeşil işaretlenir ve hangisinin daha isabetli olduğu yazılır. Genel isabet: <b>{CLAUDE_ACC}</b>.</p>
 {claude_section(all_claude)}
 </section>
 
