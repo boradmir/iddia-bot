@@ -205,9 +205,7 @@ def badge(img, d, cx, cy, r, name, er=None):
 def match_card(m, pm, ai, er, out_path):
     img = pitch_background(); d = ImageDraw.Draw(img)
     start = m["start"].astimezone(TR)
-    hc1, hc2, _ = team_style(m["home"], er); ac1, ac2, _ = team_style(m["away"], er)
-    d.rectangle((0, 0, W // 2, 14), fill=hc1); d.rectangle((W // 2, 0, W, 14), fill=ac1)
-    d.rectangle((0, 14, W // 2, 20), fill=hc2); d.rectangle((W // 2, 14, W, 20), fill=ac2)
+    d.rectangle((0, 0, W, 10), fill=YELLOW)
     topbar(d, f"Maç analizi · {start:%d.%m} · {m['league']}")
     fh = font("display", 118)
     home, away = tr_upper(m["home"]), tr_upper(m["away"])
@@ -223,20 +221,24 @@ def match_card(m, pm, ai, er, out_path):
     y += 80
     if pm and "MS" in pm:
         text(d, (60, y), "ULUSLARARASI PİYASANIN İHTİMALİ", font("displaysemi", 26), YELLOW); y += 40
-        hc1, hc2, _ = team_style(m["home"], er); ac1, ac2, _ = team_style(m["away"], er)
-        def lum(c): return 0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2]
-        cols = [(f"{m['home']} kazanır", pm["MS"]["1"], hc1, hc2), ("Beraberlik", pm["MS"]["X"], GREEN3, PALE), (f"{m['away']} kazanır", pm["MS"]["2"], ac1, ac2)]
-        best = max(p for _, p, _, _ in cols)
+        cols = [(f"{m['home']} kazanır", pm["MS"]["1"]), ("Beraberlik", pm["MS"]["X"]), (f"{m['away']} kazanır", pm["MS"]["2"])]
+        best = max(p for _, p in cols)
         bw = (W - 120 - 24) / 3
-        for i, (lab, p, c1, c2) in enumerate(cols):
+        for i, (lab, p) in enumerate(cols):
             x = 60 + i * (bw + 12); top = p == best
-            fill = c1
-            fg = (20, 20, 20) if lum(fill) > 150 else WHITE
-            d.rounded_rectangle((x, y, x + bw, y + 150), radius=18, fill=fill, outline=YELLOW if top else None, width=5 if top else 0)
-            d.rectangle((x + 18, y + 128, x + 18 + int((bw - 36) * p), y + 136), fill=c2 if lum(c2) != lum(fill) else fg)
-            d.text((x + 22, y + 14), f"%{p*100:.0f}", font=font("display", 84), fill=fg)
-            d.text((x + 22, y + 100), fit(lab, font("semi", 22), bw - 44), font=font("semi", 22), fill=fg)
-        y += 168
+            d.rounded_rectangle((x, y, x + bw, y + 140), radius=18, fill=YELLOW if top else GREEN3)
+            d.text((x + 22, y + 12), f"%{p*100:.0f}", font=font("display", 84), fill=GREEN if top else WHITE)
+            d.text((x + 22, y + 100), fit(lab, font("semi", 22), bw - 44), font=font("semi", 22), fill=GREEN if top else PALE)
+        y += 152
+        # oranlı şerit: ev | beraberlik | deplasman
+        x0, x1 = 60, W - 60; tot = x1 - x0
+        segs = [(pm["MS"]["1"], (62, 140, 100)), (pm["MS"]["X"], (120, 140, 130)), (pm["MS"]["2"], (200, 160, 60))]
+        xx = x0
+        for i, (p, c) in enumerate(segs):
+            w = tot * p
+            d.rounded_rectangle((xx, y, xx + w - (4 if i < 2 else 0), y + 16), radius=6, fill=c)
+            xx += w
+        y += 30
         if "AU25" in pm and "KG" in pm:
             x = pill(d, 60, y, f"3+ gol  %{pm['AU25']['Üst']*100:.0f}", font("semi", 24), GREEN3, WHITE)
             pill(d, x, y, f"Karşılıklı gol  %{pm['KG']['Var']*100:.0f}", font("semi", 24), GREEN3, WHITE)
