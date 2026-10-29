@@ -33,7 +33,7 @@ def tr_date(dt):
     """'Cuma, 30 Ekim' biçimi (TSİ)."""
     dt = dt.astimezone(TR)
     return f"{DAYS_TR[dt.weekday()]}, {dt.day} {MONTHS_TR[dt.month]}"
-DISCLAIMER = "18+ · Bilgi amaçlıdır; bahis veya yatırım tavsiyesi değildir. Veri: uluslararası piyasa oranları, ESPN. Haber özetleri basından derlenmiştir."
+DISCLAIMER = "18+ · Bilgi amaçlıdır; tavsiye niteliği taşımaz. Veri: uluslararası piyasa, ESPN. Haber özetleri basından derlenmiştir."
 
 
 # ----------------------------------------------------------------- araçlar

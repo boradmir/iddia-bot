@@ -45,7 +45,7 @@ def hashtags_for(m):
     pair = f"#{ha}v{aa}".translate(tr)
     tags = [tag_name(m["home"]), tag_name(m["away"]), pair, LEAGUE_TAGS.get(m.get("sport_key"), ""), HASHTAGS]
     return " ".join(t for t in tags if t)
-NOTE = "18+ · Bilgi amaçlıdır; bahis veya yatırım tavsiyesi değildir."
+NOTE = "18+ · Bilgi amaçlıdır; tavsiye niteliği taşımaz."
 
 
 def _post(path, params):
@@ -104,7 +104,7 @@ def caption_for(m, ai, pm):
     if abs_:
         parts.append("Eksikler: " + ", ".join(abs_))
     if pm and "MS" in pm:
-        parts.append(f"Dünya bahis borsası: {m['home']} %{pm['MS']['1']*100:.0f} · beraberlik %{pm['MS']['X']*100:.0f} · {m['away']} %{pm['MS']['2']*100:.0f}")
+        parts.append(f"Uluslararası piyasanın ihtimali: {m['home']} %{pm['MS']['1']*100:.0f} · beraberlik %{pm['MS']['X']*100:.0f} · {m['away']} %{pm['MS']['2']*100:.0f}")
     if bl.get("risk"):
         parts.append("En büyük belirsizlik: " + bl["risk"])
     parts.append(NOTE); parts.append(hashtags_for(m))
