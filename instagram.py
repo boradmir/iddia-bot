@@ -99,6 +99,22 @@ def publish_carousel(image_urls, caption):
     return _post(f"{USER_ID}/media_publish", {"creation_id": c["id"]})["id"]
 
 
+def existing_captions():
+    """Hesaptaki son gönderilerin açıklamaları (elle paylaşılanlar dahil) — aynı maç bir daha gitmesin."""
+    caps = []
+    try:
+        d = _get(f"{USER_ID}/media", {"fields": "caption,timestamp", "limit": "50"})
+        caps = [(x.get("caption") or "") for x in d.get("data", [])]
+    except Exception as e:
+        print(f"mevcut gönderiler okunamadı: {e}")
+    return caps
+
+
+def already_posted(m, caps):
+    key = f"{m['home']} – {m['away']} |"
+    return any(key in c for c in caps)
+
+
 def load_log():
     if not os.path.exists(LOG):
         return []
@@ -148,11 +164,14 @@ def main():
     pin = build_site.pinnacle_events(build_site.read_jsonl("records/pinnacle/*.jsonl"))
     aliases = json.load(open("aliases.json", encoding="utf-8")) if os.path.exists("aliases.json") else {}
     done = {s["code"] for s in sent}
+    caps = [] if dry else existing_captions()
     # öncelik: yorumu olan (iki kartlı) maçlar, sonra en yakın başlangıç
     cands = []
     for m, ev, score in match.match_all(nm, pin, aliases):
         if m["code"] in done or not os.path.exists(f"{day_dir}/match_{m['code']}.png"):
             continue
+        if already_posted(m, caps):
+            print(f"atlandı (hesapta zaten var): {m['home']}-{m['away']}"); continue
         pm = prob.market_probs(odds.pinnacle_h2h(ev), odds.pinnacle_totals(ev)) if ev and odds.pinnacle_h2h(ev) else None
         has_comment = os.path.exists(f"{day_dir}/yorum_{m['code']}.png")
         cands.append((0 if has_comment else 1, m["start"], m, pm, has_comment))
@@ -173,5 +192,25 @@ def main():
             print(f"Gönderim hatası {m['home']}-{m['away']}: {e}")
 
 
+INTRO_CAPTION = """Skordan öncesini okuruz.
+
+Her maçtan önce: kim yok, kim formda, uluslararası piyasa ne diyor. Kadro, sakatlık, son 5 maç, golcüler ve bir yazar sesiyle maç önü yazısı.
+
+Kupon yok, oran yok, tavsiye yok. Tutanı da tutmayanı da yazarız; zamanla kimin daha isabetli olduğu sayıyla çıkar.
+
+Kartlar nasıl okunur, bu gönderide. Hoş geldiniz.
+
+""" + NOTE + "\n\n#futbol #maçanalizi #SüperLig #PremierLeague #analizveotesi"
+
+
+def post_intro():
+    urls = [f"{PAGES}/social/intro/intro_{k}.png" for k in (1, 2, 3, 4)]
+    pid = publish_carousel(urls, INTRO_CAPTION)
+    print(f"Tanıtım gönderildi: {pid}")
+
+
 if __name__ == "__main__":
-    main()
+    if "--intro" in sys.argv:
+        post_intro()
+    else:
+        main()
