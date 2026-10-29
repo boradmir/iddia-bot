@@ -175,6 +175,13 @@ radial-gradient(circle at 6px 4px,var(--pitch) 4px,transparent 4.5px) 0 0/16px 8
 .coupon .meta{font-family:"JetBrains Mono",monospace;font-size:12.5px;color:var(--ink-dim);text-align:right}
 .coupon .pick{font-size:19px;font-weight:600;margin:0 0 10px}
 .coupon .pick small{display:block;font-weight:400;font-size:14px;color:var(--ink-dim)}
+.pickbadge{display:inline-block;background:var(--sodium);color:#1B1B1B;font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:22px;letter-spacing:.02em;padding:4px 12px;border-radius:6px;margin:2px 0 6px}
+.pickbadge small{display:block;font-family:"Source Sans 3",sans-serif;font-weight:600;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#5a4a12;margin-bottom:-2px}
+.views tr.rec td{background:rgba(46,212,122,.12)}
+.views tr.rec td:first-child{font-weight:700;color:var(--signal)}
+.views tr.rec td:first-child::before{content:"▶ ";font-size:11px}
+.pb{display:inline-block;background:var(--sodium);color:#1B1B1B;font-weight:700;font-size:12.5px;padding:1px 7px;border-radius:4px;margin-right:4px}
+.alerts .pb,.changes .pb{vertical-align:1px}
 .coupon dl{display:grid;grid-template-columns:1fr auto;gap:6px 16px;margin:0;font-size:15.5px}
 .coupon dt{color:var(--ink-dim)}
 .coupon dd{margin:0;font-family:"JetBrains Mono",monospace;font-weight:600;text-align:right}
@@ -317,7 +324,7 @@ def past_coupons_html(rows):
         res = c.get("result")
         tag = ('<span class="tag hit">tuttu ✓</span>' if res == "won" else '<span class="tag miss">tutmadı ✗</span>' if res == "lost"
                else f'<span class="tag">bekliyor · {c.get("legs_hit", 0)}/{c["n"]} tuttu</span>')
-        legs = "".join(f'<li><div>{esc(l["home"])} – {esc(l["away"])}<small>{esc(PICK_SHORT.get((l["market"], l["pick"]), l["pick"]))} · {tr_time(l["start"], day=True)}'
+        legs = "".join(f'<li><div>{esc(l["home"])} – {esc(l["away"])}<small><span class="pb">{esc(PICK_SHORT.get((l["market"], l["pick"]), l["pick"]))}</span>{tr_time(l["start"], day=True)}'
                        f'{(" · skor " + l["score"]) if l.get("score") else ""}</small></div>'
                        f'<div class="p">{"✓" if l.get("result") == "won" else "✗" if l.get("result") == "lost" else "…"}</div><div class="o">{l["odds"]:.2f}</div></li>' for l in c["legs"])
         items += f"""<details class="match"><summary><time>{tr_time(c['t'], day=True)}</time><div><div class="tm">{KIND_TR.get(c['kind'], c['kind'])} · {c['n']} maç · oran {c['odds']:.2f}</div>
@@ -341,6 +348,7 @@ def coupon_card(b, i, stale, sv, cr=None):
 <article class="coupon" style="animation-delay:{.55 + i*.12:.2f}s">
   <div class="top"><div class="teams">{esc(b['home'])}<br>{esc(b['away'])}</div>
   <div class="meta">{tr_time(b['start'], day=True)}<br>{esc(b['league'])}<br>Nesine kodu {b['code']}{esc(mbs)}</div></div>
+  <div class="pickbadge"><small>Önerilen bahis</small>{esc(PICK_SHORT.get((b['market'], b['pick']), b['pick']))}</div>
   <p class="pick">{esc(PICK_TR.get((b['market'], b['pick']), b['pick']))}<small>{MARKET_TR[b['market']]}</small></p>
   <dl>
     <dt>Nesine'nin verdiği oran</dt><dd>{b['nesine_odds']:.2f}</dd>
@@ -360,7 +368,7 @@ def combo_card(title, c, i, kind):
         return ""
     loss = -c["ev_pct"]
     ev_cls = "good" if c["ev_pct"] >= 0 else "bad"
-    legs = "".join(f'<li><div>{esc(b["home"])} – {esc(b["away"])}<small>{esc(PICK_SHORT.get((b["market"], b["pick"]), b["pick"]))} · {tr_time(b["start"], day=True)}</small></div>'
+    legs = "".join(f'<li><div>{esc(b["home"])} – {esc(b["away"])}<small><span class="pb">{esc(PICK_SHORT.get((b["market"], b["pick"]), b["pick"]))}</span>{tr_time(b["start"], day=True)}</small></div>'
                    f'<div class="p">{pct(b["fair_prob"])}</div><div class="o">{b["nesine_odds"]:.2f}</div></li>' for b in c["legs"])
     verdict = (f"Uzun vadede bu kupona yatırılan her 100 TL'nin yaklaşık <b>{loss:.0f} TL'si kaybedilir</b>." if c["ev_pct"] < 0 else
                f"Beklenen değer artı: 100 TL'ye yaklaşık <b>{c['ev_pct']:.0f} TL kazanç</b> beklenir.")
@@ -419,7 +427,8 @@ def match_details(m, h2h_probs, sv, bets_by_code, cr=None):
             ev_cls = "good" if ev is not None and ev >= value.EV_THRESHOLD else ""
             agree = pm is not None and pc is not None and abs(pm - pc) <= 0.05
             pc_cls = "good" if agree else ("dim" if pc is None else "")
-            rows += (f'<tr><td>{esc(PICK_TR.get((mk, pick), pick))}</td><td>{o:.2f}</td>'
+            rec = ' class="rec"' if (ev is not None and ev >= value.EV_THRESHOLD and o < value.MAX_ODDS) else ""
+            rows += (f'<tr{rec}><td>{esc(PICK_TR.get((mk, pick), pick))}</td><td>{o:.2f}</td>'
                      f'<td>{pct(pm) if pm is not None else "—"}</td><td>{pct(ps) if ps is not None else "—"}</td>'
                      f'<td class="{pc_cls}">{pct(pc) if pc is not None else "—"}{" ✓" if agree else ""}</td>'
                      f'<td class="{ev_cls}">{f"{ev:+.1f}%" if ev is not None else "—"}</td></tr>')
@@ -524,7 +533,7 @@ def build():
         r_txt = (f'{"kazandı" if res == "won" else "kaybetti" if res == "lost" else "iade"}' if res else "sonuç bekleniyor")
         r_cls = "good" if res == "won" else "bad" if res == "lost" else ""
         clv_txt = f" · kapanışa göre {clv:+.1f}%" if clv is not None else ""
-        al_html += (f'<li><time>{tr_time(a["t"])}</time><div>{esc(a["home"])} – {esc(a["away"])}<small>{esc(PICK_TR.get((a["market"], a["pick"]), a["pick"]))} · '
+        al_html += (f'<li><time>{tr_time(a["t"])}</time><div>{esc(a["home"])} – {esc(a["away"])}<small><span class="pb">{esc(PICK_SHORT.get((a["market"], a["pick"]), a["pick"]))}</span>{esc(PICK_TR.get((a["market"], a["pick"]), a["pick"]))} · '
                     f'Nesine {a["nesine_odds"]:.2f} · adil {a["fair_odds"]:.2f} · +%{a["ev_pct"]:.1f} · kasanın %{a["stake"]:.1f}\'i</small></div>'
                     f'<div class="r {r_cls}">{r_txt}{clv_txt}</div></li>')
     settled = [a for a in alerts if a.get("result") in ("won", "lost")]

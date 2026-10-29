@@ -94,7 +94,8 @@ def analyze(home, away, league, start_iso, market_probs=None):
     blind, u1 = _run(client, messages, BLIND_SCHEMA)
     out = {"model": MODEL, "blind": blind, "objection": None, "usage": {}}
     if u1:
-        out["usage"] = {"in": u1.input_tokens, "out": u1.output_tokens, "cache_read": getattr(u1, "cache_read_input_tokens", 0) or 0}
+        out["usage"] = {"in": u1.input_tokens, "out": u1.output_tokens, "cache_read": getattr(u1, "cache_read_input_tokens", 0) or 0,
+                        "cache_write": getattr(u1, "cache_creation_input_tokens", 0) or 0}
     if blind and market_probs and "MS" in market_probs:
         mp = market_probs
         q2 = ("Şimdi dünya piyasasının (Pinnacle) adil ihtimalleri: "
@@ -109,6 +110,10 @@ def analyze(home, away, league, start_iso, market_probs=None):
             out["usage"]["in"] = out["usage"].get("in", 0) + u2.input_tokens
             out["usage"]["out"] = out["usage"].get("out", 0) + u2.output_tokens
             out["usage"]["cache_read"] = out["usage"].get("cache_read", 0) + (getattr(u2, "cache_read_input_tokens", 0) or 0)
+            out["usage"]["cache_write"] = out["usage"].get("cache_write", 0) + (getattr(u2, "cache_creation_input_tokens", 0) or 0)
+    u = out["usage"]
+    if u:  # Opus 5.5: giriş 4$/M, önbellek yazma 5$/M, okuma 0.2$/M, çıkış 20$/M; arama ~0.01$/adet (≤8)
+        out["cost_usd"] = round(u.get("in", 0) * 4e-6 + u.get("cache_write", 0) * 5e-6 + u.get("cache_read", 0) * 0.2e-6 + u.get("out", 0) * 20e-6 + 0.08, 3)
     return out
 
 
@@ -121,15 +126,16 @@ def load_today(day=None):
         return [json.loads(l) for l in f if l.strip()]
 
 
-def analyze_and_store(m, market_probs):
-    """watch.py için: günlük sınır ve tekrar kontrolü ile analiz eder, records/claude/GÜN.jsonl'a yazar."""
+def analyze_and_store(m, market_probs, force=False):
+    """watch.py için: günlük sınır ve tekrar kontrolü ile analiz eder, records/claude/GÜN.jsonl'a yazar.
+    force=True (fırsat uyarısı çıkan maç): günlük sınırı aşsa da analiz edilir."""
     if not config.ANTHROPIC_API_KEY:
         return None
     day = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     today = load_today(day)
     if any(r["code"] == m["code"] for r in today):
         return None
-    if len(today) >= MAX_PER_DAY:
+    if len(today) >= MAX_PER_DAY and not force:
         return None
     res = analyze(m["home"], m["away"], m["league"], m["start"].isoformat(), market_probs)
     row = {"t": datetime.now(timezone.utc).isoformat(timespec="seconds"), "code": m["code"], "home": m["home"], "away": m["away"],

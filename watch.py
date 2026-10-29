@@ -221,6 +221,11 @@ def main():
                          "mbs": b["mbs"], "match_score": round(score, 2), "mins_before": int(mins_to_ko), "result": None}
                     alerted[key] = a; new_alerts.append(a)
                     log(f"UYARI +{b['ev_pct']:.1f}% {b['home']}-{b['away']} {b['market']} {b['pick']} Nesine {b['nesine_odds']} adil {b['fair_odds']}")
+                    if not dry:
+                        try:
+                            claude_check.analyze_and_store(m, probs, force=True)
+                        except Exception as e:
+                            log(f"Claude (uyarı) hatası: {type(e).__name__}: {e}")
         if new_alerts or alerted:
             # tüm güncel uyarıları günün dosyasına yaz (üzerine): basit ve çakışmasız
             path = f"{ALERT_DIR}/{day}.jsonl"
