@@ -16,7 +16,9 @@ Kullanım: python instagram.py [--dry]
 import json, os, sys, time, urllib.parse, urllib.request
 from datetime import datetime, timezone, timedelta
 
-API = "https://graph.instagram.com/v21.0"
+TOKEN_ENV = os.environ.get("IG_TOKEN", "")
+# Belirteç türüne göre uç nokta: "IGAA…" = Instagram login (graph.instagram.com), "EAA…" = Unified/Facebook login (graph.facebook.com)
+API = "https://graph.instagram.com/v21.0" if TOKEN_ENV.startswith("IG") else "https://graph.facebook.com/v21.0"
 PAGES = "https://boradmir.github.io/iddia-bot"
 LOG = "records/instagram.jsonl"
 TR = timezone(timedelta(hours=3))
