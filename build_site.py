@@ -288,7 +288,20 @@ details.match[open] summary{border-bottom:1px solid var(--line);background:#FBFA
 .cl .tbl td b{color:var(--ink)}
 .cl .st{display:inline-block;font-size:12px;padding:1px 8px;border-radius:999px;background:#EFEBE0;white-space:nowrap}
 .cl .st.miss{background:var(--ember-soft);color:#8a3d12}.cl .st.warn{background:var(--sodium-soft);color:#6b4d00}.cl .st.ok{background:var(--signal-soft);color:#145c3a}
-.cl .lnote{margin:8px 0 0;font-size:14px;color:var(--ink-2)}
+.cl .lnote,.views .lnote{margin:8px 0 0;font-size:14px;color:var(--ink-2)}
+.abs{margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
+.abs .plabel{font-size:13px;color:var(--muted);margin-bottom:6px}.abs .plabel b{color:var(--ink-2)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+details.chip{display:inline-block;position:relative}
+details.chip summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:#fff;border-radius:999px;padding:4px 11px;font-size:13.5px;font-weight:600;color:var(--ink)}
+details.chip summary::-webkit-details-marker{display:none}
+details.chip summary small{font-weight:400;color:var(--muted);font-size:12px}
+details.chip.miss summary{border-color:#F2C2A8;background:var(--ember-soft)}
+details.chip.warn summary{border-color:#F0D98A;background:var(--sodium-soft)}
+details.chip.ok summary{border-color:#BFE6CF;background:var(--signal-soft)}
+details.chip[open] summary{box-shadow:0 0 0 2px rgba(15,51,38,.15)}
+details.chip .pop{position:absolute;z-index:4;top:calc(100% + 6px);left:0;min-width:260px;max-width:360px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px;box-shadow:0 10px 28px rgba(20,38,31,.15);font-size:13.5px;color:var(--ink-2);display:grid;gap:4px}
+details.chip .pop b{color:var(--ink)}
 .cl{grid-template-columns:1fr}
 .cl p{margin:8px 0 0;font-size:14.5px;color:var(--ink-2)}
 .cl ul{margin:8px 0 0;padding-left:18px;font-size:13.5px;color:var(--ink-2)}
@@ -445,6 +458,23 @@ def claude_prob(cr, mk, pick):
             ("KG", "Var"): bl["p_btts"], ("KG", "Yok"): 1 - bl["p_btts"]}.get((mk, pick))
 
 
+def absence_chips(bl):
+    """Eksik/şüpheli oyuncular: tıklanınca ayrıntı açılan çipler. bl = kör tahmin sözlüğü."""
+    items = (bl or {}).get("absences") or []
+    if not items and not (bl or {}).get("lineup_note"):
+        return ""
+    icon = {"sakat": "🩹", "cezalı": "🟥", "şüpheli": "❔", "döndü": "✅"}
+    chips = ""
+    for a in items[:12]:
+        st = a.get("status", ""); cls = {"sakat": "miss", "cezalı": "miss", "şüpheli": "warn", "döndü": "ok"}.get(st, "")
+        chips += (f'<details class="chip {cls}"><summary>{icon.get(st, "•")} {esc(a.get("player", ""))} <small>{esc(a.get("team", ""))} · {esc(a.get("role", ""))}</small></summary>'
+                  f'<div class="pop"><div><b>Durum:</b> {esc(st)}</div><div><b>Takımdaki yeri:</b> {esc(a.get("role", ""))}</div>'
+                  f'<div><b>Son maçlar:</b> {esc(a.get("recent", "") or "bilgi yok")}</div><div><b>Bu maça etkisi:</b> {esc(a.get("impact", "") or "—")}</div></div></details>')
+    note = f'<p class="lnote">{esc(bl.get("lineup_note", ""))}</p>' if bl.get("lineup_note") else ""
+    return (f'<div class="abs"><div class="plabel"><b>Sakat / cezalı / şüpheli</b> · haberlere göre · oyuncuya tıklayın</div>'
+            f'<div class="chips">{chips}</div>{note}</div>')
+
+
 def claude_box(cr):
     if not cr:
         return ""
@@ -480,16 +510,7 @@ def claude_section(rows):
         probs = (cell("Ev kazanır", bl["p_home"], "MS", "1") + cell("Beraberlik", bl["p_draw"], "MS", "X") + cell("Deplasman kazanır", bl["p_away"], "MS", "2")
                  + cell("3+ gol", bl["p_over25"], "AU25", "Üst") + cell("KG var", bl["p_btts"], "KG", "Var"))
         facts = "".join(f"<li>{esc(x)}</li>" for x in bl.get("facts", [])[:4])
-        abs_rows = ""
-        for a in (bl.get("absences") or [])[:10]:
-            st = a.get("status", ""); cls = {"sakat": "miss", "cezalı": "miss", "şüpheli": "warn", "döndü": "ok"}.get(st, "")
-            abs_rows += (f'<tr><td>{esc(a.get("team", ""))}</td><td><b>{esc(a.get("player", ""))}</b></td><td><span class="st {cls}">{esc(st)}</span></td>'
-                         f'<td>{esc(a.get("role", ""))}</td><td>{esc(a.get("recent", ""))}</td><td>{esc(a.get("impact", ""))}</td></tr>')
-        abs_html = ""
-        if abs_rows or bl.get("lineup_note"):
-            abs_html = ('<div class="abs"><div class="plabel"><b>Eksikler ve kadro</b> · haberlere göre</div>'
-                        + (f'<div class="tbl"><table><tr><th>Takım</th><th>Oyuncu</th><th>Durum</th><th>Yeri</th><th>Son maçlar</th><th>Bu maça etkisi</th></tr>{abs_rows}</table></div>' if abs_rows else '')
-                        + (f'<p class="lnote">{esc(bl.get("lineup_note", ""))}</p>' if bl.get("lineup_note") else '') + '</div>')
+        abs_html = absence_chips(bl)
         resline = ""
         if res:
             ms = res.get("MS"); lab = {"1": "ev galibiyetine", "X": "beraberliğe", "2": "deplasman galibiyetine"}.get(ms, "")
@@ -538,7 +559,7 @@ def match_details(m, h2h_probs, sv, bets_by_code, cr=None):
     why = (f'<p class="why">{form_line(m["home"], sv["home_form"])} {form_line(m["away"], sv["away_form"])}</p>' if sv else
            '<p class="why">Bu lig için takım geçmişi verisi yok (Avrupa kupaları ve milli maçlar). İstatistik görüşü boş.</p>')
     mbs = f' · <span class="tag">en az {m["mbs"]} maçla oynanır</span>' if m["mbs"] > 1 else ""
-    cbox = claude_box(cr)
+    cbox = claude_box(cr) + (absence_chips(cr["blind"]) if cr and cr.get("blind") else "")
     return f"""
 <details class="match"><summary><time>{tr_time(m['start'], day=True)}</time><div><div class="tm">{esc(m['home'])} – {esc(m['away'])}</div><div class="lg">{esc(m['league'])}{mbs}</div></div>{tag}</summary>
 <div class="views"><table><tr><th>Bahis</th><th>Nesine</th><th>Piyasa</th><th>İstatistik</th><th>Yapay zekâ</th><th>Değer</th></tr>{rows}</table>
