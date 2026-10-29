@@ -35,7 +35,8 @@ bulduğun bilginin tarihi eskiyse (bir haftadan öncesi) güvenini düşür.
 Oran, Pinnacle, Nesine, "value" veya bahis tavsiyesi hakkında yazma; sadece maç analizi ve ihtimaller.
 JSON'daki comment alanı her zaman dolu olmalı (3-5 cümle); facts bulunamadıysa comment yine yazılır.
 absences listesi: haberlerde adı geçen her eksik/şüpheli/dönen oyuncu için takımdaki yeri (as/rotasyon/yedek), son maçlardaki durumu
-ve bu maça somut etkisi (yerine kim oynar, hangi bölge zayıflar). Emin olmadığın yeri 'bilinmiyor' yaz, uydurma."""
+ve bu maça somut etkisi (yerine kim oynar, hangi bölge zayıflar). Emin olmadığın yeri 'bilinmiyor' yaz, uydurma.
+scorers: sahada olması beklenen, gol atması en olası 2-3 oyuncu; forma, role (forvet/penaltıcı/duran top) ve rakip savunmaya göre gerekçelendir."""
 
 BLIND_SCHEMA = {
     "type": "object",
@@ -55,8 +56,14 @@ BLIND_SCHEMA = {
                          "impact": {"type": "string", "description": "Bu maça etkisi tek cümle (yerine kim oynar, hangi bölge zayıflar)"}},
                          "required": ["team", "player", "status", "role", "recent", "impact"], "additionalProperties": False}},
         "lineup_note": {"type": "string", "description": "Muhtemel 11 / diziliş / kadro notu, 1-2 cümle; bilgi yoksa boş"},
+        "scorers": {"type": "array", "description": "Bu maçta gol atması en olası 2-3 oyuncu (sakat/cezalı olmayan), her takımdan en az biri; form ve role göre.",
+                    "items": {"type": "object", "properties": {
+                        "team": {"type": "string"}, "player": {"type": "string"},
+                        "reason": {"type": "string", "description": "Tek cümle: neden (rolü, formu, penaltıcı mı, rakip savunmanın zaafı)"},
+                        "recent": {"type": "string", "description": "Son maçlardaki gol/asist durumu, kısa; bilinmiyorsa 'bilgi yok'"}},
+                        "required": ["team", "player", "reason", "recent"], "additionalProperties": False}},
     },
-    "required": ["p_home", "p_draw", "p_away", "p_over25", "p_btts", "facts", "comment", "risk", "confidence", "absences", "lineup_note"],
+    "required": ["p_home", "p_draw", "p_away", "p_over25", "p_btts", "facts", "comment", "risk", "confidence", "absences", "lineup_note", "scorers"],
     "additionalProperties": False,
 }
 OBJECT_SCHEMA = {

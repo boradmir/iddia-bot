@@ -15,9 +15,9 @@ RECORD_COUPONS = False   # build_site.py --record-coupons ile açılır (yalnız
 CLAUDE_ACC = "henüz ölçülmedi"   # build() içinde puanlanmış Yapay zekâ tahminlerinden hesaplanır
 SHADOW = True   # gölge test: para oynanmaz, her şey kaydedilip puanlanır (29.10.2026 karar)
 MARKET_TR = {"MS": "Maç sonucu", "AU25": "2.5 gol alt/üst", "KG": "Karşılıklı gol"}
-PICK_TR = {("MS", "1"): "Ev sahibi kazanır", ("MS", "X"): "Beraberlik", ("MS", "2"): "Deplasman kazanır",
-           ("AU25", "Alt"): "2 veya daha az gol", ("AU25", "Üst"): "3 veya daha fazla gol",
-           ("KG", "Var"): "İki takım da gol atar", ("KG", "Yok"): "En az bir takım gol atamaz"}
+PICK_TR = {("MS", "1"): "MS 1 · ev sahibi kazanır", ("MS", "X"): "MS X · beraberlik", ("MS", "2"): "MS 2 · deplasman kazanır",
+           ("AU25", "Alt"): "2.5 Alt · 2 veya daha az gol", ("AU25", "Üst"): "2.5 Üst · 3 veya daha fazla gol",
+           ("KG", "Var"): "KG Var · iki takım da gol atar", ("KG", "Yok"): "KG Yok · en az bir takım gol atamaz"}
 PICK_SHORT = {("MS", "1"): "Ev", ("MS", "X"): "Beraberlik", ("MS", "2"): "Deplasman",
               ("AU25", "Alt"): "2.5 Alt", ("AU25", "Üst"): "2.5 Üst", ("KG", "Var"): "KG Var", ("KG", "Yok"): "KG Yok"}
 METER_MIN, METER_MAX = -25.0, 8.0
@@ -299,6 +299,7 @@ details.chip summary small{font-weight:400;color:var(--muted);font-size:12px}
 details.chip.miss summary{border-color:#F2C2A8;background:var(--ember-soft)}
 details.chip.warn summary{border-color:#F0D98A;background:var(--sodium-soft)}
 details.chip.ok summary{border-color:#BFE6CF;background:var(--signal-soft)}
+details.chip.goal summary{border-color:#BFD9EA;background:#E8F2F9}
 details.chip[open] summary{box-shadow:0 0 0 2px rgba(15,51,38,.15)}
 details.chip .pop{position:absolute;z-index:4;top:calc(100% + 6px);left:0;min-width:260px;max-width:360px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px;box-shadow:0 10px 28px rgba(20,38,31,.15);font-size:13.5px;color:var(--ink-2);display:grid;gap:4px}
 details.chip .pop b{color:var(--ink)}
@@ -461,7 +462,7 @@ def claude_prob(cr, mk, pick):
 def absence_chips(bl):
     """Eksik/şüpheli oyuncular: tıklanınca ayrıntı açılan çipler. bl = kör tahmin sözlüğü."""
     items = (bl or {}).get("absences") or []
-    if not items and not (bl or {}).get("lineup_note"):
+    if not items and not (bl or {}).get("lineup_note") and not (bl or {}).get("scorers"):
         return ""
     icon = {"sakat": "🩹", "cezalı": "🟥", "şüpheli": "❔", "döndü": "✅"}
     chips = ""
@@ -471,8 +472,13 @@ def absence_chips(bl):
                   f'<div class="pop"><div><b>Durum:</b> {esc(st)}</div><div><b>Takımdaki yeri:</b> {esc(a.get("role", ""))}</div>'
                   f'<div><b>Son maçlar:</b> {esc(a.get("recent", "") or "bilgi yok")}</div><div><b>Bu maça etkisi:</b> {esc(a.get("impact", "") or "—")}</div></div></details>')
     note = f'<p class="lnote">{esc(bl.get("lineup_note", ""))}</p>' if bl.get("lineup_note") else ""
+    sc = ""
+    for s_ in (bl.get("scorers") or [])[:4]:
+        sc += (f'<details class="chip goal"><summary>⚽ {esc(s_.get("player", ""))} <small>{esc(s_.get("team", ""))}</small></summary>'
+               f'<div class="pop"><div><b>Neden:</b> {esc(s_.get("reason", "") or "—")}</div><div><b>Son maçlar:</b> {esc(s_.get("recent", "") or "bilgi yok")}</div></div></details>')
+    scorers = f'<div class="plabel" style="margin-top:10px"><b>Gol atması en olası</b> · haberlere ve forma göre</div><div class="chips">{sc}</div>' if sc else ""
     return (f'<div class="abs"><div class="plabel"><b>Sakat / cezalı / şüpheli</b> · haberlere göre · oyuncuya tıklayın</div>'
-            f'<div class="chips">{chips}</div>{note}</div>')
+            f'<div class="chips">{chips or "<span class=\"muted\">haberlerde eksik geçmiyor</span>"}</div>{note}{scorers}</div>')
 
 
 def claude_box(cr):
