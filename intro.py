@@ -6,7 +6,7 @@ Kullanım: python intro.py
 import os
 from PIL import Image, ImageDraw, ImageFont
 import logo, social
-from social import W, H, GREEN, GREEN3, YELLOW, CREAM, INK, INK2, MUTED, WHITE, PALE, RED, SIGNAL, font, wrap, text, pitch_background, footer, HANDLE
+from social import save, W, H, GREEN, GREEN3, YELLOW, CREAM, INK, INK2, MUTED, WHITE, PALE, RED, SIGNAL, font, wrap, text, pitch_background, footer, HANDLE
 
 OUT = "docs/social/intro"
 
@@ -21,7 +21,7 @@ def card1():
     d.text((W / 2, 1020), "Kadro · form · sakatlık · ihtimaller", font=font("body", 30), fill=PALE, anchor="mm")
     d.text((W / 2, 1140), HANDLE, font=font("semi", 30), fill=YELLOW, anchor="mm")
     footer(d, dark=True)
-    img.save(f"{OUT}/intro_1.png", "PNG", optimize=True)
+    save(img, f"{OUT}/intro_1.jpg")
 
 
 def bullets(d, y, items, fg=WHITE, dim=PALE, maxw=W - 160):
@@ -48,7 +48,7 @@ def card2():
         ("Maç önü yazısı", "Basından derlenmiş haberlerle, bir yazar sesiyle: ne bekliyoruz, neden."),
     ])
     footer(d, dark=True)
-    img.save(f"{OUT}/intro_2.png", "PNG", optimize=True)
+    save(img, f"{OUT}/intro_2.jpg")
 
 
 def card3():
@@ -87,7 +87,7 @@ def card3():
     for ln in wrap("İkinci görselde, maçı bilen birinin sesiyle 4-6 cümle: eksikler ne demek, kim nasıl oynar, ne bekliyoruz. Kaynaklı haberlerle.", font("body", 26), W - 220):
         d.text((150, y + 26), ln, font=font("body", 26), fill=INK2); y += 36
     footer(d, dark=False)
-    img.save(f"{OUT}/intro_3.png", "PNG", optimize=True)
+    save(img, f"{OUT}/intro_3.jpg")
 
 
 def card4():
@@ -102,7 +102,7 @@ def card4():
     ])
     d.text((W / 2, 1150), "Skordan öncesini okuruz.", font=font("semi", 36), fill=YELLOW, anchor="mm")
     footer(d, dark=True)
-    img.save(f"{OUT}/intro_4.png", "PNG", optimize=True)
+    save(img, f"{OUT}/intro_4.jpg")
 
 
 if __name__ == "__main__":

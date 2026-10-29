@@ -13,6 +13,11 @@ Kullanım: python social.py [--date 2026-10-30]
 import glob, json, os, shutil, sys
 from datetime import datetime, timezone, timedelta
 from PIL import Image, ImageDraw, ImageFont
+
+
+def save(img, path):
+    """Instagram için JPEG: kalite 95, renk alt örnekleme kapalı (kırmızı/sarı yazılar bulanmasın)."""
+    img.convert("RGB").save(path, "JPEG", quality=95, subsampling=0, optimize=True)
 import build_site, espn, prob, odds, match
 import logo
 
@@ -99,12 +104,12 @@ def topbar(d, label):
 
 
 def footer(d, dark=True):
-    f = font("body", 20)
+    f = font("body", 23)
     lines = wrap(DISCLAIMER, f, W - 120)
-    y = H - 34 - 26 * len(lines)
+    y = H - 34 - 30 * len(lines)
     d.line((60, y - 16, W - 60, y - 16), fill=(60, 95, 78) if dark else (227, 222, 210), width=2)
     for ln in lines:
-        d.text((60, y), ln, font=f, fill=(150, 170, 160) if dark else MUTED); y += 26
+        d.text((60, y), ln, font=f, fill=(170, 190, 180) if dark else MUTED); y += 30
 
 
 def pill(d, x, y, s, f, bg, fg, pad=14):
@@ -263,7 +268,7 @@ def match_card(m, pm, ai, er, out_path):
                 d.rounded_rectangle((x, yy, x + 54, yy + 44), radius=10, fill=GREEN)
                 d.text((x + 27, yy + 22), str(l["goals"]), font=font("display", 32), fill=YELLOW, anchor="mm")
                 text(d, (x + 66, yy - 2), l["player"], font("semi", 26), INK, max_w=330)
-                text(d, (x + 66, yy + 24), f"{l['goals']} gol · {l['shots']} şut · sezon", font("body", 19), MUTED)
+                text(d, (x + 66, yy + 24), f"{l['goals']} gol · {l['shots']} şut · sezon", font("body", 21), MUTED)
                 yy += 54
         y += ph + 22
     absences = ((ai or {}).get("blind") or {}).get("absences") or []
@@ -280,7 +285,7 @@ def match_card(m, pm, ai, er, out_path):
             w = status_pill(d, x, y, s, a.get("status")); x += w + 10
         y += 60
     footer(d, dark=True)
-    img.save(out_path, "PNG", optimize=True)
+    save(img, out_path)
 
 
 def comment_card(m, ai, out_path):
@@ -322,7 +327,7 @@ def comment_card(m, ai, out_path):
                 d.text((60, y), ln, font=font("body", 22), fill=INK2); y += 29
             y += 4
     footer(d, dark=False)
-    img.save(out_path, "PNG", optimize=True)
+    save(img, out_path)
     return True
 
 
@@ -349,7 +354,7 @@ def injuries_card(items, day, out_path):
     if not items:
         text(d, (60, 440), "Bugünkü maçlarda haberlere yansıyan önemli eksik yok.", font("body", 28), WHITE)
     footer(d, dark=True)
-    img.save(out_path, "PNG", optimize=True)
+    save(img, out_path)
 
 
 # ----------------------------------------------------------------- ana akış
@@ -371,13 +376,12 @@ def main():
         for x in ((a or {}).get("blind") or {}).get("absences") or []:
             inj.append({"match": f"{m['home']} – {m['away']}", **{k: x.get(k, "") for k in ("team", "player", "status", "role")}})
         if a or er:
-            p = f"{out_dir}/match_{m['code']}.png"; match_card(m, pm, a, er, p); made.append(p)
-            p2 = f"{out_dir}/yorum_{m['code']}.png"
+            p = f"{out_dir}/match_{m['code']}.jpg"; match_card(m, pm, a, er, p); made.append(p)
+            p2 = f"{out_dir}/yorum_{m['code']}.jpg"
             if comment_card(m, a, p2):
                 made.append(p2)
-    old_inj = f"{out_dir}/injuries.png"
-    if os.path.exists(old_inj):
-        os.remove(old_inj)   # ayrı bülten paketi kaldırıldı; eksikler maç kartında
+    for old in glob.glob(f"{out_dir}/*.png"):
+        os.remove(old)   # png → jpg geçişi; bülten kartı da kaldırıldı
     for p in glob.glob(f"{OUT}/*"):
         try:
             if (day - datetime.strptime(os.path.basename(p), "%Y-%m-%d").date()).days > 3:

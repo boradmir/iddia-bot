@@ -813,13 +813,13 @@ def build():
             posts = ""
             n = 0
             for m in sorted(day_matches, key=lambda x: x["start"]):
-                mp = f"{dd}/match_{m['code']}.png"
+                mp = f"{dd}/match_{m['code']}.jpg"
                 if not os.path.exists(mp):
                     continue
                 n += 1
-                imgs = [f"social/{day_name}/match_{m['code']}.png"]
-                if os.path.exists(f"{dd}/yorum_{m['code']}.png"):
-                    imgs.append(f"social/{day_name}/yorum_{m['code']}.png")
+                imgs = [f"social/{day_name}/match_{m['code']}.jpg"]
+                if os.path.exists(f"{dd}/yorum_{m['code']}.jpg"):
+                    imgs.append(f"social/{day_name}/yorum_{m['code']}.jpg")
                 cap = ig.caption_for(m, claude_rows.get(m["code"]), probs_by_code.get(m["code"]))
                 tiles = "".join(f'<a class="tile" href="{u}" download><img src="{u}" alt="" loading="lazy"><span>{"1 · maç kartı" if i == 0 else "2 · yorum kartı"}</span></a>' for i, u in enumerate(imgs))
                 num = pno(f"{day_name}:{m['code']}", f"{m['home']} – {m['away']}")

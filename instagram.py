@@ -168,17 +168,17 @@ def main():
     # öncelik: yorumu olan (iki kartlı) maçlar, sonra en yakın başlangıç
     cands = []
     for m, ev, score in match.match_all(nm, pin, aliases):
-        if m["code"] in done or not os.path.exists(f"{day_dir}/match_{m['code']}.png"):
+        if m["code"] in done or not os.path.exists(f"{day_dir}/match_{m['code']}.jpg"):
             continue
         if already_posted(m, caps):
             print(f"atlandı (hesapta zaten var): {m['home']}-{m['away']}"); continue
         pm = prob.market_probs(odds.pinnacle_h2h(ev), odds.pinnacle_totals(ev)) if ev and odds.pinnacle_h2h(ev) else None
-        has_comment = os.path.exists(f"{day_dir}/yorum_{m['code']}.png")
+        has_comment = os.path.exists(f"{day_dir}/yorum_{m['code']}.jpg")
         cands.append((0 if has_comment else 1, m["start"], m, pm, has_comment))
     cands.sort(key=lambda x: (x[0], x[1]))
     budget = MAX_PER_DAY - len(sent_today)
     for _, _, m, pm, has_comment in cands[:budget]:
-        urls = [f"{PAGES}/social/{today}/match_{m['code']}.png"] + ([f"{PAGES}/social/{today}/yorum_{m['code']}.png"] if has_comment else [])
+        urls = [f"{PAGES}/social/{today}/match_{m['code']}.jpg"] + ([f"{PAGES}/social/{today}/yorum_{m['code']}.jpg"] if has_comment else [])
         cap = caption_for(m, ai.get(m["code"]), pm)
         if dry:
             print(f"[kuru] {m['home']}-{m['away']}: {len(urls)} görsel\n{cap[:300]}...\n"); continue
@@ -204,7 +204,7 @@ Kartlar nasıl okunur, bu gönderide. Hoş geldiniz.
 
 
 def post_intro():
-    urls = [f"{PAGES}/social/intro/intro_{k}.png" for k in (1, 2, 3, 4)]
+    urls = [f"{PAGES}/social/intro/intro_{k}.jpg" for k in (1, 2, 3, 4)]
     pid = publish_carousel(urls, INTRO_CAPTION)
     print(f"Tanıtım gönderildi: {pid}")
 
