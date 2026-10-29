@@ -1,84 +1,141 @@
-"""Analiz ve Ötesi logosu: 'A' + ötesine fırlayan sarı ok. Çıktı: assets/brand/*.png
-  profile.png   1080×1080  yalnız işaret (profil fotoğrafı)
-  wordmark.png  1080×1080  işaret + ANALİZ / VE ÖTESİ
-  wide.png      1600×600   yatay (kapak / imza)
+"""Analiz ve Ötesi logosu v2 — taktik tahtası "A": 11 oyuncu noktası pas çizgileriyle bir A oluşturur;
+çapraz çubuk sağ bacağın ötesine taşan SARI nokta ile biter ("ötesi"). Yüksek çözünürlükte çizilip küçültülür (yumuşak kenar).
+
+Çıktı (assets/brand ve docs/brand):
+  v2_profile.png   1080×1080  yalnız işaret, yeşil degrade zemin
+  v2_wordmark.png  1080×1080  işaret + ANALİZ / VE ÖTESİ
+  v2_wide.png      1600×600   yatay
+  v2_light.png     1080×1080  açık zemin sürümü (krem)
+  v3_*.png         alternatif yön: altıgen top paneli + radar çizgisi
 Kullanım: python logo.py
 """
-import os
+import math, os, shutil
 from PIL import Image, ImageDraw, ImageFont
 
-GREEN, GREEN2, YELLOW, WHITE = (11, 42, 31), (16, 66, 48), (255, 207, 77), (255, 255, 255)
+GREEN, GREEN2, YELLOW, WHITE, CREAM, INK = (11, 42, 31), (16, 66, 48), (255, 207, 77), (255, 255, 255), (247, 243, 233), (14, 38, 30)
 FONT = "assets/fonts/BarlowCondensed-Bold.ttf"
+FONT_SEMI = "assets/fonts/BarlowCondensed-SemiBold.ttf"
 OUT = "assets/brand"
+SS = 4  # süper örnekleme
 
 
-def bg(w, h, radius=None):
-    img = Image.new("RGB", (w, h), GREEN); d = ImageDraw.Draw(img)
-    for y in range(h):  # degrade
-        t = y / h; d.line((0, y, w, y), fill=tuple(int(GREEN[i] + (GREEN2[i] - GREEN[i]) * t) for i in range(3)))
-    ov = Image.new("RGBA", (w, h), (0, 0, 0, 0)); od = ImageDraw.Draw(ov)
-    r = int(min(w, h) * 0.42)
-    od.ellipse((w / 2 - r, h / 2 - r, w / 2 + r, h / 2 + r), outline=(255, 255, 255, 22), width=max(3, w // 300))
-    img = Image.alpha_composite(img.convert("RGBA"), ov)
-    if radius:
-        mask = Image.new("L", (w, h), 0); ImageDraw.Draw(mask).rounded_rectangle((0, 0, w, h), radius=radius, fill=255)
-        img.putalpha(mask)
+def canvas(w, h, light=False):
+    W, H = w * SS, h * SS
+    img = Image.new("RGB", (W, H), CREAM if light else GREEN); d = ImageDraw.Draw(img)
+    if not light:
+        for y in range(H):
+            t = y / H; d.line((0, y, W, y), fill=tuple(int(GREEN[i] + (GREEN2[i] - GREEN[i]) * t) for i in range(3)))
     return img
 
 
-def mark(d, cx, cy, s):
-    """İşaret: 'A' (beyaz) ve A'nın gövdesinden sağ üste çıkan sarı ok. s = ölçek (A yüksekliği)."""
-    t = s * 0.16                       # çizgi kalınlığı
-    ax, ay = cx - s * 0.36, cy + s * 0.5   # A sol ayak
-    bx, by = cx + s * 0.36, cy + s * 0.5   # A sağ ayak
-    tx, ty = cx, cy - s * 0.5              # tepe
-    # A'nın bacakları
-    d.line((ax, ay, tx, ty), fill=WHITE, width=int(t), joint="curve")
-    d.line((bx, by, tx, ty), fill=WHITE, width=int(t), joint="curve")
-    # köşe yuvarlama
-    for (x, y) in ((ax, ay), (bx, by), (tx, ty)):
-        d.ellipse((x - t / 2, y - t / 2, x + t / 2, y + t / 2), fill=WHITE)
-    # çapraz çubuk = okun başlangıcı: soldan girip sağ üste fırlar
-    import math
-    cx1, cy1 = cx - s * 0.20, cy + s * 0.12
-    ex, ey = cx + s * 0.64, cy - s * 0.44          # ok ucu (tepe noktası)
-    ux, uy = ex - cx1, ey - cy1; n = math.hypot(ux, uy); ux, uy = ux / n, uy / n
-    px, py = -uy, ux                                # dik yön
-    head = s * 0.26                                 # ok başı uzunluğu
-    base = (ex - ux * head, ey - uy * head)         # ok başı tabanının merkezi
-    # gövde: taban merkezine kadar
-    d.line((cx1, cy1, base[0] + ux * t * 0.3, base[1] + uy * t * 0.3), fill=YELLOW, width=int(t * 0.95))
-    d.ellipse((cx1 - t * 0.47, cy1 - t * 0.47, cx1 + t * 0.47, cy1 + t * 0.47), fill=YELLOW)
-    # ok başı: simetrik üçgen (taban genişliği ≈ gövdenin 2.2 katı)
-    hw = t * 1.1
-    d.polygon([(ex, ey), (base[0] + px * hw, base[1] + py * hw), (base[0] - px * hw, base[1] - py * hw)], fill=YELLOW)
+def finish(img, w, h):
+    return img.resize((w, h), Image.LANCZOS)
 
 
-def profile():
-    img = bg(1080, 1080); d = ImageDraw.Draw(img)
-    mark(d, 540, 560, 560)
-    img.convert("RGB").save(f"{OUT}/profile.png", "PNG")
+def pitch_lines(d, W, H, color):
+    """Hafif saha dokusu: orta yuvarlak + orta çizgi."""
+    r = int(min(W, H) * 0.40)
+    d.ellipse((W / 2 - r, H / 2 - r, W / 2 + r, H / 2 + r), outline=color, width=max(2, W // 400))
+    d.line((W * 0.06, H / 2, W * 0.94, H / 2), fill=color, width=max(2, W // 400))
 
 
-def wordmark():
-    img = bg(1080, 1080); d = ImageDraw.Draw(img)
-    mark(d, 540, 400, 420)
-    f1 = ImageFont.truetype(FONT, 150); f2 = ImageFont.truetype(FONT, 96)
-    d.text((540, 760), "ANALİZ", font=f1, fill=WHITE, anchor="mm")
-    d.text((540, 880), "VE ÖTESİ", font=f2, fill=YELLOW, anchor="mm")
-    img.convert("RGB").save(f"{OUT}/wordmark.png", "PNG")
+def a_mark(d, cx, cy, s, dot=WHITE, line=(255, 255, 255), beyond=YELLOW, dark_bg=True):
+    """Taktik tahtası A. s = A yüksekliği. 11 nokta + 1 'ötesi' noktası."""
+    apex = (cx, cy - s * 0.50)
+    lf = (cx - s * 0.40, cy + s * 0.50)
+    rf = (cx + s * 0.40, cy + s * 0.50)
+    legs = []
+    for foot in (lf, rf):
+        pts = [(apex[0] + (foot[0] - apex[0]) * k / 4, apex[1] + (foot[1] - apex[1]) * k / 4) for k in range(1, 5)]
+        legs.append(pts)
+    # çapraz çubuk: bacakların %60 seviyesinde, iki nokta; sağa 'ötesi' noktası
+    yb = apex[1] + (lf[1] - apex[1]) * 0.62
+    xl = apex[0] + (lf[0] - apex[0]) * 0.62
+    xr = apex[0] + (rf[0] - apex[0]) * 0.62
+    bar = [(xl + (xr - xl) * 1 / 3, yb), (xl + (xr - xl) * 2 / 3, yb)]
+    beyond_pt = (xr + (xr - xl) * 0.42, yb)
+    r = s * 0.072
+    lw = max(2, int(s * 0.018))
+    # pas çizgileri
+    for pts in legs:
+        prev = apex
+        for p in pts:
+            d.line((prev, p), fill=line, width=lw); prev = p
+    d.line(((xl, yb), beyond_pt), fill=line, width=lw)
+    # çizgi alfa etkisi yerine: çizgi rengi zaten yumuşak verilir
+    # noktalar
+    for p in [apex] + legs[0] + legs[1] + bar:
+        d.ellipse((p[0] - r, p[1] - r, p[0] + r, p[1] + r), fill=dot)
+    # ötesi noktası: sarı, biraz büyük, ince halka
+    rb = r * 1.18
+    d.ellipse((beyond_pt[0] - rb * 1.45, beyond_pt[1] - rb * 1.45, beyond_pt[0] + rb * 1.45, beyond_pt[1] + rb * 1.45), outline=beyond, width=lw)
+    d.ellipse((beyond_pt[0] - rb, beyond_pt[1] - rb, beyond_pt[0] + rb, beyond_pt[1] + rb), fill=beyond)
 
 
-def wide():
-    img = bg(1600, 600); d = ImageDraw.Draw(img)
-    mark(d, 300, 300, 380)
-    f1 = ImageFont.truetype(FONT, 190); f2 = ImageFont.truetype(FONT, 110)
-    d.text((560, 250), "ANALİZ", font=f1, fill=WHITE, anchor="lm")
-    d.text((560, 400), "VE ÖTESİ", font=f2, fill=YELLOW, anchor="lm")
-    img.convert("RGB").save(f"{OUT}/wide.png", "PNG")
+def hex_mark(d, cx, cy, s, fg=WHITE, accent=YELLOW):
+    """Alternatif: top paneli altıgen + içinde radar/veri çizgisi (ötesine taşan)."""
+    pts = [(cx + s * 0.5 * math.cos(math.radians(60 * i - 30)), cy + s * 0.5 * math.sin(math.radians(60 * i - 30))) for i in range(6)]
+    lw = max(3, int(s * 0.07))
+    d.polygon(pts, outline=fg, width=lw)
+    # veri çizgisi: altıgenin içinden girip sağ üstten dışarı çıkar
+    path = [(cx - s * 0.32, cy + s * 0.22), (cx - s * 0.12, cy + 0.02 * s), (cx + s * 0.02, cy + s * 0.16), (cx + s * 0.18, cy - s * 0.12), (cx + s * 0.62, cy - s * 0.52)]
+    d.line(path, fill=accent, width=lw, joint="curve")
+    for p in path[:-1]:
+        d.ellipse((p[0] - lw * 0.9, p[1] - lw * 0.9, p[0] + lw * 0.9, p[1] + lw * 0.9), fill=accent)
+    e = path[-1]
+    d.ellipse((e[0] - lw * 1.3, e[1] - lw * 1.3, e[0] + lw * 1.3, e[1] + lw * 1.3), fill=accent)
+
+
+def wordmark_text(d, cx, y, scale, fill1, fill2, center=True):
+    f1 = ImageFont.truetype(FONT, int(150 * scale)); f2 = ImageFont.truetype(FONT_SEMI, int(78 * scale))
+    anchor = "mm" if center else "lm"
+    d.text((cx, y), "ANALİZ", font=f1, fill=fill1, anchor=anchor)
+    # harf aralıklı alt satır
+    sub = "VE ÖTESİ"
+    spaced = " ".join(sub)  # geniş aralık
+    d.text((cx, y + 118 * scale), spaced, font=f2, fill=fill2, anchor=anchor)
+
+
+def render_all():
+    os.makedirs(OUT, exist_ok=True)
+    soft = (120, 160, 140)
+    # v2 profil
+    img = canvas(1080, 1080); d = ImageDraw.Draw(img); W = H = 1080 * SS
+    pitch_lines(d, W, H, (28, 70, 52))
+    a_mark(d, W / 2, H / 2 + 40 * SS, 620 * SS, line=soft)
+    finish(img, 1080, 1080).save(f"{OUT}/v2_profile.png")
+    # v2 yazılı
+    img = canvas(1080, 1080); d = ImageDraw.Draw(img)
+    pitch_lines(d, W, H, (28, 70, 52))
+    a_mark(d, W / 2, H / 2 - 150 * SS, 440 * SS, line=soft)
+    wordmark_text(d, W / 2, 790 * SS, SS, WHITE, YELLOW)
+    finish(img, 1080, 1080).save(f"{OUT}/v2_wordmark.png")
+    # v2 yatay
+    img = canvas(1600, 600); d = ImageDraw.Draw(img); W2, H2 = 1600 * SS, 600 * SS
+    a_mark(d, 300 * SS, 300 * SS, 400 * SS, line=soft)
+    wordmark_text(d, 560 * SS, 265 * SS, SS * 1.15, WHITE, YELLOW, center=False)
+    finish(img, 1600, 600).save(f"{OUT}/v2_wide.png")
+    # v2 açık zemin
+    img = canvas(1080, 1080, light=True); d = ImageDraw.Draw(img)
+    a_mark(d, W / 2, H / 2 - 150 * SS, 440 * SS, dot=INK, line=(170, 180, 172), beyond=(232, 168, 0))
+    wordmark_text(d, W / 2, 790 * SS, SS, INK, (232, 168, 0))
+    finish(img, 1080, 1080).save(f"{OUT}/v2_light.png")
+    # v3 alternatif
+    img = canvas(1080, 1080); d = ImageDraw.Draw(img)
+    pitch_lines(d, W, H, (28, 70, 52))
+    hex_mark(d, W / 2, H / 2 + 20 * SS, 620 * SS)
+    finish(img, 1080, 1080).save(f"{OUT}/v3_profile.png")
+    img = canvas(1080, 1080); d = ImageDraw.Draw(img)
+    pitch_lines(d, W, H, (28, 70, 52))
+    hex_mark(d, W / 2, H / 2 - 150 * SS, 440 * SS)
+    wordmark_text(d, W / 2, 790 * SS, SS, WHITE, YELLOW)
+    finish(img, 1080, 1080).save(f"{OUT}/v3_wordmark.png")
+    os.makedirs("docs/brand", exist_ok=True)
+    for f in os.listdir(OUT):
+        if f.startswith(("v2_", "v3_")):
+            shutil.copy(f"{OUT}/{f}", f"docs/brand/{f}")
+    print("logo:", sorted(f for f in os.listdir(OUT) if f.startswith(("v2_", "v3_"))))
 
 
 if __name__ == "__main__":
-    os.makedirs(OUT, exist_ok=True)
-    profile(); wordmark(); wide()
-    print("logo:", os.listdir(OUT))
+    render_all()
