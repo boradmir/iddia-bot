@@ -1,41 +1,45 @@
 """Instagram kartları (1080×1350), yasal şeritte: analiz içeriği, oran/kupon/yatırım YOK, 18+ bilgi notu VAR.
+Kartlarda "yapay zekâ" ifadesi geçmez (kullanıcı kararı); yorum "maç önü değerlendirme" olarak sunulur.
 
+Görsel sistem: koyu çim yeşili zemin (saha çizgileri), sarı vurgu, dev kondanse tipografi, renk blokları.
 Kartlar:
-  - match_<kod>.png  : "Günün maçı" — piyasa ihtimali çubukları, son 5 maç, golcüler (ESPN verisi),
-                       eksikler (haberlere göre), kısa analiz (yapay zekâ), bilgi notu
-  - injuries.png     : "Sakatlık bülteni" — günün maçlarındaki eksikler (haberlere göre)
-Çıktı: docs/social/GÜN/ ; 3 günden eski klasörler silinir. Claude çağrısı yok (kayıtlı analizler kullanılır).
+  - match_<kod>.png : hero (takımlar) · dev ihtimal rakamları · son 5 · golcüler · eksik etiketleri
+  - yorum_<kod>.png : tam maç önü değerlendirmesi (alıntı kartı) · risk · kaynaklı haberler
+  - injuries.png    : günün eksikleri (maça göre gruplu etiketler)
+Çıktı: docs/social/GÜN/ ; 3 günden eski klasörler silinir. Claude çağrısı yok.
 
 Kullanım: python social.py [--date 2026-10-30]
 """
-import glob, json, os, shutil, sys, textwrap
+import glob, json, os, shutil, sys
 from datetime import datetime, timezone, timedelta
 from PIL import Image, ImageDraw, ImageFont
 import build_site, espn, prob, odds, match
 
 W, H = 1080, 1350
-C = {"bg": (244, 241, 234), "board": (15, 51, 38), "board2": (22, 75, 56), "ink": (20, 38, 31), "ink2": (74, 90, 82), "muted": (125, 138, 131),
-     "sodium": (232, 168, 0), "signal": (29, 154, 91), "ember": (209, 97, 42), "line": (227, 222, 210), "card": (255, 255, 255), "chalk": (242, 245, 240), "chalkdim": (185, 199, 191)}
+GREEN, GREEN2, GREEN3 = (11, 42, 31), (16, 66, 48), (24, 92, 66)
+YELLOW, CREAM, INK, INK2, MUTED = (255, 207, 77), (247, 243, 233), (20, 38, 31), (74, 90, 82), (125, 138, 131)
+RED, ORANGE, SIGNAL, GREY = (226, 72, 60), (240, 138, 75), (62, 227, 140), (154, 167, 160)
+WHITE, PALE = (255, 255, 255), (200, 210, 204)
 FONT_DIR = "assets/fonts"
 TR = timezone(timedelta(hours=3))
 OUT = "docs/social"
 HANDLE = "@analizveotesi"
-DISCLAIMER = "18+ · Bilgi amaçlıdır; bahis veya yatırım tavsiyesi değildir. Veri: dünya bahis borsası (Pinnacle), ESPN; haberler yapay zekâ özetidir."
+DISCLAIMER = "18+ · Bilgi amaçlıdır; bahis veya yatırım tavsiyesi değildir. Veri: dünya bahis borsası, ESPN. Haber özetleri basından derlenmiştir."
 
 
+# ----------------------------------------------------------------- araçlar
 def font(kind, size):
-    if kind == "display":
-        return ImageFont.truetype(f"{FONT_DIR}/BarlowCondensed-Bold.ttf", size)
+    if kind in ("display", "displaysemi"):
+        return ImageFont.truetype(f"{FONT_DIR}/BarlowCondensed-{'Bold' if kind == 'display' else 'SemiBold'}.ttf", size)
     f = ImageFont.truetype(f"{FONT_DIR}/SourceSans3.ttf", size)
     f.set_variation_by_axes([{"body": 420, "semi": 600, "bold": 700}[kind]])
     return f
 
 
-def text(d, xy, s, f, fill, anchor="la", max_w=None):
-    if max_w:
-        while f.getlength(s) > max_w and len(s) > 3:
-            s = s[:-2].rstrip() + "…"
-    d.text(xy, s, font=f, fill=fill, anchor=anchor)
+def fit(s, f, max_w):
+    while f.getlength(s) > max_w and len(s) > 3:
+        s = s[:-2].rstrip() + "…"
+    return s
 
 
 def wrap(s, f, max_w):
@@ -45,187 +49,215 @@ def wrap(s, f, max_w):
         if f.getlength(t) <= max_w:
             cur = t
         else:
-            if cur: lines.append(cur)
+            if cur:
+                lines.append(cur)
             cur = word
-    if cur: lines.append(cur)
+    if cur:
+        lines.append(cur)
     return lines
 
 
-def rounded(d, box, r, fill, outline=None):
-    d.rounded_rectangle(box, radius=r, fill=fill, outline=outline, width=2 if outline else 0)
+def text(d, xy, s, f, fill, anchor="la", max_w=None):
+    d.text(xy, fit(s, f, max_w) if max_w else s, font=f, fill=fill, anchor=anchor)
 
 
-def header(d, title, sub, h=250):
-    d.rectangle((0, 0, W, h), fill=C["board"])
-    text(d, (60, 44), "MAÇ ANALİZİ", font("semi", 24), C["chalkdim"])
-    text(d, (W - 60, 44), HANDLE, font("semi", 24), C["sodium"], anchor="ra")
-    f = font("display", 76)
-    lines = wrap(title, f, W - 120)[:2]
-    y = 86
-    for ln in lines:
-        text(d, (60, y), ln, f, (255, 255, 255)); y += 78
-    text(d, (60, h - 48), sub, font("body", 26), C["chalkdim"])
+def pitch_background():
+    """Dikey yeşil degrade + yarı saydam saha çizgileri (orta yuvarlak, orta çizgi, ceza sahası yayı)."""
+    img = Image.new("RGB", (W, H), GREEN)
+    d = ImageDraw.Draw(img)
+    for y in range(H):
+        t = y / H
+        d.line((0, y, W, y), fill=tuple(int(GREEN[i] + (GREEN2[i] - GREEN[i]) * t) for i in range(3)))
+    ov = Image.new("RGBA", (W, H), (0, 0, 0, 0)); od = ImageDraw.Draw(ov)
+    line = (255, 255, 255, 26)
+    od.ellipse((W / 2 - 300, 720 - 300, W / 2 + 300, 720 + 300), outline=line, width=4)
+    od.line((0, 720, W, 720), fill=line, width=4)
+    od.arc((W / 2 - 520, H - 120, W / 2 + 520, H + 700), start=200, end=340, fill=line, width=4)
+    return Image.alpha_composite(img.convert("RGBA"), ov).convert("RGB")
 
 
-def footer(d):
+def tr_upper(s):
+    """Türkçe büyük harf: i → İ, ı → I (Python upper() i'yi I yapar)."""
+    return s.replace("i", "İ").replace("ı", "I").upper()
+
+
+def topbar(d, label):
+    text(d, (60, 50), tr_upper(label), font("displaysemi", 30), YELLOW)
+    text(d, (W - 60, 50), HANDLE, font("semi", 26), WHITE, anchor="ra")
+
+
+def footer(d, dark=True):
     f = font("body", 20)
     lines = wrap(DISCLAIMER, f, W - 120)
-    y = H - 36 - 26 * len(lines)
-    d.line((60, y - 18, W - 60, y - 18), fill=C["line"], width=2)
+    y = H - 34 - 26 * len(lines)
+    d.line((60, y - 16, W - 60, y - 16), fill=(60, 95, 78) if dark else (227, 222, 210), width=2)
     for ln in lines:
-        text(d, (60, y), ln, f, C["muted"]); y += 26
-    text(d, (W - 60, H - 36 - 26 * len(lines) - 44), HANDLE, font("semi", 22), C["board"], anchor="ra")
+        d.text((60, y), ln, font=f, fill=(150, 170, 160) if dark else MUTED); y += 26
 
 
-def section(d, y, label):
-    text(d, (60, y), label.upper(), font("semi", 22), C["muted"])
-    return y + 34
+def pill(d, x, y, s, f, bg, fg, pad=14):
+    w = f.getlength(s) + pad * 2
+    d.rounded_rectangle((x, y, x + w, y + 44), radius=22, fill=bg)
+    d.text((x + pad, y + 22), s, font=f, fill=fg, anchor="lm")
+    return x + w + 10
 
 
-def bar_row(d, y, label, p, color):
-    text(d, (60, y + 6), label, font("semi", 28), C["ink"])
-    x0, x1 = 360, W - 60 - 110
-    rounded(d, (x0, y + 8, x1, y + 36), 14, (230, 225, 213))
-    rounded(d, (x0, y + 8, x0 + max(28, int((x1 - x0) * p)), y + 36), 14, color)
-    text(d, (W - 60, y + 4), f"%{p*100:.0f}", font("display", 40), C["ink"], anchor="ra")
-    return y + 56
-
-
-def form_strip(d, x, y, games):
+def form_strip(d, x, y, games, size=44):
     sym = {"W": "G", "D": "B", "L": "M"}
-    col = {"W": C["signal"], "D": (154, 167, 160), "L": C["ember"]}
+    col = {"W": SIGNAL, "D": GREY, "L": ORANGE}
     for g in games:
-        rounded(d, (x, y, x + 40, y + 40), 8, col.get(g["result"], (169, 181, 174)))
-        text(d, (x + 20, y + 20), sym.get(g["result"], "?"), font("display", 30), (255, 255, 255), anchor="mm")
-        x += 48
+        d.rounded_rectangle((x, y, x + size, y + size), radius=10, fill=col.get(g["result"], GREY))
+        d.text((x + size / 2, y + size / 2), sym.get(g["result"], "?"), font=font("display", int(size * 0.72)), fill=GREEN, anchor="mm")
+        x += size + 8
     return x
 
 
+def status_pill(d, x, y, s, status):
+    col = {"sakat": RED, "cezalı": (160, 30, 30), "şüpheli": YELLOW, "döndü": SIGNAL}
+    fg = {"sakat": WHITE, "cezalı": WHITE, "şüpheli": GREEN, "döndü": GREEN}
+    f = font("semi", 23); w = f.getlength(s) + 28
+    d.rounded_rectangle((x, y, x + w, y + 44), radius=22, fill=col.get(status, GREY))
+    d.text((x + 14, y + 22), s, font=f, fill=fg.get(status, WHITE), anchor="lm")
+    return w
+
+
+# ----------------------------------------------------------------- kartlar
 def match_card(m, pm, ai, er, out_path):
-    img = Image.new("RGB", (W, H), C["bg"]); d = ImageDraw.Draw(img)
+    img = pitch_background(); d = ImageDraw.Draw(img)
     start = m["start"].astimezone(TR)
-    header(d, f"{m['home']} – {m['away']}", f"{start:%d.%m.%Y %H:%M} · {m['league']}")
-    y = 290
-    # piyasa ihtimali
+    topbar(d, f"Maç analizi · {start:%d.%m} · {m['league']}")
+    fh = font("display", 118)
+    home, away = tr_upper(m["home"]), tr_upper(m["away"])
+    while fh.getlength(home) > W - 120 or fh.getlength(away) > W - 120:
+        fh = font("display", fh.size - 6)
+    text(d, (60, 104), home, fh, WHITE)
+    text(d, (60, 104 + fh.size - 6), away, fh, YELLOW)
+    y = 104 + 2 * fh.size + 4
+    ft = font("display", 46)
+    text(d, (60, y), f"{start:%H:%M}", ft, WHITE)
+    text(d, (60 + ft.getlength(f"{start:%H:%M}") + 16, y + 10), "başlama saati · TSİ", font("body", 24), PALE)
+    y += 80
     if pm and "MS" in pm:
-        y = section(d, y, "Dünya bahis borsasının ihtimali")
-        y = bar_row(d, y, f"{m['home'][:18]} kazanır", pm["MS"]["1"], C["board2"])
-        y = bar_row(d, y, "Beraberlik", pm["MS"]["X"], (154, 167, 160))
-        y = bar_row(d, y, f"{m['away'][:18]} kazanır", pm["MS"]["2"], C["sodium"])
+        text(d, (60, y), "DÜNYA BAHİS BORSASININ İHTİMALİ", font("displaysemi", 26), YELLOW); y += 40
+        cols = [(f"{m['home']} kazanır", pm["MS"]["1"]), ("Beraberlik", pm["MS"]["X"]), (f"{m['away']} kazanır", pm["MS"]["2"])]
+        best = max(p for _, p in cols)
+        bw = (W - 120 - 24) / 3
+        for i, (lab, p) in enumerate(cols):
+            x = 60 + i * (bw + 12); top = p == best
+            d.rounded_rectangle((x, y, x + bw, y + 150), radius=18, fill=YELLOW if top else GREEN3)
+            d.text((x + 22, y + 18), f"%{p*100:.0f}", font=font("display", 86), fill=GREEN if top else WHITE)
+            d.text((x + 22, y + 110), fit(lab, font("semi", 23), bw - 44), font=font("semi", 23), fill=GREEN if top else PALE)
+        y += 168
         if "AU25" in pm and "KG" in pm:
-            text(d, (60, y + 4), f"3+ gol %{pm['AU25']['Üst']*100:.0f}  ·  karşılıklı gol %{pm['KG']['Var']*100:.0f}", font("body", 26), C["ink2"])
-            y += 44
-        y += 10
-    # son 5 + golcüler (iki sütun)
+            x = pill(d, 60, y, f"3+ gol  %{pm['AU25']['Üst']*100:.0f}", font("semi", 24), GREEN3, WHITE)
+            pill(d, x, y, f"Karşılıklı gol  %{pm['KG']['Var']*100:.0f}", font("semi", 24), GREEN3, WHITE)
+            y += 64
     l5 = (er or {}).get("last5") or {}
     leaders = (er or {}).get("leaders") or {}
     if l5 or leaders:
-        y = section(d, y, "Son 5 maç · gol atması en olası (sezon verisi)")
-        col_x = [60, 560]
-        teams = list(l5.keys())[:2] or list(leaders.keys())[:2]
-        maxy = y
+        ph = 240
+        d.rounded_rectangle((60, y, W - 60, y + ph), radius=22, fill=CREAM)
+        teams = (list(l5.keys()) or list(leaders.keys()))[:2]
         for i, t in enumerate(teams):
-            x = col_x[i]; yy = y
-            text(d, (x, yy), t, font("semi", 28), C["ink"], max_w=440); yy += 38
+            x = 90 + i * ((W - 180) / 2); yy = y + 20
+            text(d, (x, yy), t, font("display", 36), INK, max_w=430); yy += 46
             if l5.get(t):
-                form_strip(d, x, yy, l5[t]); yy += 52
-            for l in sorted(leaders.get(t, []), key=lambda r: (-r["goals"], -r["shots"]))[:2]:
-                if not l["goals"] and not l["shots"]:
-                    continue
-                d.ellipse((x, yy + 7, x + 18, yy + 25), fill=C["board"]); d.ellipse((x + 5, yy + 12, x + 13, yy + 20), fill=(255, 255, 255))
-                text(d, (x + 28, yy), l['player'], font("semi", 26), C["ink"], max_w=270)
-                text(d, (x + 300, yy + 2), f"{l['goals']} gol · {l['shots']} şut", font("body", 24), C["muted"])
-                yy += 34
-            maxy = max(maxy, yy)
-        y = maxy + 14
-    # eksikler
+                text(d, (x, yy + 10), "Son 5", font("semi", 20), MUTED)
+                form_strip(d, x + 68, yy, l5[t], size=40); yy += 56
+            top = [l for l in sorted(leaders.get(t, []), key=lambda r: (-r["goals"], -r["shots"])) if l["goals"] or l["shots"]][:2]
+            for l in top:
+                d.rounded_rectangle((x, yy, x + 54, yy + 44), radius=10, fill=GREEN)
+                d.text((x + 27, yy + 22), str(l["goals"]), font=font("display", 32), fill=YELLOW, anchor="mm")
+                text(d, (x + 66, yy - 2), l["player"], font("semi", 26), INK, max_w=330)
+                text(d, (x + 66, yy + 24), f"{l['goals']} gol · {l['shots']} şut · sezon", font("body", 19), MUTED)
+                yy += 54
+        y += ph + 22
     absences = ((ai or {}).get("blind") or {}).get("absences") or []
     if absences:
-        y = section(d, y, "Eksikler · haberlere göre")
-        col = {"sakat": C["ember"], "cezalı": (180, 30, 30), "şüpheli": C["sodium"], "döndü": C["signal"]}
-        for a in absences[:5]:
-            d.ellipse((60, y + 8, 76, y + 24), fill=col.get(a.get("status"), C["muted"]))
-            text(d, (90, y), f"{a.get('player', '')}", font("semi", 26), C["ink"], max_w=330)
-            text(d, (430, y + 1), f"{a.get('team', '')[:14]} · {a.get('status', '')} · {a.get('role', '')}", font("body", 24), C["ink2"], max_w=590)
-            y += 34
-        y += 10
-    # analiz
-    comment = ((ai or {}).get("blind") or {}).get("comment") or ""
-    if comment:
-        y = section(d, y, "Analiz")
-        f = font("body", 26)
-        room = max(2, (H - 110 - y) // 34)
-        # cümle cümle ekle; sığmayan ilk cümlede dur
-        import re
-        sents = re.split(r"(?<=[.!?])\s+", comment.strip())
-        acc = ""
-        for st in sents:
-            cand = (acc + " " + st).strip()
-            if len(wrap(cand, f, W - 120)) > room:
+        text(d, (60, y), "EKSİKLER · HABERLERE GÖRE", font("displaysemi", 26), YELLOW); y += 40
+        x = 60
+        for a in absences[:6]:
+            s = f"{a.get('player', '')} · {a.get('status', '')}"
+            w = font("semi", 23).getlength(s) + 28
+            if x + w > W - 60:
+                x = 60; y += 54
+            if y > H - 170:
                 break
-            acc = cand
-        for ln in wrap(acc or sents[0], f, W - 120)[:room]:
-            text(d, (60, y), ln, f, C["ink2"]); y += 34
-    footer(d)
+            status_pill(d, x, y, s, a.get("status")); x += w + 10
+        y += 60
+    footer(d, dark=True)
     img.save(out_path, "PNG", optimize=True)
 
 
 def comment_card(m, ai, out_path):
-    """Carousel 2. görsel: yapay zekânın tam yorumu + risk + kaynaklı haberler."""
     bl = (ai or {}).get("blind") or {}
     if not bl.get("comment"):
         return False
-    img = Image.new("RGB", (W, H), C["bg"]); d = ImageDraw.Draw(img)
+    img = Image.new("RGB", (W, H), CREAM); d = ImageDraw.Draw(img)
+    d.rectangle((0, 0, W, 230), fill=GREEN)
     start = m["start"].astimezone(TR)
-    header(d, f"{m['home']} – {m['away']}", f"{start:%d.%m.%Y %H:%M} · {m['league']} · yapay zekâ analizi")
-    y = section(d, 290, "Maç önü değerlendirme · yapay zekâ, haberlere dayanarak")
-    f = font("body", 28)
-    room_bottom = H - 120
+    text(d, (60, 50), f"MAÇ ÖNÜ DEĞERLENDİRME · {start:%d.%m %H:%M}", font("displaysemi", 28), YELLOW)
+    text(d, (W - 60, 50), HANDLE, font("semi", 26), WHITE, anchor="ra")
+    fh = font("display", 70); title = f"{m['home']} – {m['away']}"
+    while fh.getlength(title) > W - 120:
+        fh = font("display", fh.size - 4)
+    text(d, (60, 110), title, fh, WHITE)
+    d.text((54, 226), "“", font=font("display", 160), fill=YELLOW)
+    y = 352; f = font("body", 30)
     for ln in wrap(bl["comment"], f, W - 120):
-        if y > room_bottom - 200:
+        if y > H - 360:
             break
-        text(d, (60, y), ln, f, C["ink"]); y += 38
+        d.text((60, y), ln, font=f, fill=INK); y += 42
+    y += 14
     if bl.get("risk"):
-        y += 10; y = section(d, y, "En büyük belirsizlik")
-        for ln in wrap(bl["risk"], font("body", 26), W - 120)[:3]:
-            text(d, (60, y), ln, font("body", 26), C["ink2"]); y += 34
+        d.rounded_rectangle((60, y, W - 60, y + 118), radius=18, fill=(255, 243, 204))
+        text(d, (84, y + 16), "EN BÜYÜK BELİRSİZLİK", font("displaysemi", 24), (107, 77, 0))
+        yy = y + 50
+        for ln in wrap(bl["risk"], font("body", 24), W - 170)[:2]:
+            d.text((84, yy), ln, font=font("body", 24), fill=INK2); yy += 30
+        y += 134
     facts = bl.get("facts") or []
-    if facts and y < room_bottom - 120:
-        y += 10; y = section(d, y, "Kaynaklı haberler")
+    if facts and y < H - 200:
+        text(d, (60, y), "KAYNAKLI HABERLER", font("displaysemi", 24), MUTED); y += 34
         for fct in facts[:3]:
-            lines = wrap("• " + fct, font("body", 23), W - 120)[:2]
+            lines = wrap("• " + fct, font("body", 22), W - 120)[:2]
+            if y + 29 * len(lines) > H - 125:  # sığmayan haberi hiç başlatma (yarım satır olmasın)
+                break
             for ln in lines:
-                if y > room_bottom - 30:
-                    break
-                text(d, (60, y), ln, font("body", 23), C["ink2"]); y += 30
+                d.text((60, y), ln, font=font("body", 22), fill=INK2); y += 29
             y += 4
-    footer(d)
+    footer(d, dark=False)
     img.save(out_path, "PNG", optimize=True)
     return True
 
 
 def injuries_card(items, day, out_path):
-    img = Image.new("RGB", (W, H), C["bg"]); d = ImageDraw.Draw(img)
-    header(d, "Sakatlık bülteni", f"{day:%d.%m.%Y} · günün maçları · haberlere göre", h=230)
-    y = 270
-    col = {"sakat": C["ember"], "cezalı": (180, 30, 30), "şüpheli": C["sodium"], "döndü": C["signal"]}
-    cur = None
-    for it in items[:16]:
+    img = pitch_background(); d = ImageDraw.Draw(img)
+    topbar(d, f"Sakatlık bülteni · {day:%d.%m}")
+    text(d, (60, 104), "GÜNÜN", font("display", 118), WHITE)
+    text(d, (60, 216), "EKSİKLERİ", font("display", 118), YELLOW)
+    text(d, (60, 350), "Haberlere göre · sakat, cezalı, şüpheli", font("body", 26), PALE)
+    y = 410; cur = None; x = 60
+    for it in items[:18]:
         if it["match"] != cur:
-            cur = it["match"]; y += 8
-            text(d, (60, y), cur, font("display", 34), C["board"], max_w=W - 120); y += 44
-        d.ellipse((60, y + 8, 76, y + 24), fill=col.get(it["status"], C["muted"]))
-        text(d, (90, y), it["player"], font("semi", 27), C["ink"], max_w=360)
-        text(d, (460, y + 2), f"{it['team'][:16]} · {it['status']} · {it['role']}", font("body", 24), C["ink2"], max_w=560)
-        y += 36
-        if y > H - 200:
+            cur = it["match"]; y += 12
+            if y > H - 200:
+                break
+            text(d, (60, y), cur, font("display", 40), WHITE, max_w=W - 120); y += 50; x = 60
+        s = f"{it['player']} · {it['status']}"
+        w = font("semi", 23).getlength(s) + 28
+        if x + w > W - 60:
+            x = 60; y += 54
+        if y > H - 160:
             break
+        status_pill(d, x, y, s, it["status"]); x += w + 10
     if not items:
-        text(d, (60, 300), "Bugünkü maçlarda haberlere yansıyan önemli eksik yok.", font("body", 28), C["ink2"])
-    footer(d)
+        text(d, (60, 440), "Bugünkü maçlarda haberlere yansıyan önemli eksik yok.", font("body", 28), WHITE)
+    footer(d, dark=True)
     img.save(out_path, "PNG", optimize=True)
 
 
+# ----------------------------------------------------------------- ana akış
 def main():
     day = datetime.strptime(sys.argv[sys.argv.index("--date") + 1], "%Y-%m-%d").date() if "--date" in sys.argv else datetime.now(TR).date()
     rows = build_site.read_jsonl("records/nesine/*.jsonl"); t, last = build_site.latest_snapshot(rows)
@@ -243,13 +275,12 @@ def main():
         a = ai.get(m["code"]); er = es.get(m["code"])
         for x in ((a or {}).get("blind") or {}).get("absences") or []:
             inj.append({"match": f"{m['home']} – {m['away']}", **{k: x.get(k, "") for k in ("team", "player", "status", "role")}})
-        if a or er:  # içerik yoksa kart üretme
+        if a or er:
             p = f"{out_dir}/match_{m['code']}.png"; match_card(m, pm, a, er, p); made.append(p)
             p2 = f"{out_dir}/yorum_{m['code']}.png"
             if comment_card(m, a, p2):
                 made.append(p2)
     injuries_card(inj, day, f"{out_dir}/injuries.png"); made.append(f"{out_dir}/injuries.png")
-    # eski klasörleri sil
     for p in glob.glob(f"{OUT}/*"):
         try:
             if (day - datetime.strptime(os.path.basename(p), "%Y-%m-%d").date()).days > 3:

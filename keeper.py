@@ -177,8 +177,10 @@ def main():
         maybe_results(s, now)
         maybe_watch(s, now)
         maybe_espn(now)
-        if now.minute < 20:  # saatte bir: paylaşım kartları (yerel, ücretsiz)
+        if now.minute < 20:  # saatte bir: paylaşım kartları (yerel, ücretsiz) + Instagram gönderimi (secret varsa)
             r = sh([sys.executable, "social.py"], capture_output=True, text=True); log((r.stdout or r.stderr).strip()[:200])
+            if (now.hour, 0) >= (7, 0) and now.hour <= 19 and os.environ.get("IG_TOKEN"):
+                r = sh([sys.executable, "instagram.py"], capture_output=True, text=True); log("instagram: " + (r.stdout or r.stderr).strip()[:300])
         publish(f"espn/kart {now:%H:%M}")
         # yeni kod geldiyse bu çalışma eski kodla devam etmesin (kayıt alındı, şimdi çıkılabilir)
         pull()
