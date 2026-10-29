@@ -39,6 +39,7 @@ jobs:
           IG_TOKEN: ${{ secrets.IG_TOKEN }}
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
           IG_MAX_PER_DAY: ${{ vars.IG_MAX_PER_DAY || '2' }}
+          SOCIAL_PASS: ${{ vars.SOCIAL_PASS || 'analiz2026' }}
           PYTHONIOENCODING: utf-8
         run: |
           ARGS="--max-minutes ${{ inputs.max_minutes || '340' }}"

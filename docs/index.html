@@ -207,11 +207,11 @@ footer{margin-top:56px;padding-top:18px;border-top:1px solid var(--line);color:v
 details.match summary{grid-template-columns:1fr auto}details.match summary time{grid-column:1/-1}.coupon{padding:16px 14px}.coupon .meta{text-align:left}.cl .probs{grid-template-columns:repeat(3,1fr)}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.verdict,.coupon,.cl .card{opacity:1;transform:none}.meter .bar{width:var(--w)}}
 </style></head><body><div class="wrap">
-<div class="topbar"><div class="brand">İddia Bot<small>Nesine oranı dünya piyasasından yüksek mi? · gölge test</small></div><div class="clock">30.10 01:24 TSİ</div></div>
+<div class="topbar"><div class="brand">İddia Bot<small>Nesine oranı dünya piyasasından yüksek mi? · gölge test</small></div><div class="clock">30.10 01:38 TSİ</div></div>
 
 <section class="board">
   <h1 class="verdict">Şu an oynanacak<br><em>fırsat yok.</em></h1>
-  <ul class="pills"><li><span class="pulse"></span>Nesine <b>0 dk önce</b> kontrol edildi</li><li>Dünya piyasası <b>2 saat önce</b> · gözcü açılınca tazelenir</li><li class="shadow">Gölge test · para oynanmıyor, her fırsat puanlanıyor</li></ul>
+  <ul class="pills"><li><span class="pulse"></span>Nesine <b>14 dk önce</b> kontrol edildi</li><li>Dünya piyasası <b>2 saat önce</b> · gözcü açılınca tazelenir</li><li class="shadow">Gölge test · para oynanmıyor, her fırsat puanlanıyor</li></ul>
   
 <ul class="facts">
   <li><div class="n">57</div><div class="l">yaklaşan maç takipte</div></li>
@@ -229,7 +229,6 @@ details.match summary{grid-template-columns:1fr auto}details.match summary time{
   <a href="#maclar" data-tab="maclar">Maçlar<span class="cnt">31</span></a>
   <a href="#claude" data-tab="claude">Yapay zekâ<span class="cnt">2</span></a>
   <a href="#hareket" data-tab="hareket">Oran hareketi</a>
-  <a href="#paylasim" data-tab="paylasim">Paylaşım</a>
   <a href="#nasil" data-tab="nasil">Nasıl çalışır</a>
 </nav>
 
@@ -553,8 +552,12 @@ details.match summary{grid-template-columns:1fr auto}details.match summary time{
 
 <section class="panel" id="p-paylasim">
 <h2>Paylaşım kartları <small>Instagram için · son 3 gün</small></h2>
+<div id="lock" class="empty"><b>Bu bölüm şifrelidir.</b> <input id="pw" type="password" placeholder="Şifre" style="margin:0 8px;padding:6px 10px;border:1px solid var(--line);border-radius:8px"> <button id="pwb" style="padding:6px 14px;border-radius:8px;border:1px solid var(--board);background:var(--board);color:#fff;cursor:pointer">Aç</button> <span id="pwmsg" style="color:var(--ember)"></span></div>
+<template id="social-tpl">
 <p class="lead">Günün maçları için otomatik üretilen analiz kartları (1080×1350). Oran, kupon ve yatırım içermez; 18+ bilgi notu kartın altında. Görsele tıklayıp kaydedin.</p>
 <h3>2026-10-30</h3><div class="tiles"><a class="tile" href="social/2026-10-30/injuries.png" download><img src="social/2026-10-30/injuries.png" alt="" loading="lazy"><span>sakatlık bülteni</span></a><a class="tile" href="social/2026-10-30/match_3252325.png" download><img src="social/2026-10-30/match_3252325.png" alt="" loading="lazy"><span>maç 3252325</span></a><a class="tile" href="social/2026-10-30/match_3253790.png" download><img src="social/2026-10-30/match_3253790.png" alt="" loading="lazy"><span>maç 3253790</span></a><a class="tile" href="social/2026-10-30/match_3253900.png" download><img src="social/2026-10-30/match_3253900.png" alt="" loading="lazy"><span>maç 3253900</span></a><a class="tile" href="social/2026-10-30/match_3254474.png" download><img src="social/2026-10-30/match_3254474.png" alt="" loading="lazy"><span>maç 3254474</span></a><a class="tile" href="social/2026-10-30/match_3258190.png" download><img src="social/2026-10-30/match_3258190.png" alt="" loading="lazy"><span>maç 3258190</span></a><a class="tile" href="social/2026-10-30/match_3258486.png" download><img src="social/2026-10-30/match_3258486.png" alt="" loading="lazy"><span>maç 3258486</span></a><a class="tile" href="social/2026-10-30/yorum_3258190.png" download><img src="social/2026-10-30/yorum_3258190.png" alt="" loading="lazy"><span>yorum 3258190</span></a></div>
+</template>
+<div id="social-out"></div>
 </section>
 
 <section class="panel" id="p-nasil">
@@ -597,6 +600,15 @@ details.match summary{grid-template-columns:1fr auto}details.match summary time{
   });
   var h=location.hash.replace('#',''); var saved=null; try{ saved=localStorage.getItem('tab'); }catch(e){}
   show(h||saved||'bugun');
+  // Paylaşım kapısı
+  var HASH='cf570939f7ac3a76a6098bfc820c77d098e2f3b022110ced6223494e6d929148';
+  async function sha(s){ var b=new TextEncoder().encode(s); var d=await crypto.subtle.digest('SHA-256',b); return Array.from(new Uint8Array(d)).map(function(x){return x.toString(16).padStart(2,'0')}).join(''); }
+  function unlock(){ var t=document.getElementById('social-tpl'); var o=document.getElementById('social-out'); if(t&&o){ o.innerHTML=t.innerHTML; document.getElementById('lock').style.display='none'; } }
+  try{ if(sessionStorage.getItem('social_ok')===HASH) unlock(); }catch(e){}
+  var btn=document.getElementById('pwb');
+  if(btn) btn.addEventListener('click', async function(){ var v=document.getElementById('pw').value; var hh=await sha(v);
+    if(hh===HASH){ try{ sessionStorage.setItem('social_ok',HASH); }catch(e){} unlock(); } else { document.getElementById('pwmsg').textContent='Yanlış şifre'; } });
+  var pw=document.getElementById('pw'); if(pw) pw.addEventListener('keydown', function(ev){ if(ev.key==='Enter') btn.click(); });
 })();
 </script>
 </body></html>

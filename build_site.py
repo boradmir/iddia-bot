@@ -779,6 +779,8 @@ def build():
         ch_lead = "Henüz oran değişimi görmedik; kayıtlar birikiyor."
 
     n_alerts = len(alerts); n_cards = len(cards); n_claude = len(all_claude); n_soon = len(soon)
+    import hashlib
+    SOCIAL_HASH = hashlib.sha256(os.environ.get("SOCIAL_PASS", "analiz2026").encode("utf-8")).hexdigest()
     social_html = ""
     for dd in sorted(glob.glob("docs/social/*"), reverse=True)[:3]:
         imgs = sorted(glob.glob(f"{dd}/*.png"))
@@ -812,7 +814,6 @@ def build():
   <a href="#maclar" data-tab="maclar">Maçlar{cnt(n_soon)}</a>
   <a href="#claude" data-tab="claude">Yapay zekâ{cnt(n_claude)}</a>
   <a href="#hareket" data-tab="hareket">Oran hareketi</a>
-  <a href="#paylasim" data-tab="paylasim">Paylaşım</a>
   <a href="#nasil" data-tab="nasil">Nasıl çalışır</a>
 </nav>
 
@@ -864,8 +865,12 @@ def build():
 
 <section class="panel" id="p-paylasim">
 <h2>Paylaşım kartları <small>Instagram için · son 3 gün</small></h2>
+<div id="lock" class="empty"><b>Bu bölüm şifrelidir.</b> <input id="pw" type="password" placeholder="Şifre" style="margin:0 8px;padding:6px 10px;border:1px solid var(--line);border-radius:8px"> <button id="pwb" style="padding:6px 14px;border-radius:8px;border:1px solid var(--board);background:var(--board);color:#fff;cursor:pointer">Aç</button> <span id="pwmsg" style="color:var(--ember)"></span></div>
+<template id="social-tpl">
 <p class="lead">Günün maçları için otomatik üretilen analiz kartları (1080×1350). Oran, kupon ve yatırım içermez; 18+ bilgi notu kartın altında. Görsele tıklayıp kaydedin.</p>
 {social_html}
+</template>
+<div id="social-out"></div>
 </section>
 
 <section class="panel" id="p-nasil">
@@ -908,6 +913,15 @@ def build():
   }});
   var h=location.hash.replace('#',''); var saved=null; try{{ saved=localStorage.getItem('tab'); }}catch(e){{}}
   show(h||saved||'bugun');
+  // Paylaşım kapısı
+  var HASH='{SOCIAL_HASH}';
+  async function sha(s){{ var b=new TextEncoder().encode(s); var d=await crypto.subtle.digest('SHA-256',b); return Array.from(new Uint8Array(d)).map(function(x){{return x.toString(16).padStart(2,'0')}}).join(''); }}
+  function unlock(){{ var t=document.getElementById('social-tpl'); var o=document.getElementById('social-out'); if(t&&o){{ o.innerHTML=t.innerHTML; document.getElementById('lock').style.display='none'; }} }}
+  try{{ if(sessionStorage.getItem('social_ok')===HASH) unlock(); }}catch(e){{}}
+  var btn=document.getElementById('pwb');
+  if(btn) btn.addEventListener('click', async function(){{ var v=document.getElementById('pw').value; var hh=await sha(v);
+    if(hh===HASH){{ try{{ sessionStorage.setItem('social_ok',HASH); }}catch(e){{}} unlock(); }} else {{ document.getElementById('pwmsg').textContent='Yanlış şifre'; }} }});
+  var pw=document.getElementById('pw'); if(pw) pw.addEventListener('keydown', function(ev){{ if(ev.key==='Enter') btn.click(); }});
 }})();
 </script>
 </body></html>"""
