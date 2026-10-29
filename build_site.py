@@ -308,7 +308,9 @@ def coupon_key(kind, c):
 
 def record_coupons(cps, now):
     """Önerilen kuponları ilk görüldükleri anda kilitler (o an oynanmış gibi). Tür+maç sayısı+gün başına bir kez."""
-    existing = {c["key"] for c in read_jsonl(f"{COUPON_DIR}/*.jsonl")}
+    past_all = read_jsonl(f"{COUPON_DIR}/*.jsonl")
+    existing = {c["key"] for c in past_all}
+    next_no = max((c.get("no", 0) for c in past_all), default=0) + 1
     new = []
     items = [("value", cps["value"])] if cps.get("value") else []
     items += [("safest", c) for c in cps.get("safest", [])] + [("balanced", c) for c in cps.get("balanced", [])]
@@ -317,11 +319,12 @@ def record_coupons(cps, now):
         if k in existing:
             continue
         existing.add(k)
-        new.append({"key": k, "t": now.isoformat(timespec="seconds"), "kind": kind, "n": c["n"], "odds": round(c["odds"], 2),
+        new.append({"key": k, "no": next_no, "t": now.isoformat(timespec="seconds"), "kind": kind, "n": c["n"], "odds": round(c["odds"], 2),
                     "prob": round(c["prob"], 4), "ev_pct": round(c["ev_pct"], 1), "result": None,
                     "legs": [{"code": b["code"], "home": b["home"], "away": b["away"], "league": b["league"], "sport": b.get("sport_key"),
                               "start": b["start"].isoformat(), "market": b["market"], "pick": b["pick"], "odds": b["nesine_odds"],
                               "prob": round(b["fair_prob"], 4)} for b in c["legs"]]})
+        next_no += 1
     if new:
         os.makedirs(COUPON_DIR, exist_ok=True)
         with open(f"{COUPON_DIR}/{now:%Y-%m-%d}.jsonl", "a", encoding="utf-8") as f:
@@ -352,7 +355,7 @@ def past_coupons_html(rows):
         legs = "".join(f'<li><div>{esc(l["home"])} – {esc(l["away"])}<small><span class="pb">{esc(PICK_SHORT.get((l["market"], l["pick"]), l["pick"]))}</span>{tr_time(l["start"], day=True)}'
                        f'{(" · skor " + l["score"]) if l.get("score") else ""}</small></div>'
                        f'<div class="p">{"✓" if l.get("result") == "won" else "✗" if l.get("result") == "lost" else "…"}</div><div class="o">{l["odds"]:.2f}</div></li>' for l in c["legs"])
-        items += f"""<details class="match"><summary><time>{tr_time(c['t'], day=True)}</time><div><div class="tm">{KIND_TR.get(c['kind'], c['kind'])} · {c['n']} maç · oran {c['odds']:.2f}</div>
+        items += f"""<details class="match"><summary><time>{tr_time(c['t'], day=True)}</time><div><div class="tm">{('#' + str(c['no']) + ' · ') if c.get('no') else ''}{KIND_TR.get(c['kind'], c['kind'])} · {c['n']} maç · oran {c['odds']:.2f}</div>
 <div class="lg">gelme ihtimali %{c['prob']*100:.0f} · beklenen değer {c['ev_pct']:+.0f}%</div></div>{tag}</summary>
 <div class="views"><ul class="legs plainlegs">{legs}</ul></div></details>"""
     return summ + (items or "")
@@ -394,9 +397,10 @@ def coupon_card(b, i, stale, sv, cr=None):
 </article>"""
 
 
-def combo_card(title, c, i, kind):
+def combo_card(title, c, i, kind, no=None):
     if not c:
         return ""
+    title = f"#{no} · {title}" if no else title
     loss = -c["ev_pct"]
     ev_cls = "good" if c["ev_pct"] >= 0 else "bad"
     legs = "".join(f'<li><div>{esc(b["home"])} – {esc(b["away"])}<small><span class="pb">{esc(PICK_SHORT.get((b["market"], b["pick"]), b["pick"]))}</span>{tr_time(b["start"], day=True)}</small></div>'
@@ -623,13 +627,14 @@ def build():
         cards_html = f'<div class="empty"><b>Hiçbir maçta Nesine, dünya piyasasından yüksek oran vermiyor.</b> Bu normaldir; fırsat haber çıkıp dünya piyasası hareket ettiğinde, Nesine geç kaldığında doğar.{best_txt}</div>'
 
     # --- kuponlar
+    no_by_key = {c["key"]: c.get("no") for c in past}
     cp_html = ""
     if cps.get("value"):
-        cp_html += combo_card("Değerli kupon", cps["value"], 0, "sadece eşik üstü maçlar")
+        cp_html += combo_card("Değerli kupon", cps["value"], 0, "sadece eşik üstü maçlar", no_by_key.get(coupon_key("value", cps["value"])))
     for i, c in enumerate(cps.get("safest", [])):
-        cp_html += combo_card("En güvenli", c, i + 1, "en yüksek gelme ihtimali")
+        cp_html += combo_card("En güvenli", c, i + 1, "en yüksek gelme ihtimali", no_by_key.get(coupon_key("safest", c)))
     for i, c in enumerate(cps.get("balanced", [])):
-        cp_html += combo_card("Dengeli", c, i + 4, "bacak oranları 1.50–2.50")
+        cp_html += combo_card("Dengeli", c, i + 4, "bacak oranları 1.50–2.50", no_by_key.get(coupon_key("balanced", c)))
     cp_html = f'<div class="grid">{cp_html}</div>' if cp_html else '<div class="empty">Önümüzdeki 48 saatte kupon kuracak kadar karşılaştırılmış maç yok.</div>'
 
     # --- yaklaşan maçlar
