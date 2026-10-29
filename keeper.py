@@ -83,13 +83,14 @@ def maybe_results(s, now):
 
 
 def maybe_watch(s, now):
-    """2 saat içinde hedef maç varsa ve gözcü çalışmıyorsa tetikle (gözcü kendi penceresini kendi yönetir)."""
+    """3 saat içinde hedef maç varsa ve gözcü çalışmıyorsa tetikle (gözcü kendi penceresini kendi yönetir; saatlik kontrol
+    olduğu için 3 saat, 100 dk'lık izleme penceresinin başını kaçırmamayı garanti eder)."""
     key = now.strftime("%Y-%m-%d-%H")
     if s.get("watch_check") == key:
         return
     s["watch_check"] = key; save_status(s)
     try:
-        ms = [m for m in nesine.parse(nesine.fetch(save_path=None)) if now < m["start"] <= now + timedelta(hours=2)]
+        ms = [m for m in nesine.parse(nesine.fetch(save_path=None)) if now < m["start"] <= now + timedelta(hours=3)]
     except Exception as e:
         log(f"Nesine okunamadı: {e}"); return
     if ms and not workflow_active("watch.yml"):

@@ -519,8 +519,10 @@ def build():
     # --- hero
     verdict = (f'<em>{len(cards)} fırsat</em> var.' if cards else 'Şu an oynanacak<br><em>fırsat yok.</em>')
     live = nes_age is not None and nes_age <= 45
+    pin_txt = (f'Dünya piyasası verisi <b>{ago(pin_age)}</b> alındı' +
+               (' (önceki maç gününün kapanışı; bu veri yalnızca maç saatine yakın, gözcü açıkken çekilir — ücretsiz kota).' if pin_age is not None and pin_age > 180 else '.'))
     sub = (f'<span class="pulse{"" if live else " off"}"></span>Nesine oranları en son <b>{ago(nes_age)}</b> kontrol edildi'
-           f'{"" if live else " — kayıt gecikmiş olabilir"}. Dünya piyasası verisi <b>{ago(pin_age)}</b> alındı.')
+           f'{"" if live else " — kayıt gecikmiş olabilir"}. {pin_txt}')
     if watch.get("active"):
         sub += f' <b>Gözcü açık:</b> {esc(watch.get("note", ""))}'
     if SHADOW:
