@@ -9,7 +9,7 @@ Kullanım: python keeper.py [--max-minutes 340] [--no-chain]
 """
 import json, os, subprocess, sys, time
 from datetime import datetime, timezone, timedelta
-import nesine
+import nesine, espn
 
 RECORD_MIN = 20
 STATUS = "records/status.json"
@@ -108,6 +108,26 @@ def fix_watch_status():
         log("Bayat gözcü durumu sıfırlandı")
 
 
+def maybe_espn(now):
+    """48 saat içindeki maçlar için ESPN golcü/son-5 verisi (ücretsiz). Kadro yakınken gözcü günceller."""
+    try:
+        have = espn.load_all()
+        ms = [m for m in nesine.parse(nesine.fetch(save_path=None)) if now < m["start"] <= now + timedelta(hours=48)]
+        n = 0
+        for m in ms:
+            old = have.get(m["code"])
+            if old and old.get("leaders"):
+                continue
+            if espn.fetch_match(m):
+                n += 1
+            if n >= 25:
+                break
+        if n:
+            log(f"ESPN: {n} maç için golcü/son-5 verisi alındı")
+    except Exception as e:
+        log(f"ESPN hatası: {e}")
+
+
 def maybe_watch(s, now):
     """3 saat içinde hedef maç varsa ve gözcü çalışmıyorsa tetikle (gözcü kendi penceresini kendi yönetir; saatlik kontrol
     olduğu için 3 saat, 100 dk'lık izleme penceresinin başını kaçırmamayı garanti eder)."""
@@ -156,6 +176,8 @@ def main():
         publish(f"kayıt {now:%Y-%m-%d %H:%M}")
         maybe_results(s, now)
         maybe_watch(s, now)
+        maybe_espn(now)
+        publish(f"espn {now:%H:%M}")
         # yeni kod geldiyse bu çalışma eski kodla devam etmesin (kayıt alındı, şimdi çıkılabilir)
         pull()
         if code_version() != version:

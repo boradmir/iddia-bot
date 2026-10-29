@@ -14,7 +14,7 @@ Kullanım: python watch.py [--max-minutes 340] [--dry]   (--dry: Odds API çağ�
 """
 import json, os, subprocess, sys, time, calendar, threading
 from datetime import datetime, timezone, timedelta
-import config, nesine, odds, match, prob, value, build_site, claude_check
+import config, nesine, odds, match, prob, value, build_site, claude_check, espn
 
 NESINE_SEC = 60
 WINDOW_MIN = 100          # Pinnacle izleme penceresi: maça bu kadar dk kala başlar
@@ -157,6 +157,7 @@ def main():
     last_poll = {}           # sport → epoch
     alerted = {}             # (code, market, pick) → alert dict
     claude_done = set()      # bu çalışmada Claude'a sorulan maçlar
+    espn_last, espn_ids, espn_done = {}, {}, set()   # ESPN kadro takibi
     last_publish = 0
     day = now.strftime("%Y-%m-%d")
     spent_today = status.get("spent_today", 0) if status.get("spent_day") == day else 0
@@ -202,6 +203,20 @@ def main():
                 log(f"Pinnacle {s}: {len(events)} maç, kalan kota {rem}, bugün kalan bütçe {budget}")
             except Exception as e:
                 log(f"Odds API hatası {s}: {e}")
+
+        # 2b) ESPN kadro: penceredeki maçlar için açıklanana kadar 5 dk'da bir (ücretsiz)
+        for m in window:
+            if time.time() - espn_last.get(m["code"], 0) < 300 or m["code"] in espn_done:
+                continue
+            espn_last[m["code"]] = time.time()
+            try:
+                rec = espn.fetch_match(m, espn_ids.get(m["code"]))
+                if rec:
+                    espn_ids[m["code"]] = rec["event_id"]
+                    if rec["lineup"]:
+                        espn_done.add(m["code"]); log(f"Kadro açıklandı: {m['home']}-{m['away']}")
+            except Exception as e:
+                log(f"ESPN hatası: {e}")
 
         # 3) Value + uyarılar
         new_alerts = []

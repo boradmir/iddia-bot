@@ -8,11 +8,12 @@ Bölümler: durum · uyarılar (gözcü) · fırsat kartları · kupon öneriler
 """
 import glob, html, json, os, collections
 from datetime import datetime, timezone, timedelta
-import match, odds, prob, value, stats, coupons
+import match, odds, prob, value, stats, coupons, espn
 
 TR = timezone(timedelta(hours=3))
 RECORD_COUPONS = False   # build_site.py --record-coupons ile açılır (yalnızca kayıtçı iş akışı)
 CLAUDE_ACC = "henüz ölçülmedi"   # build() içinde puanlanmış Yapay zekâ tahminlerinden hesaplanır
+ESPN_BY = {}    # build() içinde espn.load_all(); maç kodu → ESPN verisi
 SHADOW = True   # gölge test: para oynanmaz, her şey kaydedilip puanlanır (29.10.2026 karar)
 MARKET_TR = {"MS": "Maç sonucu", "AU25": "2.5 gol alt/üst", "KG": "Karşılıklı gol"}
 PICK_TR = {("MS", "1"): "MS 1 · ev sahibi kazanır", ("MS", "X"): "MS X · beraberlik", ("MS", "2"): "MS 2 · deplasman kazanır",
@@ -300,6 +301,14 @@ details.chip.miss summary{border-color:#F2C2A8;background:var(--ember-soft)}
 details.chip.warn summary{border-color:#F0D98A;background:var(--sodium-soft)}
 details.chip.ok summary{border-color:#BFE6CF;background:var(--signal-soft)}
 details.chip.goal summary{border-color:#BFD9EA;background:#E8F2F9}
+details.lineup{margin:6px 0}
+details.lineup summary{list-style:none;cursor:pointer;font-size:14px;color:var(--ink-2);padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:#fff}
+details.lineup summary::-webkit-details-marker{display:none}
+details.lineup .pop2{font-size:13.5px;color:var(--ink-2);padding:8px 10px;display:grid;gap:4px}
+details.lineup .pop2 b{color:var(--ink)}
+.l5{font-size:14px;color:var(--ink-2)}
+.r5{display:inline-block;width:20px;height:20px;line-height:20px;text-align:center;border-radius:4px;font-size:12px;font-weight:700;color:#fff;background:#A9B5AE;margin-right:2px}
+.r5.W{background:var(--signal)}.r5.L{background:var(--ember)}.r5.D{background:#9AA7A0}
 details.chip[open] summary{box-shadow:0 0 0 2px rgba(15,51,38,.15)}
 details.chip .pop{position:absolute;z-index:4;top:calc(100% + 6px);left:0;min-width:260px;max-width:360px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px;box-shadow:0 10px 28px rgba(20,38,31,.15);font-size:13.5px;color:var(--ink-2);display:grid;gap:4px}
 details.chip .pop b{color:var(--ink)}
@@ -462,7 +471,7 @@ def claude_prob(cr, mk, pick):
 def absence_chips(bl):
     """Eksik/şüpheli oyuncular: tıklanınca ayrıntı açılan çipler. bl = kör tahmin sözlüğü."""
     items = (bl or {}).get("absences") or []
-    if not items and not (bl or {}).get("lineup_note") and not (bl or {}).get("scorers"):
+    if not items and not (bl or {}).get("lineup_note"):
         return ""
     icon = {"sakat": "🩹", "cezalı": "🟥", "şüpheli": "❔", "döndü": "✅"}
     chips = ""
@@ -472,13 +481,52 @@ def absence_chips(bl):
                   f'<div class="pop"><div><b>Durum:</b> {esc(st)}</div><div><b>Takımdaki yeri:</b> {esc(a.get("role", ""))}</div>'
                   f'<div><b>Son maçlar:</b> {esc(a.get("recent", "") or "bilgi yok")}</div><div><b>Bu maça etkisi:</b> {esc(a.get("impact", "") or "—")}</div></div></details>')
     note = f'<p class="lnote">{esc(bl.get("lineup_note", ""))}</p>' if bl.get("lineup_note") else ""
-    sc = ""
-    for s_ in (bl.get("scorers") or [])[:4]:
-        sc += (f'<details class="chip goal"><summary>⚽ {esc(s_.get("player", ""))} <small>{esc(s_.get("team", ""))}</small></summary>'
-               f'<div class="pop"><div><b>Neden:</b> {esc(s_.get("reason", "") or "—")}</div><div><b>Son maçlar:</b> {esc(s_.get("recent", "") or "bilgi yok")}</div></div></details>')
-    scorers = f'<div class="plabel" style="margin-top:10px"><b>Gol atması en olası</b> · haberlere ve forma göre</div><div class="chips">{sc}</div>' if sc else ""
     return (f'<div class="abs"><div class="plabel"><b>Sakat / cezalı / şüpheli</b> · haberlere göre · oyuncuya tıklayın</div>'
-            f'<div class="chips">{chips or "<span class=\"muted\">haberlerde eksik geçmiyor</span>"}</div>{note}{scorers}</div>')
+            f'<div class="chips">{chips or "<span class=\"muted\">haberlerde eksik geçmiyor</span>"}</div>{note}</div>')
+
+
+def espn_block(code, home=None, away=None):
+    """ESPN VERİSİ: gol atması en olası oyuncular (sezon golü/şutu), açıklanan ilk 11, son 5 maç."""
+    er = ESPN_BY.get(code)
+    if not er:
+        return ""
+    html_ = ""
+    # golcüler
+    chips = ""
+    for team, ls in (er.get("leaders") or {}).items():
+        names_in_roster = None
+        ro = (er.get("rosters") or {}).get(team)
+        if ro:
+            names_in_roster = {p["player"] for p in ro["starters"]} | set(ro["bench"])
+        for l in sorted(ls, key=lambda r: (-r["goals"], -r["shots"]))[:2]:
+            if not l["goals"] and not l["shots"]:
+                continue
+            gpm = f'{l["goals"]/l["matches"]:.2f}' if l.get("matches") else "?"
+            out_tag = ""
+            if names_in_roster is not None and l["player"] not in names_in_roster:
+                out_tag = ' <small style="color:#8a3d12">· kadroda değil</small>'
+            chips += (f'<details class="chip goal"><summary>⚽ {esc(l["player"])} <small>{esc(team)} · {l["goals"]} gol</small>{out_tag}</summary>'
+                      f'<div class="pop"><div><b>Sezon:</b> {l.get("matches") or "?"} maç, {l["goals"]} gol, {l["assists"]} asist</div><div><b>Maç başı gol:</b> {gpm}</div>'
+                      f'<div><b>Toplam şut:</b> {l["shots"]}</div></div></details>')
+    if chips:
+        html_ += f'<div class="plabel"><b>Gol atması en olası</b> · sezon verisi (ESPN)</div><div class="chips">{chips}</div>'
+    # ilk 11
+    ros = er.get("rosters") or {}
+    if ros:
+        parts = ""
+        for team, ro in ros.items():
+            st = ", ".join(f'{esc(p["player"])}' for p in ro["starters"])
+            bn = ", ".join(esc(x) for x in ro["bench"])
+            parts += (f'<details class="lineup"><summary><b>{esc(team)}</b> · {esc(ro.get("formation") or "diziliş ?")} · ilk 11 açıklandı</summary>'
+                      f'<div class="pop2"><div><b>İlk 11:</b> {st}</div><div><b>Yedek:</b> {bn or "—"}</div></div></details>')
+        html_ += f'<div class="plabel" style="margin-top:10px"><b>Açıklanan kadro</b> · ESPN</div>{parts}'
+    # son 5
+    l5 = er.get("last5") or {}
+    if l5:
+        sym = {"W": "G", "D": "B", "L": "M"}
+        rows = " · ".join(f'<b>{esc(t)}</b> ' + " ".join(f'<span class="r5 {g["result"]}">{sym.get(g["result"], "?")}</span>' for g in gs) for t, gs in l5.items())
+        html_ += f'<div class="plabel" style="margin-top:10px"><b>Son 5 maç</b> (G galibiyet · B beraberlik · M mağlubiyet, en eski → en yeni)</div><div class="l5">{rows}</div>'
+    return f'<div class="abs espn">{html_}</div>' if html_ else ""
 
 
 def claude_box(cr):
@@ -516,7 +564,7 @@ def claude_section(rows):
         probs = (cell("Ev kazanır", bl["p_home"], "MS", "1") + cell("Beraberlik", bl["p_draw"], "MS", "X") + cell("Deplasman kazanır", bl["p_away"], "MS", "2")
                  + cell("3+ gol", bl["p_over25"], "AU25", "Üst") + cell("KG var", bl["p_btts"], "KG", "Var"))
         facts = "".join(f"<li>{esc(x)}</li>" for x in bl.get("facts", [])[:4])
-        abs_html = absence_chips(bl)
+        abs_html = absence_chips(bl) + espn_block(r.get('code'))
         resline = ""
         if res:
             ms = res.get("MS"); lab = {"1": "ev galibiyetine", "X": "beraberliğe", "2": "deplasman galibiyetine"}.get(ms, "")
@@ -565,7 +613,7 @@ def match_details(m, h2h_probs, sv, bets_by_code, cr=None):
     why = (f'<p class="why">{form_line(m["home"], sv["home_form"])} {form_line(m["away"], sv["away_form"])}</p>' if sv else
            '<p class="why">Bu lig için takım geçmişi verisi yok (Avrupa kupaları ve milli maçlar). İstatistik görüşü boş.</p>')
     mbs = f' · <span class="tag">en az {m["mbs"]} maçla oynanır</span>' if m["mbs"] > 1 else ""
-    cbox = claude_box(cr) + (absence_chips(cr["blind"]) if cr and cr.get("blind") else "")
+    cbox = espn_block(m["code"]) + claude_box(cr) + (absence_chips(cr["blind"]) if cr and cr.get("blind") else "")
     return f"""
 <details class="match"><summary><time>{tr_time(m['start'], day=True)}</time><div><div class="tm">{esc(m['home'])} – {esc(m['away'])}</div><div class="lg">{esc(m['league'])}{mbs}</div></div>{tag}</summary>
 <div class="views"><table><tr><th>Bahis</th><th>Nesine</th><th>Piyasa</th><th>İstatistik</th><th>Yapay zekâ</th><th>Değer</th></tr>{rows}</table>
@@ -606,6 +654,8 @@ def build():
     pin_age = int((now - datetime.fromisoformat(t_pin)).total_seconds() // 60) if t_pin else None
 
     st = stats.Stats().load()
+    global ESPN_BY
+    ESPN_BY = espn.load_all()
     all_bets, cards, n_matched = [], [], 0
     probs_by_code, sv_by_code, bets_by_code = {}, {}, collections.defaultdict(list)
     for m, ev, score in pairs:
