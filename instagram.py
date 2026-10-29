@@ -24,6 +24,27 @@ TOKEN = os.environ.get("IG_TOKEN", "")
 USER_ID = os.environ.get("IG_USER_ID", "")
 MAX_PER_DAY = int(os.environ.get("IG_MAX_PER_DAY", "2"))
 HASHTAGS = "#futbol #maçanalizi #sakatlık #kadro"
+LEAGUE_TAGS = {"soccer_turkey_super_league": "#SüperLig #TrendyolSüperLig", "soccer_epl": "#PremierLeague #PremierLig", "soccer_spain_la_liga": "#LaLiga",
+               "soccer_italy_serie_a": "#SerieA", "soccer_germany_bundesliga": "#Bundesliga", "soccer_france_ligue_one": "#Ligue1",
+               "soccer_uefa_champs_league": "#ŞampiyonlarLigi #UCL", "soccer_uefa_europa_league": "#AvrupaLigi #UEL",
+               "soccer_uefa_europa_conference_league": "#KonferansLigi #UECL", "soccer_uefa_nations_league": "#UluslarLigi"}
+
+
+def tag_name(name):
+    """Takım adından hashtag: boşluk/nokta/çizgi atılır (#Konyaspor, #ManUtd)."""
+    import re
+    t = re.sub(r"[^0-9A-Za-zÇĞİÖŞÜçğıöşü]", "", name.replace(".", ""))
+    return "#" + t if t else ""
+
+
+def hashtags_for(m):
+    """Maça özel etiketler: takımlar, kısaltma eşleşmesi (#KONvGS), lig, genel."""
+    import social
+    _, _, ha = social.team_style(m["home"]); _, _, aa = social.team_style(m["away"])
+    tr = str.maketrans("İÇÖŞÜĞ", "ICOSUG")
+    pair = f"#{ha}v{aa}".translate(tr)
+    tags = [tag_name(m["home"]), tag_name(m["away"]), pair, LEAGUE_TAGS.get(m.get("sport_key"), ""), HASHTAGS]
+    return " ".join(t for t in tags if t)
 NOTE = "18+ · Bilgi amaçlıdır; bahis veya yatırım tavsiyesi değildir."
 
 
@@ -86,7 +107,7 @@ def caption_for(m, ai, pm):
         parts.append(f"Dünya bahis borsası: {m['home']} %{pm['MS']['1']*100:.0f} · beraberlik %{pm['MS']['X']*100:.0f} · {m['away']} %{pm['MS']['2']*100:.0f}")
     if bl.get("risk"):
         parts.append("En büyük belirsizlik: " + bl["risk"])
-    parts.append(NOTE); parts.append(HASHTAGS)
+    parts.append(NOTE); parts.append(hashtags_for(m))
     return "\n\n".join(parts)[:2100]
 
 

@@ -221,22 +221,25 @@ def match_card(m, pm, ai, er, out_path):
     y += 80
     if pm and "MS" in pm:
         text(d, (60, y), "ULUSLARARASI PİYASANIN İHTİMALİ", font("displaysemi", 26), YELLOW); y += 40
-        cols = [(f"{m['home']} kazanır", pm["MS"]["1"]), ("Beraberlik", pm["MS"]["X"]), (f"{m['away']} kazanır", pm["MS"]["2"])]
-        best = max(p for _, p in cols)
+        hc1, hc2, _ = team_style(m["home"], er); ac1, ac2, _ = team_style(m["away"], er)
+        def lum(c): return 0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2]
+        cols = [(f"{m['home']} kazanır", pm["MS"]["1"], hc1), ("Beraberlik", pm["MS"]["X"], GREEN3), (f"{m['away']} kazanır", pm["MS"]["2"], ac1)]
+        best = max(p for _, p, _ in cols)
         bw = (W - 120 - 24) / 3
-        for i, (lab, p) in enumerate(cols):
+        for i, (lab, p, c1) in enumerate(cols):
             x = 60 + i * (bw + 12); top = p == best
-            d.rounded_rectangle((x, y, x + bw, y + 140), radius=18, fill=YELLOW if top else GREEN3)
-            d.text((x + 22, y + 12), f"%{p*100:.0f}", font=font("display", 84), fill=GREEN if top else WHITE)
-            d.text((x + 22, y + 100), fit(lab, font("semi", 22), bw - 44), font=font("semi", 22), fill=GREEN if top else PALE)
+            fg = (20, 20, 20) if lum(c1) > 150 else WHITE
+            d.rounded_rectangle((x, y, x + bw, y + 140), radius=18, fill=c1, outline=YELLOW if top else None, width=5 if top else 0)
+            d.text((x + 22, y + 12), f"%{p*100:.0f}", font=font("display", 84), fill=fg)
+            d.text((x + 22, y + 100), fit(lab, font("semi", 22), bw - 44), font=font("semi", 22), fill=fg)
         y += 152
-        # oranlı şerit: ev | beraberlik | deplasman
+        # oranlı şerit: ev | beraberlik | deplasman (takım renkleri)
         x0, x1 = 60, W - 60; tot = x1 - x0
-        segs = [(pm["MS"]["1"], (62, 140, 100)), (pm["MS"]["X"], (120, 140, 130)), (pm["MS"]["2"], (200, 160, 60))]
+        segs = [(pm["MS"]["1"], hc1), (pm["MS"]["X"], (120, 140, 130)), (pm["MS"]["2"], ac1)]
         xx = x0
         for i, (p, c) in enumerate(segs):
             w = tot * p
-            d.rounded_rectangle((xx, y, xx + w - (4 if i < 2 else 0), y + 16), radius=6, fill=c)
+            d.rounded_rectangle((xx, y, xx + w - (4 if i < 2 else 0), y + 16), radius=6, fill=c, outline=(255, 255, 255) if lum(c) < 40 else None, width=1)
             xx += w
         y += 30
         if "AU25" in pm and "KG" in pm:
