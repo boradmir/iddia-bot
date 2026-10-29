@@ -469,7 +469,7 @@ def claude_section(rows):
         out += f"""<article class="card" style="animation-delay:{i*.06:.2f}s"><div class="head"><div><div class="tm">{esc(r['home'])} – {esc(r['away'])}</div>
 <div class="when">{tr_time(r['start'], day=True)} · {esc(r.get('league', ''))} · analiz {tr_time(r['t'])}</div></div>{vd}</div>
 <div class="probs">{probs}</div>
-<p>{esc(bl.get('comment', ''))}</p>
+<p>{esc(bl.get('comment') or 'Bu analizde yazılı yorum üretilmedi; haberler ve ihtimaller aşağıda.')}</p>
 <p><b>Risk:</b> {esc(bl.get('risk', ''))} <span class="when">(güven: {esc(bl.get('confidence', ''))})</span></p>
 {f'<p><b>İtiraz gerekçesi:</b> {esc(ob.get("reason", ""))}</p>' if ob.get("verdict") == "warn" else ''}
 {f'<ul>{facts}</ul>' if facts else ''}

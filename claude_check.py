@@ -32,7 +32,8 @@ Yorum biçimi: önce maçın anahtarı (tek cümle), sonra iki takımın durumu,
 spor gazetesinin analiz köşesi gibi okunmalı ama teknik olmayan biri de anlamalı.
 Olasılıklar toplamı her market için 1.0 olmalı. Somut bilgi bulamadığın yerde bunu söyle ve mütevazı, lig ortalamasına yakın kal;
 bulduğun bilginin tarihi eskiyse (bir haftadan öncesi) güvenini düşür.
-Oran, Pinnacle, Nesine, "value" veya bahis tavsiyesi hakkında yazma; sadece maç analizi ve ihtimaller."""
+Oran, Pinnacle, Nesine, "value" veya bahis tavsiyesi hakkında yazma; sadece maç analizi ve ihtimaller.
+JSON'daki comment alanı her zaman dolu olmalı (3-5 cümle); facts bulunamadıysa comment yine yazılır."""
 
 BLIND_SCHEMA = {
     "type": "object",
@@ -40,7 +41,7 @@ BLIND_SCHEMA = {
         "p_home": {"type": "number"}, "p_draw": {"type": "number"}, "p_away": {"type": "number"},
         "p_over25": {"type": "number"}, "p_btts": {"type": "number"},
         "facts": {"type": "array", "items": {"type": "string"}, "description": "Bulunan somut haberler, en fazla 5, her biri tek cümle, kaynak adıyla"},
-        "comment": {"type": "string", "description": "3-5 cümle, profesyonel analist üslubunda Türkçe maç önü yorumu: anahtar faktör, iki takımın durumu, beklenen senaryo"},
+        "comment": {"type": "string", "description": "ZORUNLU, asla boş bırakma: 3-5 cümle, profesyonel analist üslubunda Türkçe maç önü yorumu — anahtar faktör, iki takımın durumu, beklenen senaryo. Haber bulunamadıysa da genel değerlendirme yaz."},
         "risk": {"type": "string", "description": "Tek cümle: bu maçta bahis açısından en büyük belirsizlik"},
         "confidence": {"type": "string", "enum": ["düşük", "orta", "yüksek"]},
     },
