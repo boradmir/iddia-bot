@@ -60,7 +60,8 @@ OBJECT_SCHEMA = {
 
 def _client():
     import anthropic
-    return anthropic.Anthropic(api_key=config.ANTHROPIC_API_KEY or None)
+    # Web aramalı istekler uzun sürebilir ama sonsuza dek takılmasın: 5 dk zaman aşımı, 1 tekrar.
+    return anthropic.Anthropic(api_key=config.ANTHROPIC_API_KEY or None, timeout=300.0, max_retries=1)
 
 
 class Usage:

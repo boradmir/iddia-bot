@@ -108,11 +108,14 @@ def claude_async(m, probs, force=False):
     """Claude analizini ana döngüyü (Nesine/Pinnacle/kapanış kaydı) bekletmeden arka planda çalıştırır."""
     def run():
         with CLAUDE_LOCK:  # aynı anda tek analiz: günlük sayaç ve dosya yazımı tutarlı kalsın
+            log(f"Claude analizi başlıyor: {m['home']}-{m['away']}{' (uyarı)' if force else ''}")
             try:
                 r = claude_check.analyze_and_store(m, probs, force=force)
                 if r:
                     ob = r["objection"]["verdict"] if r.get("objection") else "-"
                     log(f"Claude{' (uyarı)' if force else ''}: {m['home']}-{m['away']} kör tahmin ev %{r['blind']['p_home']*100:.0f} · itiraz {ob} · ${r.get('cost_usd')}")
+                else:
+                    log(f"Claude analizi yapılmadı (sınır/tekrar/boş): {m['home']}-{m['away']}")
             except Exception as e:
                 log(f"Claude hatası: {type(e).__name__}: {e}")
     threading.Thread(target=run, daemon=True).start()
