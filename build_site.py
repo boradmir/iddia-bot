@@ -323,6 +323,10 @@ details.chip .pop b{color:var(--ink)}
 .gloss{margin:16px 0 0;padding:0;list-style:none;display:grid;gap:10px}
 .gloss li{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 16px}
 .gloss b{display:block;color:var(--board);margin-bottom:2px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+.tile{display:block;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;text-decoration:none;color:var(--ink-2);font-size:13.5px}
+.tile img{width:100%;display:block;aspect-ratio:4/5;object-fit:cover}
+.tile span{display:block;padding:8px 10px}
 footer{margin-top:56px;padding-top:18px;border-top:1px solid var(--line);color:var(--muted);font-size:13.5px}
 @media (max-width:760px){.grid,.cl{grid-template-columns:1fr}.facts{grid-template-columns:repeat(2,1fr)}.board{padding:22px 18px 18px;border-radius:14px}}
 @media (max-width:560px){.row{grid-template-columns:1fr 92px 54px}.alerts li,.changes li{grid-template-columns:64px 1fr}.alerts .r,.changes .o{grid-column:2;text-align:left}
@@ -775,6 +779,16 @@ def build():
         ch_lead = "Henüz oran değişimi görmedik; kayıtlar birikiyor."
 
     n_alerts = len(alerts); n_cards = len(cards); n_claude = len(all_claude); n_soon = len(soon)
+    social_html = ""
+    for dd in sorted(glob.glob("docs/social/*"), reverse=True)[:3]:
+        imgs = sorted(glob.glob(f"{dd}/*.png"))
+        if not imgs:
+            continue
+        day_name = os.path.basename(dd)
+        tiles = "".join(f'<a class="tile" href="social/{day_name}/{os.path.basename(p)}" download><img src="social/{day_name}/{os.path.basename(p)}" alt="" loading="lazy"><span>{os.path.basename(p).replace("match_", "maç ").replace("injuries.png", "sakatlık bülteni").replace(".png", "")}</span></a>' for p in imgs)
+        social_html += f'<h3>{day_name}</h3><div class="tiles">{tiles}</div>'
+    if not social_html:
+        social_html = '<div class="empty">Henüz kart üretilmedi; Bekçi saatte bir üretir.</div>'
     cnt = lambda n: f'<span class="cnt">{n}</span>' if n else ""
     return f"""<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>İddia Bot</title>
@@ -798,6 +812,7 @@ def build():
   <a href="#maclar" data-tab="maclar">Maçlar{cnt(n_soon)}</a>
   <a href="#claude" data-tab="claude">Yapay zekâ{cnt(n_claude)}</a>
   <a href="#hareket" data-tab="hareket">Oran hareketi</a>
+  <a href="#paylasim" data-tab="paylasim">Paylaşım</a>
   <a href="#nasil" data-tab="nasil">Nasıl çalışır</a>
 </nav>
 
@@ -845,6 +860,12 @@ def build():
 <h2>İddaa oranları hareket ediyor mu?</h2>
 <p class="lead">{ch_lead} Yeşil ▲ oran yükseldi, turuncu ▼ düştü; "maça kalan" değişimin maçtan ne kadar önce olduğunu gösterir.</p>
 {f'<div class="card"><ul class="changes">{ch_html}</ul></div>' if ch_html else '<div class="empty">Henüz oran değişimi görülmedi; kayıtlar birikiyor.</div>'}
+</section>
+
+<section class="panel" id="p-paylasim">
+<h2>Paylaşım kartları <small>Instagram için · son 3 gün</small></h2>
+<p class="lead">Günün maçları için otomatik üretilen analiz kartları (1080×1350). Oran, kupon ve yatırım içermez; 18+ bilgi notu kartın altında. Görsele tıklayıp kaydedin.</p>
+{social_html}
 </section>
 
 <section class="panel" id="p-nasil">

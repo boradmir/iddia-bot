@@ -177,7 +177,9 @@ def main():
         maybe_results(s, now)
         maybe_watch(s, now)
         maybe_espn(now)
-        publish(f"espn {now:%H:%M}")
+        if now.minute < 20:  # saatte bir: paylaşım kartları (yerel, ücretsiz)
+            r = sh([sys.executable, "social.py"], capture_output=True, text=True); log((r.stdout or r.stderr).strip()[:200])
+        publish(f"espn/kart {now:%H:%M}")
         # yeni kod geldiyse bu çalışma eski kodla devam etmesin (kayıt alındı, şimdi çıkılabilir)
         pull()
         if code_version() != version:
