@@ -170,6 +170,40 @@ def match_card(m, pm, ai, er, out_path):
     img.save(out_path, "PNG", optimize=True)
 
 
+def comment_card(m, ai, out_path):
+    """Carousel 2. görsel: yapay zekânın tam yorumu + risk + kaynaklı haberler."""
+    bl = (ai or {}).get("blind") or {}
+    if not bl.get("comment"):
+        return False
+    img = Image.new("RGB", (W, H), C["bg"]); d = ImageDraw.Draw(img)
+    start = m["start"].astimezone(TR)
+    header(d, f"{m['home']} – {m['away']}", f"{start:%d.%m.%Y %H:%M} · {m['league']} · yapay zekâ analizi")
+    y = section(d, 290, "Maç önü değerlendirme · yapay zekâ, haberlere dayanarak")
+    f = font("body", 28)
+    room_bottom = H - 120
+    for ln in wrap(bl["comment"], f, W - 120):
+        if y > room_bottom - 200:
+            break
+        text(d, (60, y), ln, f, C["ink"]); y += 38
+    if bl.get("risk"):
+        y += 10; y = section(d, y, "En büyük belirsizlik")
+        for ln in wrap(bl["risk"], font("body", 26), W - 120)[:3]:
+            text(d, (60, y), ln, font("body", 26), C["ink2"]); y += 34
+    facts = bl.get("facts") or []
+    if facts and y < room_bottom - 120:
+        y += 10; y = section(d, y, "Kaynaklı haberler")
+        for fct in facts[:3]:
+            lines = wrap("• " + fct, font("body", 23), W - 120)[:2]
+            for ln in lines:
+                if y > room_bottom - 30:
+                    break
+                text(d, (60, y), ln, font("body", 23), C["ink2"]); y += 30
+            y += 4
+    footer(d)
+    img.save(out_path, "PNG", optimize=True)
+    return True
+
+
 def injuries_card(items, day, out_path):
     img = Image.new("RGB", (W, H), C["bg"]); d = ImageDraw.Draw(img)
     header(d, "Sakatlık bülteni", f"{day:%d.%m.%Y} · günün maçları · haberlere göre", h=230)
@@ -211,6 +245,9 @@ def main():
             inj.append({"match": f"{m['home']} – {m['away']}", **{k: x.get(k, "") for k in ("team", "player", "status", "role")}})
         if a or er:  # içerik yoksa kart üretme
             p = f"{out_dir}/match_{m['code']}.png"; match_card(m, pm, a, er, p); made.append(p)
+            p2 = f"{out_dir}/yorum_{m['code']}.png"
+            if comment_card(m, a, p2):
+                made.append(p2)
     injuries_card(inj, day, f"{out_dir}/injuries.png"); made.append(f"{out_dir}/injuries.png")
     # eski klasörleri sil
     for p in glob.glob(f"{OUT}/*"):

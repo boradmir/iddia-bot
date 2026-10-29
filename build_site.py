@@ -785,7 +785,7 @@ def build():
         if not imgs:
             continue
         day_name = os.path.basename(dd)
-        tiles = "".join(f'<a class="tile" href="social/{day_name}/{os.path.basename(p)}" download><img src="social/{day_name}/{os.path.basename(p)}" alt="" loading="lazy"><span>{os.path.basename(p).replace("match_", "maç ").replace("injuries.png", "sakatlık bülteni").replace(".png", "")}</span></a>' for p in imgs)
+        tiles = "".join(f'<a class="tile" href="social/{day_name}/{os.path.basename(p)}" download><img src="social/{day_name}/{os.path.basename(p)}" alt="" loading="lazy"><span>{os.path.basename(p).replace("match_", "maç ").replace("yorum_", "yorum ").replace("injuries.png", "sakatlık bülteni").replace(".png", "")}</span></a>' for p in imgs)
         social_html += f'<h3>{day_name}</h3><div class="tiles">{tiles}</div>'
     if not social_html:
         social_html = '<div class="empty">Henüz kart üretilmedi; Bekçi saatte bir üretir.</div>'
