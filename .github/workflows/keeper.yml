@@ -32,7 +32,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Bağımlılıklar
-        run: pip install -q pillow
+        run: pip install -q pillow anthropic
       - name: Bekçi
         env:
           GH_TOKEN: ${{ github.token }}
@@ -40,6 +40,9 @@ jobs:
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
           IG_MAX_PER_DAY: ${{ vars.IG_MAX_PER_DAY || '2' }}
           SOCIAL_PASS: ${{ vars.SOCIAL_PASS || 'analiz2026' }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_MODEL: ${{ vars.CLAUDE_MODEL || 'claude-opus-5-5' }}
+          CLAUDE_MAX_PER_DAY: ${{ vars.CLAUDE_MAX_PER_DAY || '3' }}
           PYTHONIOENCODING: utf-8
         run: |
           ARGS="--max-minutes ${{ inputs.max_minutes || '340' }}"

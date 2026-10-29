@@ -826,14 +826,6 @@ def build():
                 posts += f"""<div class="post"><div class="post-h"><b>{('Paket #' + str(num)) if num else 'Paket'} · {esc(m['home'])} – {esc(m['away'])}</b><span class="when">{tr_time(m['start'], day=True)} · {esc(m['league'])}</span></div>
 <div class="tiles small">{tiles}</div>
 <div class="cap"><textarea readonly rows="7">{esc(cap)}</textarea><button type="button" class="copy">Açıklamayı kopyala</button></div></div>"""
-            if os.path.exists(f"{dd}/injuries.png"):
-                cap = (f"Günün eksikleri | {day_name[8:10]}.{day_name[5:7]}\n\n"
-                       "Sakat, cezalı ve şüpheli oyuncular tek kartta; haberlere göre derlendi.\n\n"
-                       f"{ig.NOTE}\n\n{ig.HASHTAGS}")
-                num = pno(f"{day_name}:injuries", f"Günün eksikleri {day_name}")
-                posts += f"""<div class="post"><div class="post-h"><b>{('Paket #' + str(num)) if num else 'Paket'} · Günün eksikleri</b><span class="when">{day_name}</span></div>
-<div class="tiles small"><a class="tile" href="social/{day_name}/injuries.png" download><img src="social/{day_name}/injuries.png" alt="" loading="lazy"><span>sakatlık bülteni</span></a></div>
-<div class="cap"><textarea readonly rows="5">{esc(cap)}</textarea><button type="button" class="copy">Açıklamayı kopyala</button></div></div>"""
             if posts:
                 social_html += f'<h3>{day_name}</h3>{posts}'
     except Exception as e:

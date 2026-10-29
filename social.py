@@ -375,7 +375,9 @@ def main():
             p2 = f"{out_dir}/yorum_{m['code']}.png"
             if comment_card(m, a, p2):
                 made.append(p2)
-    injuries_card(inj, day, f"{out_dir}/injuries.png"); made.append(f"{out_dir}/injuries.png")
+    old_inj = f"{out_dir}/injuries.png"
+    if os.path.exists(old_inj):
+        os.remove(old_inj)   # ayrı bülten paketi kaldırıldı; eksikler maç kartında
     for p in glob.glob(f"{OUT}/*"):
         try:
             if (day - datetime.strptime(os.path.basename(p), "%Y-%m-%d").date()).days > 3:

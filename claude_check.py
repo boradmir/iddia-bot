@@ -180,7 +180,7 @@ def analyze_and_store(m, market_probs, force=False):
         return None
     row = {"t": datetime.now(timezone.utc).isoformat(timespec="seconds"), "code": m["code"], "home": m["home"], "away": m["away"],
            "league": m["league"], "sport": m.get("sport_key"), "start": m["start"].isoformat(),
-           "market": {k: {kk: round(vv, 4) for kk, vv in v.items()} for k, v in market_probs.items() if not k.startswith("_")},
+           "market": {k: {kk: round(vv, 4) for kk, vv in v.items()} for k, v in (market_probs or {}).items() if not k.startswith("_")},
            "result": None, "forced": bool(force), **res}
     os.makedirs(OUT_DIR, exist_ok=True)
     with open(f"{OUT_DIR}/{day}.jsonl", "a", encoding="utf-8") as f:

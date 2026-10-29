@@ -9,7 +9,7 @@ Kullanım: python keeper.py [--max-minutes 340] [--no-chain]
 """
 import json, os, subprocess, sys, time
 from datetime import datetime, timezone, timedelta
-import nesine, espn
+import nesine, espn, claude_check, build_site, odds, prob, match
 
 RECORD_MIN = 20
 STATUS = "records/status.json"
@@ -90,6 +90,42 @@ def maybe_results(s, now):
                 done[key] = now.isoformat(timespec="seconds")
                 s["results_day"] = day; s["results_slots"] = done; save_status(s)
             break
+
+
+PRIORITY = ["soccer_turkey_super_league", "soccer_epl", "soccer_uefa_champs_league", "soccer_spain_la_liga", "soccer_italy_serie_a",
+            "soccer_germany_bundesliga", "soccer_france_ligue_one", "soccer_uefa_europa_league", "soccer_uefa_europa_conference_league", "soccer_uefa_nations_league"]
+
+
+def maybe_morning_claude(s, now):
+    """Maç günü sabahı (04:30 UTC sonrası) günün maçları için yapay zekâ analizi: haberler günler önceden var,
+    paketler sabahtan hazır olsun. Günlük sınır claude_check.MAX_PER_DAY; öncelik lig sırasına göre."""
+    day = now.strftime("%Y-%m-%d")
+    if s.get("claude_morning") == day or (now.hour, now.minute) < (4, 30) or not os.environ.get("ANTHROPIC_API_KEY"):
+        return
+    s["claude_morning"] = day; save_status(s)
+    try:
+        from datetime import timezone as _tz, timedelta as _td
+        tr = _tz(_td(hours=3))
+        ms = [m for m in nesine.parse(nesine.fetch(save_path=None)) if m["start"].astimezone(tr).date() == now.astimezone(tr).date() and m["start"] > now]
+        ms.sort(key=lambda m: (PRIORITY.index(m["sport_key"]) if m["sport_key"] in PRIORITY else 99, m["start"]))
+        # en son Pinnacle kaydından piyasa ihtimali (varsa) — itiraz aşaması için
+        events = build_site.pinnacle_events(build_site.read_jsonl("records/pinnacle/*.jsonl"))
+        aliases = json.load(open("aliases.json", encoding="utf-8")) if os.path.exists("aliases.json") else {}
+        pm_by = {}
+        for m, ev, sc in match.match_all(ms, events, aliases):
+            if ev and odds.pinnacle_h2h(ev):
+                pm_by[m["code"]] = prob.market_probs(odds.pinnacle_h2h(ev), odds.pinnacle_totals(ev))
+        n = 0
+        for m in ms:
+            r = claude_check.analyze_and_store(m, pm_by.get(m["code"]))
+            if r:
+                n += 1; log(f"Sabah analizi: {m['home']}-{m['away']} ${r.get('cost_usd')}")
+            if n >= claude_check.MAX_PER_DAY:
+                break
+        if n:
+            sh([sys.executable, "social.py"], capture_output=True, text=True)
+    except Exception as e:
+        log(f"Sabah analizi hatası: {e}")
 
 
 def fix_watch_status():
@@ -177,6 +213,7 @@ def main():
         maybe_results(s, now)
         maybe_watch(s, now)
         maybe_espn(now)
+        maybe_morning_claude(load_status(), now)
         if now.minute < 20:  # saatte bir: paylaşım kartları (yerel, ücretsiz) + Instagram gönderimi (secret varsa)
             r = sh([sys.executable, "social.py"], capture_output=True, text=True); log((r.stdout or r.stderr).strip()[:200])
             if (now.hour, 0) >= (7, 0) and now.hour <= 19 and os.environ.get("IG_TOKEN"):
