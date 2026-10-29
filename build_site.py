@@ -327,6 +327,14 @@ details.chip .pop b{color:var(--ink)}
 .tile{display:block;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;text-decoration:none;color:var(--ink-2);font-size:13.5px}
 .tile img{width:100%;display:block;aspect-ratio:4/5;object-fit:cover}
 .tile span{display:block;padding:8px 10px}
+.post{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin:12px 0}
+.post-h{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.post-h .when{font-family:"JetBrains Mono",monospace;font-size:12.5px;color:var(--muted)}
+.tiles.small{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+.cap{margin-top:10px;display:grid;gap:8px}
+.cap textarea{width:100%;font:14px/1.45 "Source Sans 3",system-ui,sans-serif;color:var(--ink);background:#FBFAF6;border:1px solid var(--line);border-radius:10px;padding:10px;resize:vertical}
+.cap .copy{justify-self:start;padding:7px 14px;border-radius:8px;border:1px solid var(--board);background:var(--board);color:#fff;cursor:pointer;font-weight:600}
+.cap .copy.ok{background:var(--signal);border-color:var(--signal)}
 footer{margin-top:56px;padding-top:18px;border-top:1px solid var(--line);color:var(--muted);font-size:13.5px}
 @media (max-width:760px){.grid,.cl{grid-template-columns:1fr}.facts{grid-template-columns:repeat(2,1fr)}.board{padding:22px 18px 18px;border-radius:14px}}
 @media (max-width:560px){.row{grid-template-columns:1fr 92px 54px}.alerts li,.changes li{grid-template-columns:64px 1fr}.alerts .r,.changes .o{grid-column:2;text-align:left}
@@ -782,13 +790,37 @@ def build():
     import hashlib
     SOCIAL_HASH = hashlib.sha256(os.environ.get("SOCIAL_PASS", "analiz2026").encode("utf-8")).hexdigest()
     social_html = ""
-    for dd in sorted(glob.glob("docs/social/*"), reverse=True)[:3]:
-        imgs = sorted(glob.glob(f"{dd}/*.png"))
-        if not imgs:
-            continue
-        day_name = os.path.basename(dd)
-        tiles = "".join(f'<a class="tile" href="social/{day_name}/{os.path.basename(p)}" download><img src="social/{day_name}/{os.path.basename(p)}" alt="" loading="lazy"><span>{os.path.basename(p).replace("match_", "maç ").replace("yorum_", "yorum ").replace("injuries.png", "sakatlık bülteni").replace(".png", "")}</span></a>' for p in imgs)
-        social_html += f'<h3>{day_name}</h3><div class="tiles">{tiles}</div>'
+    try:
+        import instagram as ig
+        for dd in sorted(glob.glob("docs/social/*"), reverse=True)[:2]:
+            day_name = os.path.basename(dd)
+            day_matches = [m for m in nesine_matches(nes_last) if m["start"].astimezone(TR).strftime("%Y-%m-%d") == day_name]
+            posts = ""
+            n = 0
+            for m in sorted(day_matches, key=lambda x: x["start"]):
+                mp = f"{dd}/match_{m['code']}.png"
+                if not os.path.exists(mp):
+                    continue
+                n += 1
+                imgs = [f"social/{day_name}/match_{m['code']}.png"]
+                if os.path.exists(f"{dd}/yorum_{m['code']}.png"):
+                    imgs.append(f"social/{day_name}/yorum_{m['code']}.png")
+                cap = ig.caption_for(m, claude_rows.get(m["code"]), probs_by_code.get(m["code"]))
+                tiles = "".join(f'<a class="tile" href="{u}" download><img src="{u}" alt="" loading="lazy"><span>{"1 · maç kartı" if i == 0 else "2 · yorum kartı"}</span></a>' for i, u in enumerate(imgs))
+                posts += f"""<div class="post"><div class="post-h"><b>Gönderi {n} · {esc(m['home'])} – {esc(m['away'])}</b><span class="when">{tr_time(m['start'], day=True)} · {esc(m['league'])}</span></div>
+<div class="tiles small">{tiles}</div>
+<div class="cap"><textarea readonly rows="7">{esc(cap)}</textarea><button type="button" class="copy">Açıklamayı kopyala</button></div></div>"""
+            if os.path.exists(f"{dd}/injuries.png"):
+                cap = (f"Günün eksikleri | {day_name[8:10]}.{day_name[5:7]}\n\n"
+                       "Sakat, cezalı ve şüpheli oyuncular tek kartta; haberlere göre derlendi.\n\n"
+                       f"{ig.NOTE}\n\n{ig.HASHTAGS}")
+                posts += f"""<div class="post"><div class="post-h"><b>Günün eksikleri</b><span class="when">{day_name}</span></div>
+<div class="tiles small"><a class="tile" href="social/{day_name}/injuries.png" download><img src="social/{day_name}/injuries.png" alt="" loading="lazy"><span>sakatlık bülteni</span></a></div>
+<div class="cap"><textarea readonly rows="5">{esc(cap)}</textarea><button type="button" class="copy">Açıklamayı kopyala</button></div></div>"""
+            if posts:
+                social_html += f'<h3>{day_name}</h3>{posts}'
+    except Exception as e:
+        social_html = f'<div class="empty">Paylaşım paketleri üretilemedi: {esc(type(e).__name__)}</div>'
     if not social_html:
         social_html = '<div class="empty">Henüz kart üretilmedi; Bekçi saatte bir üretir.</div>'
     cnt = lambda n: f'<span class="cnt">{n}</span>' if n else ""
@@ -867,7 +899,7 @@ def build():
 <h2>Paylaşım kartları <small>Instagram için · son 3 gün</small></h2>
 <div id="lock" class="empty"><b>Bu bölüm şifrelidir.</b> <input id="pw" type="password" placeholder="Şifre" style="margin:0 8px;padding:6px 10px;border:1px solid var(--line);border-radius:8px"> <button id="pwb" style="padding:6px 14px;border-radius:8px;border:1px solid var(--board);background:var(--board);color:#fff;cursor:pointer">Aç</button> <span id="pwmsg" style="color:var(--ember)"></span></div>
 <template id="social-tpl">
-<p class="lead">Günün maçları için otomatik üretilen analiz kartları (1080×1350). Oran, kupon ve yatırım içermez; 18+ bilgi notu kartın altında. Görsele tıklayıp kaydedin.</p>
+<p class="lead">Gönderi paketleri, maç saatine göre sıralı. Her paket: görseller (kaydetmek için tıklayın) + hazır açıklama (Kopyala). Instagram'da "Gönderi" → görselleri sırayla seçin → açıklamayı yapıştırın.</p>
 {social_html}
 </template>
 <div id="social-out"></div>
@@ -921,6 +953,8 @@ def build():
   if(btn) btn.addEventListener('click', async function(){{ var v=document.getElementById('pw').value; var hh=await sha(v);
     if(hh===HASH){{ try{{ sessionStorage.setItem('social_ok',HASH); }}catch(e){{}} unlock(); }} else {{ document.getElementById('pwmsg').textContent='Yanlış şifre'; }} }});
   var pw=document.getElementById('pw'); if(pw) pw.addEventListener('keydown', function(ev){{ if(ev.key==='Enter') btn.click(); }});
+  document.addEventListener('click', function(ev){{ var c=ev.target.closest('button.copy'); if(!c) return; var ta=c.parentElement.querySelector('textarea');
+    navigator.clipboard.writeText(ta.value).then(function(){{ c.textContent='Kopyalandı ✓'; c.classList.add('ok'); setTimeout(function(){{ c.textContent='Açıklamayı kopyala'; c.classList.remove('ok'); }}, 2000); }}); }});
 }})();
 </script>
 </body></html>"""
