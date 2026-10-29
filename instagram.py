@@ -23,11 +23,13 @@ TR = timezone(timedelta(hours=3))
 TOKEN = os.environ.get("IG_TOKEN", "")
 USER_ID = os.environ.get("IG_USER_ID", "")
 MAX_PER_DAY = int(os.environ.get("IG_MAX_PER_DAY", "2"))
-HASHTAGS = "#futbol #maçanalizi #sakatlık #kadro"
-LEAGUE_TAGS = {"soccer_turkey_super_league": "#SüperLig #TrendyolSüperLig", "soccer_epl": "#PremierLeague #PremierLig", "soccer_spain_la_liga": "#LaLiga",
+HASHTAGS = "#maçanalizi"
+LEAGUE_TAGS = {"soccer_turkey_super_league": "#SüperLig", "soccer_epl": "#PremierLeague", "soccer_spain_la_liga": "#LaLiga",
                "soccer_italy_serie_a": "#SerieA", "soccer_germany_bundesliga": "#Bundesliga", "soccer_france_ligue_one": "#Ligue1",
-               "soccer_uefa_champs_league": "#ŞampiyonlarLigi #UCL", "soccer_uefa_europa_league": "#AvrupaLigi #UEL",
-               "soccer_uefa_europa_conference_league": "#KonferansLigi #UECL", "soccer_uefa_nations_league": "#UluslarLigi"}
+               "soccer_uefa_champs_league": "#ŞampiyonlarLigi", "soccer_uefa_europa_league": "#AvrupaLigi",
+               "soccer_uefa_europa_conference_league": "#KonferansLigi", "soccer_uefa_nations_league": "#UluslarLigi"}
+BIG = {"Galatasaray", "Fenerbahçe", "Fenerbahce", "Beşiktaş", "Besiktas", "Trabzonspor", "Real Madrid", "Barcelona", "Man. City", "Man. Utd", "Liverpool",
+       "Arsenal", "Chelsea", "Bayern Münih", "B. Dortmund", "Juventus", "Inter", "AC Milan", "PSG", "Atl Madrid", "Napoli", "Tottenham"}
 
 
 def tag_name(name):
@@ -38,14 +40,20 @@ def tag_name(name):
 
 
 def hashtags_for(m):
-    """Maça özel etiketler: takımlar, kısaltma eşleşmesi (#KONvGS), lig, genel."""
+    """En fazla 5 etiket (Instagram sınırı), etkileşim sırasına göre:
+    büyük kulüp → diğer takım → maç eşleşmesi (#KONvGS) → lig → #maçanalizi."""
     import social
     _, _, ha = social.team_style(m["home"]); _, _, aa = social.team_style(m["away"])
     tr = str.maketrans("İÇÖŞÜĞ", "ICOSUG")
     pair = f"#{ha}v{aa}".translate(tr)
-    tags = [tag_name(m["home"]), tag_name(m["away"]), pair, LEAGUE_TAGS.get(m.get("sport_key"), ""), HASHTAGS]
-    return " ".join(t for t in tags if t)
-NOTE = "18+ · Bilgi amaçlıdır; tavsiye niteliği taşımaz."
+    teams = [m["home"], m["away"]]
+    teams.sort(key=lambda t: 0 if t in BIG else 1)      # büyük kulüp önce
+    tags = [tag_name(teams[0]), tag_name(teams[1]), pair, LEAGUE_TAGS.get(m.get("sport_key"), ""), "#maçanalizi"]
+    out, seen = [], set()
+    for t in tags:
+        if t and t.lower() not in seen:
+            out.append(t); seen.add(t.lower())
+    return " ".join(out[:5])
 
 
 def _post(path, params):
