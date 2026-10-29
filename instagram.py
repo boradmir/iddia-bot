@@ -106,8 +106,16 @@ def load_log():
 def caption_for(m, ai, pm):
     bl = (ai or {}).get("blind") or {}
     start = m["start"].astimezone(TR)
-    import social
-    parts = [f"{m['home']} – {m['away']} | {social.tr_date(m['start'])}, {start:%H:%M} | {m['league']}"]
+    import social, re
+    parts = []
+    # kanca: yazının ilk cümlesi (varsa), 160 karakteri aşmasın
+    comment = (bl.get("comment") or "").strip()
+    if comment:
+        first = re.split(r"(?<=[.!?])\s+", comment)[0]
+        if len(first) > 160:
+            first = first[:157].rstrip() + "…"
+        parts.append(first)
+    parts.append(f"{m['home']} – {m['away']} | {social.tr_date(m['start'])}, {start:%H:%M} | {m['league']}")
     abs_ = [f"{a['player']} ({a['status']})" for a in (bl.get("absences") or [])[:4]]
     if abs_:
         parts.append("Eksikler: " + ", ".join(abs_))

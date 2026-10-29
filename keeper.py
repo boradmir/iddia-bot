@@ -216,8 +216,11 @@ def main():
         maybe_morning_claude(load_status(), now)
         if now.minute < 20:  # saatte bir: paylaşım kartları (yerel, ücretsiz) + Instagram gönderimi (secret varsa)
             r = sh([sys.executable, "social.py"], capture_output=True, text=True); log((r.stdout or r.stderr).strip()[:200])
-            if (now.hour, 0) >= (7, 0) and now.hour <= 19 and os.environ.get("IG_TOKEN"):
+            # otomatik gönderim (secret varsa): günde bir kez, 08:30 TSİ'den sonraki ilk tur (05:30 UTC)
+            s2 = load_status()
+            if os.environ.get("IG_TOKEN") and (now.hour, now.minute) >= (5, 30) and s2.get("ig_day") != now.strftime("%Y-%m-%d"):
                 r = sh([sys.executable, "instagram.py"], capture_output=True, text=True); log("instagram: " + (r.stdout or r.stderr).strip()[:300])
+                s2["ig_day"] = now.strftime("%Y-%m-%d"); save_status(s2)
         publish(f"espn/kart {now:%H:%M}")
         # yeni kod geldiyse bu çalışma eski kodla devam etmesin (kayıt alındı, şimdi çıkılabilir)
         pull()
