@@ -790,6 +790,22 @@ def build():
     import hashlib
     SOCIAL_HASH = hashlib.sha256(os.environ.get("SOCIAL_PASS", "analiz2026").encode("utf-8")).hexdigest()
     social_html = ""
+    # paket numaraları: kalıcı, ilk görüldüğünde atanır (records/posts.jsonl); yalnızca kayıtçı (RECORD_COUPONS) yeni numara verir
+    post_log = "records/posts.jsonl"
+    post_no = {}
+    for r in read_jsonl(post_log):
+        post_no[r["key"]] = r["no"]
+    def pno(key, label):
+        if key in post_no:
+            return post_no[key]
+        if not RECORD_COUPONS:
+            return None
+        n = max(post_no.values(), default=0) + 1
+        post_no[key] = n
+        with open(post_log, "a", encoding="utf-8") as f:
+            f.write(json.dumps({"key": key, "no": n, "label": label, "t": now.isoformat(timespec="seconds")}, ensure_ascii=False) + "
+")
+        return n
     try:
         import instagram as ig
         for dd in sorted(glob.glob("docs/social/*"), reverse=True)[:2]:
@@ -807,14 +823,16 @@ def build():
                     imgs.append(f"social/{day_name}/yorum_{m['code']}.png")
                 cap = ig.caption_for(m, claude_rows.get(m["code"]), probs_by_code.get(m["code"]))
                 tiles = "".join(f'<a class="tile" href="{u}" download><img src="{u}" alt="" loading="lazy"><span>{"1 · maç kartı" if i == 0 else "2 · yorum kartı"}</span></a>' for i, u in enumerate(imgs))
-                posts += f"""<div class="post"><div class="post-h"><b>Gönderi {n} · {esc(m['home'])} – {esc(m['away'])}</b><span class="when">{tr_time(m['start'], day=True)} · {esc(m['league'])}</span></div>
+                num = pno(f"{day_name}:{m['code']}", f"{m['home']} – {m['away']}")
+                posts += f"""<div class="post"><div class="post-h"><b>{('Paket #' + str(num)) if num else 'Paket'} · {esc(m['home'])} – {esc(m['away'])}</b><span class="when">{tr_time(m['start'], day=True)} · {esc(m['league'])}</span></div>
 <div class="tiles small">{tiles}</div>
 <div class="cap"><textarea readonly rows="7">{esc(cap)}</textarea><button type="button" class="copy">Açıklamayı kopyala</button></div></div>"""
             if os.path.exists(f"{dd}/injuries.png"):
                 cap = (f"Günün eksikleri | {day_name[8:10]}.{day_name[5:7]}\n\n"
                        "Sakat, cezalı ve şüpheli oyuncular tek kartta; haberlere göre derlendi.\n\n"
                        f"{ig.NOTE}\n\n{ig.HASHTAGS}")
-                posts += f"""<div class="post"><div class="post-h"><b>Günün eksikleri</b><span class="when">{day_name}</span></div>
+                num = pno(f"{day_name}:injuries", f"Günün eksikleri {day_name}")
+                posts += f"""<div class="post"><div class="post-h"><b>{('Paket #' + str(num)) if num else 'Paket'} · Günün eksikleri</b><span class="when">{day_name}</span></div>
 <div class="tiles small"><a class="tile" href="social/{day_name}/injuries.png" download><img src="social/{day_name}/injuries.png" alt="" loading="lazy"><span>sakatlık bülteni</span></a></div>
 <div class="cap"><textarea readonly rows="5">{esc(cap)}</textarea><button type="button" class="copy">Açıklamayı kopyala</button></div></div>"""
             if posts:
