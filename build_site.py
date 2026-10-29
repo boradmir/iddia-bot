@@ -803,8 +803,7 @@ def build():
         n = max(post_no.values(), default=0) + 1
         post_no[key] = n
         with open(post_log, "a", encoding="utf-8") as f:
-            f.write(json.dumps({"key": key, "no": n, "label": label, "t": now.isoformat(timespec="seconds")}, ensure_ascii=False) + "
-")
+            f.write(json.dumps({"key": key, "no": n, "label": label, "t": now.isoformat(timespec="seconds")}, ensure_ascii=False) + "\n")
         return n
     try:
         import instagram as ig
