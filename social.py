@@ -154,7 +154,7 @@ def match_card(m, pm, ai, er, out_path):
         room = max(2, (H - 110 - y) // 34)
         # cümle cümle ekle; sığmayan ilk cümlede dur
         import re
-        sents = re.split(r"(?<=[.!?])s+", comment.strip())
+        sents = re.split(r"(?<=[.!?])\s+", comment.strip())
         acc = ""
         for st in sents:
             cand = (acc + " " + st).strip()
