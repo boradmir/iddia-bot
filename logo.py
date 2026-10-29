@@ -77,7 +77,10 @@ def a_mark(d, cx, cy, s, dot=WHITE, line=(255, 255, 255), beyond=YELLOW, dark_bg
     for i, k in enumerate((3.2, 2.6, 2.0)):
         rr = r * k
         hd.ellipse((beyond_pt[0] - rr, beyond_pt[1] - rr, beyond_pt[0] + rr, beyond_pt[1] + rr), fill=beyond + (22 + i * 18,))
-    base_img.paste(Image.alpha_composite(base_img.convert("RGBA"), halo).convert("RGB"))
+    if base_img.mode == "RGBA":
+        base_img.paste(Image.alpha_composite(base_img, halo))
+    else:
+        base_img.paste(Image.alpha_composite(base_img.convert("RGBA"), halo).convert("RGB"))
     d = ImageDraw.Draw(base_img)
     # pullar: ince koyu kenar + minik parlama
     edge = (8, 30, 22) if dark_bg else (200, 205, 200)
@@ -90,6 +93,16 @@ def a_mark(d, cx, cy, s, dot=WHITE, line=(255, 255, 255), beyond=YELLOW, dark_bg
     d.ellipse((beyond_pt[0] - rb - lw * 0.6, beyond_pt[1] - rb - lw * 0.6, beyond_pt[0] + rb + lw * 0.6, beyond_pt[1] + rb + lw * 0.6), fill=edge)
     d.ellipse((beyond_pt[0] - rb, beyond_pt[1] - rb, beyond_pt[0] + rb, beyond_pt[1] + rb), fill=beyond)
     d.ellipse((beyond_pt[0] - rb * 1.6, beyond_pt[1] - rb * 1.6, beyond_pt[0] + rb * 1.6, beyond_pt[1] + rb * 1.6), outline=beyond, width=max(2, lw // 2))
+
+
+def mark_image(h_px, line=(120, 160, 140)):
+    """Şeffaf zeminli, yumuşak kenarlı küçük işaret (kart imzası için). h_px = A yüksekliği."""
+    S = 4
+    s = h_px * S
+    w, h = int(s * 1.5), int(s * 1.25)
+    img = Image.new("RGBA", (w, h), (0, 0, 0, 0)); d = ImageDraw.Draw(img)
+    a_mark(d, s * 0.5, h / 2, s, line=line)
+    return img.resize((w // S, h // S), Image.LANCZOS)
 
 
 def hex_mark(d, cx, cy, s, fg=WHITE, accent=YELLOW):

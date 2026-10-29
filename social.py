@@ -14,6 +14,7 @@ import glob, json, os, shutil, sys
 from datetime import datetime, timezone, timedelta
 from PIL import Image, ImageDraw, ImageFont
 import build_site, espn, prob, odds, match
+import logo
 
 W, H = 1080, 1350
 GREEN, GREEN2, GREEN3 = (11, 42, 31), (16, 66, 48), (24, 92, 66)
@@ -84,6 +85,9 @@ def tr_upper(s):
 def topbar(d, label):
     text(d, (60, 50), tr_upper(label), font("displaysemi", 30), YELLOW)
     text(d, (W - 60, 50), HANDLE, font("semi", 26), WHITE, anchor="ra")
+    hw = font("semi", 26).getlength(HANDLE)
+    mk = logo.mark_image(54)
+    d._image.paste(mk, (int(W - 60 - hw - 14 - mk.width), 62 - mk.height // 2), mk)   # küçük marka işareti
 
 
 def footer(d, dark=True):
@@ -253,6 +257,7 @@ def comment_card(m, ai, out_path):
     start = m["start"].astimezone(TR)
     text(d, (60, 50), f"MAÇ ÖNÜ DEĞERLENDİRME · {start:%d.%m %H:%M}", font("displaysemi", 28), YELLOW)
     text(d, (W - 60, 50), HANDLE, font("semi", 26), WHITE, anchor="ra")
+    mk = logo.mark_image(54); d._image.paste(mk, (int(W - 60 - font("semi", 26).getlength(HANDLE) - 14 - mk.width), 62 - mk.height // 2), mk)
     fh = font("display", 70); title = f"{m['home']} – {m['away']}"
     while fh.getlength(title) > W - 120:
         fh = font("display", fh.size - 4)
