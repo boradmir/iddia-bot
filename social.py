@@ -24,7 +24,7 @@ FONT_DIR = "assets/fonts"
 TR = timezone(timedelta(hours=3))
 OUT = "docs/social"
 HANDLE = "@analizveotesi"
-DISCLAIMER = "18+ · Bilgi amaçlıdır; bahis veya yatırım tavsiyesi değildir. Veri: dünya bahis borsası, ESPN. Haber özetleri basından derlenmiştir."
+DISCLAIMER = "18+ · Bilgi amaçlıdır; bahis veya yatırım tavsiyesi değildir. Veri: uluslararası piyasa oranları, ESPN. Haber özetleri basından derlenmiştir."
 
 
 # ----------------------------------------------------------------- araçlar
@@ -168,6 +168,9 @@ def badge(img, d, cx, cy, r, name, er=None):
 def match_card(m, pm, ai, er, out_path):
     img = pitch_background(); d = ImageDraw.Draw(img)
     start = m["start"].astimezone(TR)
+    hc1, hc2, _ = team_style(m["home"], er); ac1, ac2, _ = team_style(m["away"], er)
+    d.rectangle((0, 0, W // 2, 14), fill=hc1); d.rectangle((W // 2, 0, W, 14), fill=ac1)
+    d.rectangle((0, 14, W // 2, 20), fill=hc2); d.rectangle((W // 2, 14, W, 20), fill=ac2)
     topbar(d, f"Maç analizi · {start:%d.%m} · {m['league']}")
     fh = font("display", 110)
     home, away = tr_upper(m["home"]), tr_upper(m["away"])
@@ -185,15 +188,20 @@ def match_card(m, pm, ai, er, out_path):
     text(d, (60 + ft.getlength(f"{start:%H:%M}") + 16, y + 10), "başlama saati · TSİ", font("body", 24), PALE)
     y += 80
     if pm and "MS" in pm:
-        text(d, (60, y), "DÜNYA BAHİS BORSASININ İHTİMALİ", font("displaysemi", 26), YELLOW); y += 40
-        cols = [(f"{m['home']} kazanır", pm["MS"]["1"]), ("Beraberlik", pm["MS"]["X"]), (f"{m['away']} kazanır", pm["MS"]["2"])]
-        best = max(p for _, p in cols)
+        text(d, (60, y), "ULUSLARARASI PİYASANIN İHTİMALİ", font("displaysemi", 26), YELLOW); y += 40
+        hc1, hc2, _ = team_style(m["home"], er); ac1, ac2, _ = team_style(m["away"], er)
+        def lum(c): return 0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2]
+        cols = [(f"{m['home']} kazanır", pm["MS"]["1"], hc1, hc2), ("Beraberlik", pm["MS"]["X"], GREEN3, PALE), (f"{m['away']} kazanır", pm["MS"]["2"], ac1, ac2)]
+        best = max(p for _, p, _, _ in cols)
         bw = (W - 120 - 24) / 3
-        for i, (lab, p) in enumerate(cols):
+        for i, (lab, p, c1, c2) in enumerate(cols):
             x = 60 + i * (bw + 12); top = p == best
-            d.rounded_rectangle((x, y, x + bw, y + 150), radius=18, fill=YELLOW if top else GREEN3)
-            d.text((x + 22, y + 18), f"%{p*100:.0f}", font=font("display", 86), fill=GREEN if top else WHITE)
-            d.text((x + 22, y + 110), fit(lab, font("semi", 23), bw - 44), font=font("semi", 23), fill=GREEN if top else PALE)
+            fill = c1
+            fg = (20, 20, 20) if lum(fill) > 150 else WHITE
+            d.rounded_rectangle((x, y, x + bw, y + 150), radius=18, fill=fill, outline=YELLOW if top else None, width=5 if top else 0)
+            d.rectangle((x + 18, y + 128, x + 18 + int((bw - 36) * p), y + 136), fill=c2 if lum(c2) != lum(fill) else fg)
+            d.text((x + 22, y + 14), f"%{p*100:.0f}", font=font("display", 84), fill=fg)
+            d.text((x + 22, y + 100), fit(lab, font("semi", 22), bw - 44), font=font("semi", 22), fill=fg)
         y += 168
         if "AU25" in pm and "KG" in pm:
             x = pill(d, 60, y, f"3+ gol  %{pm['AU25']['Üst']*100:.0f}", font("semi", 24), GREEN3, WHITE)
