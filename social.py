@@ -121,17 +121,64 @@ def status_pill(d, x, y, s, status):
     return w
 
 
+# ----------------------------------------------------------------- takım rozetleri
+_COLORS = None
+
+
+def team_style(name, er=None):
+    """(ana renk, ikincil renk, kısaltma): önce kendi tablomuz, sonra ESPN, sonra nötr."""
+    global _COLORS
+    if _COLORS is None:
+        try:
+            _COLORS = {k: v for k, v in json.load(open("assets/team_colors.json", encoding="utf-8")).items() if not k.startswith("_")}
+        except Exception:
+            _COLORS = {}
+    def hx(h):
+        h = (h or "").lstrip("#")
+        return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4)) if len(h) == 6 else None
+    if name in _COLORS:
+        c1, c2, ab = _COLORS[name]; return hx(c1), hx(c2), ab
+    best, score = None, 0.0
+    for k in _COLORS:
+        sc = match.similarity(name, k)
+        if sc > score:
+            best, score = k, sc
+    if best and score >= 0.75:
+        c1, c2, ab = _COLORS[best]; return hx(c1), hx(c2), ab
+    for tname, t in ((er or {}).get("teams") or {}).items():
+        if match.similarity(name, tname) >= 0.6:
+            c1, c2 = hx(t.get("color")), hx(t.get("alt"))
+            if c1 and c1 != (0, 0, 0):
+                return c1, (c2 if c2 and c2 != c1 else WHITE), (t.get("abbr") or name[:3]).upper()[:4]
+    return GREEN3, YELLOW, name.replace(" ", "")[:3].upper()
+
+
+def badge(img, d, cx, cy, r, name, er=None):
+    """Monogram rozeti: ana renk daire, ikincil renk halka, kısaltma."""
+    c1, c2, ab = team_style(name, er)
+    d.ellipse((cx - r, cy - r, cx + r, cy + r), fill=c2)
+    d.ellipse((cx - r + 6, cy - r + 6, cx + r - 6, cy + r - 6), fill=c1)
+    lum = 0.299 * c1[0] + 0.587 * c1[1] + 0.114 * c1[2]
+    fg = (20, 20, 20) if lum > 150 else WHITE
+    f = font("display", int(r * (0.95 if len(ab) <= 3 else 0.75)))
+    d.text((cx, cy + 2), ab, font=f, fill=fg, anchor="mm")
+
+
 # ----------------------------------------------------------------- kartlar
 def match_card(m, pm, ai, er, out_path):
     img = pitch_background(); d = ImageDraw.Draw(img)
     start = m["start"].astimezone(TR)
     topbar(d, f"Maç analizi · {start:%d.%m} · {m['league']}")
-    fh = font("display", 118)
+    fh = font("display", 110)
     home, away = tr_upper(m["home"]), tr_upper(m["away"])
-    while fh.getlength(home) > W - 120 or fh.getlength(away) > W - 120:
+    bx = 60 + 58  # rozet yarıçapı 50 + boşluk
+    while fh.getlength(home) > W - bx - 60 - 70 or fh.getlength(away) > W - bx - 60 - 70:
         fh = font("display", fh.size - 6)
-    text(d, (60, 104), home, fh, WHITE)
-    text(d, (60, 104 + fh.size - 6), away, fh, YELLOW)
+    y1 = 104; y2 = 104 + fh.size - 6
+    badge(img, d, 60 + 50, y1 + fh.size * 0.55, 50, m["home"], er)
+    badge(img, d, 60 + 50, y2 + fh.size * 0.55, 50, m["away"], er)
+    text(d, (bx + 70, y1), home, fh, WHITE)
+    text(d, (bx + 70, y2), away, fh, YELLOW)
     y = 104 + 2 * fh.size + 4
     ft = font("display", 46)
     text(d, (60, y), f"{start:%H:%M}", ft, WHITE)

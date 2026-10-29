@@ -1,0 +1,45 @@
+{
+  "_not": "Takım monogram rozetleri için ana/ikincil renk (hex) ve kısaltma. Kaynak: kulüplerin bilinen resmi renkleri; eksikler ESPN verisiyle tamamlanır.",
+  "Galatasaray": ["#A90432", "#FDB912", "GS"], "Fenerbahçe": ["#0A1F4E", "#FFED00", "FB"], "Fenerbahce": ["#0A1F4E", "#FFED00", "FB"],
+  "Beşiktaş": ["#000000", "#FFFFFF", "BJK"], "Besiktas": ["#000000", "#FFFFFF", "BJK"], "Trabzonspor": ["#5E1C2E", "#5BA3DC", "TS"],
+  "Başakşehir": ["#F26522", "#0B1F4C", "İBB"], "Istanbul Basaksehir": ["#F26522", "#0B1F4C", "İBB"], "Konyaspor": ["#0F7A2E", "#FFFFFF", "KON"],
+  "Samsunspor": ["#D71920", "#FFFFFF", "SAM"], "Kasımpaşa": ["#0B2A6B", "#FFFFFF", "KSP"], "Kasimpasa": ["#0B2A6B", "#FFFFFF", "KSP"],
+  "Alanyaspor": ["#F37021", "#0E5C2F", "ALA"], "Antalyaspor": ["#D71920", "#FFFFFF", "ANT"], "Rizespor": ["#0A7A3D", "#0B2A6B", "ÇRS"], "Caykur Rizespor": ["#0A7A3D", "#0B2A6B", "ÇRS"],
+  "Gaziantep": ["#D71920", "#000000", "GFK"], "Gaziantep FK": ["#D71920", "#000000", "GFK"], "Kayserispor": ["#D71920", "#FFED00", "KAY"], "Eyüpspor": ["#5B2C83", "#FFED00", "EYÜ"], "Eyupspor": ["#5B2C83", "#FFED00", "EYÜ"],
+  "Göztepe": ["#FFED00", "#D71920", "GÖZ"], "Goztepe": ["#FFED00", "#D71920", "GÖZ"], "Kocaelispor": ["#0B7A3B", "#000000", "KOC"], "Gençlerbirliği": ["#D71920", "#000000", "GB"], "Genclerbirligi": ["#D71920", "#000000", "GB"],
+  "Karagümrük": ["#D71920", "#000000", "FKG"], "Karagumruk": ["#D71920", "#000000", "FKG"], "Erzurumspor": ["#0B2A6B", "#FFFFFF", "ERZ"], "Erzurum BB": ["#0B2A6B", "#FFFFFF", "ERZ"], "Çorum FK": ["#D71920", "#000000", "ÇOR"], "Amed SFK": ["#0A7A3D", "#D71920", "AMD"],
+
+  "Arsenal": ["#EF0107", "#FFFFFF", "ARS"], "Aston Villa": ["#670E36", "#95BFE5", "AVL"], "Bournemouth": ["#DA291C", "#000000", "BOU"], "Brentford": ["#E30613", "#FFFFFF", "BRE"],
+  "Brighton": ["#0057B8", "#FFFFFF", "BHA"], "Burnley": ["#6C1D45", "#99D6EA", "BUR"], "Chelsea": ["#034694", "#FFFFFF", "CHE"], "Crystal Palace": ["#1B458F", "#C4122E", "CRY"],
+  "Everton": ["#003399", "#FFFFFF", "EVE"], "Fulham": ["#000000", "#FFFFFF", "FUL"], "Leeds": ["#FFFFFF", "#1D428A", "LEE"], "Leeds United": ["#FFFFFF", "#1D428A", "LEE"],
+  "Liverpool": ["#C8102E", "#FFFFFF", "LIV"], "Man. City": ["#6CABDD", "#FFFFFF", "MCI"], "Manchester City": ["#6CABDD", "#FFFFFF", "MCI"], "Man. Utd": ["#DA291C", "#FBE122", "MUN"], "Manchester United": ["#DA291C", "#FBE122", "MUN"],
+  "Newcastle": ["#241F20", "#FFFFFF", "NEW"], "Nottingham F.": ["#DD0000", "#FFFFFF", "NFO"], "Nottingham Forest": ["#DD0000", "#FFFFFF", "NFO"], "Sunderland": ["#EB172B", "#FFFFFF", "SUN"],
+  "Tottenham": ["#132257", "#FFFFFF", "TOT"], "West Ham": ["#7A263A", "#1BB1E7", "WHU"], "Wolves": ["#FDB913", "#231F20", "WOL"], "Wolverhampton": ["#FDB913", "#231F20", "WOL"],
+  "Coventry": ["#78D0F5", "#FFFFFF", "COV"], "Ipswich": ["#0044A9", "#FFFFFF", "IPS"], "Ipswich Town": ["#0044A9", "#FFFFFF", "IPS"], "Hull City": ["#F5A12D", "#000000", "HUL"], "Leicester": ["#003090", "#FDBE11", "LEI"], "Southampton": ["#D71920", "#FFFFFF", "SOU"],
+
+  "Real Madrid": ["#FFFFFF", "#FEBE10", "RMA"], "Barcelona": ["#A50044", "#004D98", "BAR"], "Atl Madrid": ["#CB3524", "#FFFFFF", "ATM"], "Atletico Madrid": ["#CB3524", "#FFFFFF", "ATM"],
+  "Sevilla": ["#FFFFFF", "#D4021D", "SEV"], "Villarreal": ["#FFE667", "#005187", "VIL"], "Real Betis": ["#00954C", "#FFFFFF", "BET"], "Betis": ["#00954C", "#FFFFFF", "BET"],
+  "Real Sociedad": ["#0067B1", "#FFFFFF", "RSO"], "Athletic Bilbao": ["#EE2523", "#FFFFFF", "ATH"], "Valencia": ["#FFFFFF", "#F7A000", "VAL"], "Celta Vigo": ["#8AC3EE", "#FFFFFF", "CEL"],
+  "Osasuna": ["#0A346F", "#D91A21", "OSA"], "Getafe": ["#005999", "#FFFFFF", "GET"], "Girona": ["#CD2534", "#FFFFFF", "GIR"], "Vallecano": ["#FFFFFF", "#E53027", "RAY"], "Rayo Vallecano": ["#FFFFFF", "#E53027", "RAY"],
+  "Mallorca": ["#E20613", "#000000", "MLL"], "Alaves": ["#0761AF", "#FFFFFF", "ALA"], "Espanyol": ["#007FC8", "#FFFFFF", "ESP"], "Levante": ["#B4053F", "#005EB8", "LEV"], "Elche": ["#FFFFFF", "#05642C", "ELC"],
+  "Santander": ["#00A14B", "#FFFFFF", "RAC"], "Racing Santander": ["#00A14B", "#FFFFFF", "RAC"], "Real Oviedo": ["#0C4DA2", "#FFFFFF", "OVI"], "Malaga": ["#0E4A9A", "#FFFFFF", "MAL"],
+
+  "Juventus": ["#000000", "#FFFFFF", "JUV"], "Inter": ["#010E80", "#000000", "INT"], "Inter Milan": ["#010E80", "#000000", "INT"], "AC Milan": ["#FB090B", "#000000", "MIL"], "Milan": ["#FB090B", "#000000", "MIL"],
+  "Napoli": ["#12A0D7", "#FFFFFF", "NAP"], "AS Roma": ["#8E1F2F", "#F0BC42", "ROM"], "Roma": ["#8E1F2F", "#F0BC42", "ROM"], "Lazio": ["#87D8F7", "#FFFFFF", "LAZ"], "Atalanta": ["#1E71B8", "#000000", "ATA"],
+  "Fiorentina": ["#482E92", "#FFFFFF", "FIO"], "Bologna": ["#1A2F48", "#A21C26", "BOL"], "Torino": ["#881F19", "#FFFFFF", "TOR"], "Udinese": ["#000000", "#FFFFFF", "UDI"], "Genoa": ["#A51C2A", "#002B5C", "GEN"],
+  "Cagliari": ["#A4202E", "#002855", "CAG"], "Parma": ["#FFD600", "#004A99", "PAR"], "Como": ["#1B3A7A", "#FFFFFF", "COM"], "Como 1907": ["#1B3A7A", "#FFFFFF", "COM"], "Lecce": ["#FFD700", "#E2001A", "LEC"],
+  "Sassuolo": ["#00A752", "#000000", "SAS"], "Frosinone": ["#FFD700", "#1B3A7A", "FRO"], "AC Monza": ["#E30613", "#FFFFFF", "MON"], "Monza": ["#E30613", "#FFFFFF", "MON"], "Venezia": ["#000000", "#F7931E", "VEN"], "Verona": ["#FFE100", "#003393", "VER"], "Pisa": ["#003A70", "#000000", "PIS"], "Cremonese": ["#9E1B32", "#8A8A8A", "CRE"],
+
+  "Bayern Münih": ["#DC052D", "#FFFFFF", "FCB"], "Bayern Munich": ["#DC052D", "#FFFFFF", "FCB"], "B. Dortmund": ["#FDE100", "#000000", "BVB"], "Borussia Dortmund": ["#FDE100", "#000000", "BVB"],
+  "B. Leverkusen": ["#E32221", "#000000", "B04"], "Bayer Leverkusen": ["#E32221", "#000000", "B04"], "Leipzig": ["#DD0741", "#FFFFFF", "RBL"], "RB Leipzig": ["#DD0741", "#FFFFFF", "RBL"],
+  "Stuttgart": ["#FFFFFF", "#E32219", "VFB"], "Frankfurt": ["#E1000F", "#000000", "SGE"], "E. Frankfurt": ["#E1000F", "#000000", "SGE"], "Eintracht Frankfurt": ["#E1000F", "#000000", "SGE"],
+  "Freiburg": ["#E2001A", "#000000", "SCF"], "Hoffenheim": ["#1961B5", "#FFFFFF", "TSG"], "Werder Bremen": ["#1D9053", "#FFFFFF", "SVW"], "Wolfsburg": ["#65B32E", "#FFFFFF", "WOB"],
+  "M'gladbach": ["#000000", "#1E9E4F", "BMG"], "Monchengladbach": ["#000000", "#1E9E4F", "BMG"], "Mainz": ["#C3141E", "#FFFFFF", "M05"], "FSV Mainz 05": ["#C3141E", "#FFFFFF", "M05"], "Augsburg": ["#BA3733", "#46714D", "FCA"],
+  "Union Berlin": ["#EB1923", "#FFD700", "FCU"], "Heidenheim": ["#E30613", "#0A2240", "HDH"], "St. Pauli": ["#5B3A2E", "#FFFFFF", "STP"], "Hamburg": ["#0A5BA4", "#FFFFFF", "HSV"], "HSV": ["#0A5BA4", "#FFFFFF", "HSV"],
+  "Köln": ["#ED1C24", "#FFFFFF", "KÖL"], "FC Koln": ["#ED1C24", "#FFFFFF", "KÖL"], "Elversberg": ["#2B3990", "#FFFFFF", "ELV"], "Schalke 04": ["#004D9D", "#FFFFFF", "S04"], "Paderborn": ["#0B5BA7", "#000000", "SCP"],
+
+  "PSG": ["#004170", "#DA291C", "PSG"], "Paris Saint Germain": ["#004170", "#DA291C", "PSG"], "Marsilya": ["#2FAEE0", "#FFFFFF", "OM"], "Marseille": ["#2FAEE0", "#FFFFFF", "OM"], "Lyon": ["#FFFFFF", "#1A3C8E", "OL"],
+  "Monaco": ["#E51B22", "#FFFFFF", "ASM"], "Lille": ["#E31E24", "#FFFFFF", "LIL"], "Nice": ["#CC0000", "#000000", "OGC"], "Rennes": ["#E13327", "#000000", "SRFC"], "Lens": ["#FFD200", "#D71920", "RCL"], "RC Lens": ["#FFD200", "#D71920", "RCL"],
+  "Strasbourg": ["#0066B3", "#FFFFFF", "RCS"], "Nantes": ["#FFD700", "#008E4A", "FCN"], "Toulouse": ["#5E2B7F", "#FFFFFF", "TFC"], "Brest": ["#E30613", "#FFFFFF", "SB29"], "Le Havre": ["#75B4E3", "#0B2A6B", "HAC"],
+  "Auxerre": ["#FFFFFF", "#0A5BA4", "AJA"], "Lorient": ["#F58220", "#000000", "FCL"], "Angers": ["#000000", "#FFFFFF", "SCO"], "Metz": ["#7B1535", "#FFFFFF", "FCM"], "Paris FC": ["#0B2A6B", "#FFFFFF", "PFC"], "Troyes": ["#0A2D7A", "#FFFFFF", "ESTAC"], "Le Mans": ["#F58220", "#000000", "LEM"]
+}

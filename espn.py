@@ -82,6 +82,14 @@ def extract(summary):
         out["rosters"][team] = {"formation": r.get("formation"),
                                "starters": [{"player": p.get("athlete", {}).get("displayName"), "pos": p.get("position", {}).get("abbreviation"), "no": p.get("jersey")} for p in roster if p.get("starter")],
                                "bench": [p.get("athlete", {}).get("displayName") for p in roster if not p.get("starter")]}
+    try:
+        for comp in (summary.get("header", {}) or {}).get("competitions", []) or []:
+            for c in comp.get("competitors", []) or []:
+                t = c.get("team", {}) or {}
+                if t.get("displayName"):
+                    out.setdefault("teams", {})[t["displayName"]] = {"abbr": t.get("abbreviation"), "color": t.get("color"), "alt": t.get("alternateColor"), "home": c.get("homeAway") == "home"}
+    except Exception:
+        pass
     for t in summary.get("lastFiveGames", []) or []:
         team = t.get("team", {}).get("displayName")
         out["last5"][team] = [{"date": g.get("gameDate", "")[:10], "result": g.get("gameResult"), "score": g.get("score"), "opponent": g.get("opponent", {}).get("displayName"), "home": g.get("atVs") == "vs"} for g in t.get("events", [])[:5]]
