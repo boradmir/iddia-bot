@@ -47,17 +47,18 @@ def safest(bets, n):
     return best
 
 
-def least_loss(bets, n):
-    """n maçlık, beklenen değeri en iyi (en az eksi) kupon: her maçtan oran×ihtimal en yüksek bacak."""
-    legs = sorted(_per_match(bets, key=lambda b: b["nesine_odds"] * b["fair_prob"]), key=lambda b: -(b["nesine_odds"] * b["fair_prob"]))
+def balanced(bets, n, lo=1.5, hi=2.5):
+    """n maçlık 'dengeli' kupon: bacak oranı lo–hi arasında, her maçtan en olası bacak, toplamda en yüksek ihtimal."""
+    pool_bets = [b for b in bets if lo <= b["nesine_odds"] <= hi]
+    legs = sorted(_per_match(pool_bets, key=lambda b: b["fair_prob"]), key=lambda b: -b["fair_prob"])
     pool = legs[: n + 4]
     best = None
     for combo in itertools.combinations(pool, n):
         if not _mbs_ok(combo):
             continue
-        c = _coupon(list(combo))
-        if best is None or c["ev_pct"] > best["ev_pct"]:
-            best = c
+        cp = _coupon(list(combo))
+        if best is None or cp["prob"] > best["prob"]:
+            best = cp
     return best
 
 
@@ -72,15 +73,15 @@ def value_coupon(bets, threshold=3.0, max_odds=3.0, max_legs=3):
 
 
 def build_all(bets):
-    out = {"safest": [], "least_loss": []}
+    out = {"safest": [], "balanced": []}
     if len({b["code"] for b in bets}) < MIN_LEGS:
         return out
     for n in range(MIN_LEGS, MAX_LEGS + 1):
         c = safest(bets, n)
         if c:
             out["safest"].append(c)
-        c = least_loss(bets, n)
-        if c:
-            out["least_loss"].append(c)
+    c = balanced(bets, 3)
+    if c:
+        out["balanced"].append(c)
     out["value"] = value_coupon(bets)
     return out

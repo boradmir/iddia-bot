@@ -82,6 +82,22 @@ def maybe_results(s, now):
                 s["results_day"] = day; save_status(s)
 
 
+def fix_watch_status():
+    """Gözcü çalışmıyorken 'active: true' kalmışsa (yarım kalan çalışma) sıfırla; sayfa yanlış 'Gözcü açık' demesin."""
+    p = "records/watch_status.json"
+    if not os.path.exists(p):
+        return
+    try:
+        w = json.load(open(p, encoding="utf-8"))
+    except ValueError:
+        return
+    if w.get("active") and not workflow_active("watch.yml"):
+        w.update(active=False, note="")
+        with open(p, "w", encoding="utf-8") as f:
+            json.dump(w, f, ensure_ascii=False)
+        log("Bayat gözcü durumu sıfırlandı")
+
+
 def maybe_watch(s, now):
     """3 saat içinde hedef maç varsa ve gözcü çalışmıyorsa tetikle (gözcü kendi penceresini kendi yönetir; saatlik kontrol
     olduğu için 3 saat, 100 dk'lık izleme penceresinin başını kaçırmamayı garanti eder)."""
@@ -124,6 +140,7 @@ def main():
     while True:
         now = datetime.now(timezone.utc)
         s = load_status()
+        fix_watch_status()
         record_once()
         s = load_status(); s["keeper_last"] = now.isoformat(timespec="seconds"); save_status(s)
         publish(f"kayıt {now:%Y-%m-%d %H:%M}")
