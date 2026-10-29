@@ -124,12 +124,37 @@ def form_strip(d, x, y, games, size=44):
     return x
 
 
+def status_icon(d, x, y, status, h=28):
+    """Durum simgesi: cezalı = kırmızı kart, sakat = beyaz daire içinde kırmızı artı, şüpheli = sarı '?', döndü = yeşil tik."""
+    if status == "cezalı":
+        d.rounded_rectangle((x + 4, y, x + 4 + h * 0.68, y + h), radius=4, fill=(226, 30, 30), outline=WHITE, width=2)
+        return h * 0.68 + 8
+    if status == "sakat":
+        d.ellipse((x, y, x + h, y + h), fill=WHITE)
+        t = h * 0.22; c = h / 2
+        d.rectangle((x + c - t / 2, y + h * 0.2, x + c + t / 2, y + h * 0.8), fill=(220, 30, 30))
+        d.rectangle((x + h * 0.2, y + c - t / 2, x + h * 0.8, y + c + t / 2), fill=(220, 30, 30))
+        return h + 4
+    if status == "şüpheli":
+        d.ellipse((x, y, x + h, y + h), fill=YELLOW)
+        d.text((x + h / 2, y + h / 2 + 1), "?", font=font("display", int(h * 0.85)), fill=GREEN, anchor="mm")
+        return h + 4
+    if status == "döndü":
+        d.ellipse((x, y, x + h, y + h), fill=SIGNAL)
+        d.line((x + h * 0.25, y + h * 0.52, x + h * 0.43, y + h * 0.72, x + h * 0.76, y + h * 0.3), fill=GREEN, width=max(2, int(h * 0.12)), joint="curve")
+        return h + 4
+    return 0
+
+
 def status_pill(d, x, y, s, status):
-    col = {"sakat": RED, "cezalı": (160, 30, 30), "şüpheli": YELLOW, "döndü": SIGNAL}
-    fg = {"sakat": WHITE, "cezalı": WHITE, "şüpheli": GREEN, "döndü": GREEN}
-    f = font("semi", 23); w = f.getlength(s) + 28
+    """Etiket: simge + metin; metin 'Oyuncu · durum'."""
+    col = {"sakat": (120, 30, 30), "cezalı": (90, 20, 20), "şüpheli": (110, 85, 0), "döndü": (20, 90, 50)}
+    f = font("semi", 23)
+    icon_w = {"cezalı": 28 * 0.68 + 8, "sakat": 32, "şüpheli": 32, "döndü": 32}.get(status, 0)
+    w = f.getlength(s) + 28 + icon_w
     d.rounded_rectangle((x, y, x + w, y + 44), radius=22, fill=col.get(status, GREY))
-    d.text((x + 14, y + 22), s, font=f, fill=fg.get(status, WHITE), anchor="lm")
+    status_icon(d, x + 12, y + 8, status, 28)
+    d.text((x + 14 + icon_w, y + 22), s, font=f, fill=WHITE, anchor="lm")
     return w
 
 
@@ -245,12 +270,12 @@ def match_card(m, pm, ai, er, out_path):
         x = 60
         for a in absences[:6]:
             s = f"{a.get('player', '')} · {a.get('status', '')}"
-            w = font("semi", 23).getlength(s) + 28
+            w = font("semi", 23).getlength(s) + 28 + 34
             if x + w > W - 60:
                 x = 60; y += 54
             if y > H - 170:
                 break
-            status_pill(d, x, y, s, a.get("status")); x += w + 10
+            w = status_pill(d, x, y, s, a.get("status")); x += w + 10
         y += 60
     footer(d, dark=True)
     img.save(out_path, "PNG", optimize=True)
@@ -313,12 +338,12 @@ def injuries_card(items, day, out_path):
                 break
             text(d, (60, y), cur, font("display", 40), WHITE, max_w=W - 120); y += 50; x = 60
         s = f"{it['player']} · {it['status']}"
-        w = font("semi", 23).getlength(s) + 28
+        w = font("semi", 23).getlength(s) + 28 + 34
         if x + w > W - 60:
             x = 60; y += 54
         if y > H - 160:
             break
-        status_pill(d, x, y, s, it["status"]); x += w + 10
+        w = status_pill(d, x, y, s, it["status"]); x += w + 10
     if not items:
         text(d, (60, 440), "Bugünkü maçlarda haberlere yansıyan önemli eksik yok.", font("body", 28), WHITE)
     footer(d, dark=True)
