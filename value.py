@@ -10,6 +10,14 @@ MAX_STAKE_PCT = 0.02
 # Geriye dönük test (5.201 maç, 2023-26): "value" oran ≥3.0 sürprizlerde yanıltıcı (ROI ≈ 0 veya eksi),
 # oran <3.0 favorilerde gerçek (+%14 ± 12). Yüksek oranlı seçimler karta alınmaz.
 MAX_ODDS = 3.0
+# Nesine'de kupon başına alt sınır (maç sayısından bağımsız). Kelly'nin önerdiği küçük tutarlar bunun altında kalır;
+# bu yüzden "bu bahis için en az ne kadar kasa gerekir" = MIN_COUPON_TL / (önerilen yüzde / 100) gösterilir.
+MIN_COUPON_TL = 50
+
+
+def min_bankroll_for(stake_pct):
+    """Önerilen yatırım kasanın %stake_pct'i ise, 50 TL alt sınırını %stake_pct olarak oynayabilmek için gereken kasa (TL)."""
+    return None if not stake_pct or stake_pct <= 0 else round(MIN_COUPON_TL * 100 / stake_pct)
 
 
 def ev_pct(odds, p):

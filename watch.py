@@ -12,7 +12,7 @@ Pinnacle sorgusu lig başına 2 istek (h2h + totals). Öncelik: LEAGUE_PRIORITY 
 
 Kullanım: python watch.py [--max-minutes 340] [--dry]   (--dry: Odds API çağırmaz, commit atmaz)
 """
-import json, os, subprocess, sys, time, calendar
+import json, os, subprocess, sys, time, calendar, threading
 from datetime import datetime, timezone, timedelta
 import config, nesine, odds, match, prob, value, build_site, claude_check
 
@@ -99,6 +99,23 @@ def git_publish(msg, dry):
             return
         time.sleep(5)
     log("UYARI: push başarısız (commit yerelde duruyor, sonraki turda tekrar denenecek)")
+
+
+CLAUDE_LOCK = threading.Lock()
+
+
+def claude_async(m, probs, force=False):
+    """Claude analizini ana döngüyü (Nesine/Pinnacle/kapanış kaydı) bekletmeden arka planda çalıştırır."""
+    def run():
+        with CLAUDE_LOCK:  # aynı anda tek analiz: günlük sayaç ve dosya yazımı tutarlı kalsın
+            try:
+                r = claude_check.analyze_and_store(m, probs, force=force)
+                if r:
+                    ob = r["objection"]["verdict"] if r.get("objection") else "-"
+                    log(f"Claude{' (uyarı)' if force else ''}: {m['home']}-{m['away']} kör tahmin ev %{r['blind']['p_home']*100:.0f} · itiraz {ob} · ${r.get('cost_usd')}")
+            except Exception as e:
+                log(f"Claude hatası: {type(e).__name__}: {e}")
+    threading.Thread(target=run, daemon=True).start()
 
 
 def rebuild_page():
@@ -197,13 +214,7 @@ def main():
                 mins_to_ko = (m["start"] - now).total_seconds() / 60
                 if not dry and m["code"] not in claude_done:
                     claude_done.add(m["code"])
-                    try:
-                        r = claude_check.analyze_and_store(m, probs)
-                        if r:
-                            ob = r["objection"]["verdict"] if r.get("objection") else "-"
-                            log(f"Claude: {m['home']}-{m['away']} kör tahmin ev %{r['blind']['p_home']*100:.0f} · itiraz {ob}")
-                    except Exception as e:
-                        log(f"Claude hatası: {type(e).__name__}: {e}")
+                    claude_async(m, probs)
                 for b in value.evaluate(m, probs, h2h, bankroll=100.0):
                     key = (b["code"], b["market"], b["pick"])
                     if key in alerted:
@@ -222,10 +233,7 @@ def main():
                     alerted[key] = a; new_alerts.append(a)
                     log(f"UYARI +{b['ev_pct']:.1f}% {b['home']}-{b['away']} {b['market']} {b['pick']} Nesine {b['nesine_odds']} adil {b['fair_odds']}")
                     if not dry:
-                        try:
-                            claude_check.analyze_and_store(m, probs, force=True)
-                        except Exception as e:
-                            log(f"Claude (uyarı) hatası: {type(e).__name__}: {e}")
+                        claude_async(m, probs, force=True)
         if new_alerts or alerted:
             # tüm güncel uyarıları günün dosyasına yaz (üzerine): basit ve çakışmasız
             path = f"{ALERT_DIR}/{day}.jsonl"
@@ -245,6 +253,10 @@ def main():
             last_publish = time.time()
         time.sleep(NESINE_SEC)
 
+    for _ in range(60):  # süren Claude analizleri varsa bitsin (en fazla 5 dk)
+        if not CLAUDE_LOCK.locked():
+            break
+        time.sleep(5)
     save_json(WSTATUS, {"active": False, "note": "", "updated": datetime.now(timezone.utc).isoformat(timespec="seconds")})
     rebuild_page()
     git_publish("gözcü bitti", dry)

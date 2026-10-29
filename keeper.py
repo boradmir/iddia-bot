@@ -41,8 +41,8 @@ def publish(msg):
     if sh(["git", "commit", "-q", "-m", msg]).returncode != 0:
         log("commit başarısız"); return
     for _ in range(3):
-        if sh(["git", "pull", "--rebase", "-X", "theirs", "-q", "origin", "master"]).returncode != 0:
-            sh(["git", "rebase", "--abort"]); time.sleep(5); continue
+        if not pull():
+            time.sleep(5); continue
         if sh(["git", "push", "-q", "origin", "master"]).returncode == 0:
             return
         time.sleep(5)
@@ -97,9 +97,20 @@ def maybe_watch(s, now):
 
 
 def code_version():
-    """Takip edilen kod dosyalarının (py + iş akışları) içerik özeti; değişirse yeni kodla yeniden başlamak için."""
-    r = sh(["git", "ls-tree", "HEAD", "--", "*.py", ".github/workflows/", "aliases.json", "fd_aliases.json"], capture_output=True, text=True)
-    return r.stdout
+    """Takip edilen kod dosyalarının (py + iş akışları + alias json) blob özetleri; değişirse yeni kodla yeniden başlamak için.
+    Not: ls-tree joker kabul etmez; tüm ağacı alıp Python tarafında süzüyoruz."""
+    r = sh(["git", "ls-tree", "-r", "HEAD"], capture_output=True, text=True)
+    keep = [l for l in r.stdout.splitlines()
+            if l.endswith(".py") or ".github/workflows/" in l or l.endswith("aliases.json")]
+    return "\n".join(sorted(keep))
+
+
+def pull():
+    """Uzak değişiklikleri al; rebase takılırsa iptal et (repo yarım kalmasın)."""
+    if sh(["git", "pull", "--rebase", "-X", "theirs", "-q", "origin", "master"]).returncode != 0:
+        sh(["git", "rebase", "--abort"])
+        return False
+    return True
 
 
 def main():
@@ -111,17 +122,17 @@ def main():
     log(f"Bekçi başladı, {max_minutes:.0f} dk çalışacak, zincir={'açık' if chain else 'kapalı'}")
     while True:
         now = datetime.now(timezone.utc)
-        # yeni kod geldiyse bu çalışma eski kodla devam etmesin: çık, zincir yeni kodla başlar
-        sh(["git", "pull", "--rebase", "-X", "theirs", "-q", "origin", "master"])
-        if code_version() != version:
-            log("Kod güncellendi; yeni sürümle yeniden başlıyorum.")
-            break
         s = load_status()
         record_once()
         s = load_status(); s["keeper_last"] = now.isoformat(timespec="seconds"); save_status(s)
         publish(f"kayıt {now:%Y-%m-%d %H:%M}")
         maybe_results(s, now)
         maybe_watch(s, now)
+        # yeni kod geldiyse bu çalışma eski kodla devam etmesin (kayıt alındı, şimdi çıkılabilir)
+        pull()
+        if code_version() != version:
+            log("Kod güncellendi; " + ("yeni sürümle yeniden başlıyorum." if chain else "zincir kapalı, çıkıyorum (yedek cron devralır)."))
+            break
         if time.time() + RECORD_MIN * 60 > deadline:
             break
         time.sleep(RECORD_MIN * 60)

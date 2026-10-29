@@ -1,7 +1,7 @@
 """Görüş 3 – Claude: haber + kadro okur, oranı GÖRMEDEN kendi ihtimalini verir; sonra piyasa ihtimaline itiraz var mı söyler.
 
 İki aşama, tek sohbet (ikinci aşama önbellekten ucuz):
-  1. KÖR TAHMİN: web araması (en çok 4) ile sakatlık/kadro/motivasyon/hava; 1-X-2, Alt/Üst 2.5, KG Var/Yok ihtimalleri;
+  1. KÖR TAHMİN: web araması (en çok 8 çağrı, talimatta 4-5) ile sakatlık/kadro/motivasyon/hava; 1-X-2, Alt/Üst 2.5, KG Var/Yok ihtimalleri;
      kısa Türkçe yorum; risk notu. Oran veya piyasa ihtimali verilmez (kalibrasyon ölçümü için şart).
   2. İTİRAZ: piyasa ihtimalleri gösterilir; "bunları yanlış çıkaracak somut bir bilgi var mı?" → ok / warn + gerekçe.
 Claude rakam değiştirmez; sayfada 3. görüş olarak durur, isabeti zamanla ölçülür.
@@ -17,6 +17,7 @@ import config
 
 MODEL = os.environ.get("CLAUDE_MODEL", "claude-opus-5-5")
 MAX_PER_DAY = int(os.environ.get("CLAUDE_MAX_PER_DAY", "3"))
+MAX_FORCE_PER_DAY = int(os.environ.get("CLAUDE_MAX_FORCE_PER_DAY", "6"))   # fırsat uyarılı maçlar için ayrı tavan
 OUT_DIR = "records/claude"
 
 SYSTEM = """Sen 20 yıllık profesyonel bir futbol analistisin: kulüplere ve yayıncılara maç önü raporu yazan türden.
@@ -62,25 +63,51 @@ def _client():
     return anthropic.Anthropic(api_key=config.ANTHROPIC_API_KEY or None)
 
 
-def _run(client, messages, schema):
-    """Web araması pause_turn verebilir; en fazla 3 kez devam eder. Metin bloğundaki JSON'u döner."""
+class Usage:
+    """Tüm çağrıların (pause_turn devamları dahil) kullanım toplamı."""
+    def __init__(self):
+        self.inp = self.out = self.cache_read = self.cache_write = self.searches = 0
+
+    def add(self, u):
+        if not u:
+            return
+        self.inp += u.input_tokens or 0
+        self.out += u.output_tokens or 0
+        self.cache_read += getattr(u, "cache_read_input_tokens", 0) or 0
+        self.cache_write += getattr(u, "cache_creation_input_tokens", 0) or 0
+        stu = getattr(u, "server_tool_use", None)
+        self.searches += (getattr(stu, "web_search_requests", 0) or 0) if stu else 0
+
+    def dict(self):
+        return {"in": self.inp, "out": self.out, "cache_read": self.cache_read, "cache_write": self.cache_write, "searches": self.searches}
+
+    def cost(self):
+        # Opus 5.5: giriş 4$/M, önbellek yazma 5$/M, okuma 0.2$/M, çıkış 20$/M; web araması 10$/1000
+        return round(self.inp * 4e-6 + self.cache_write * 5e-6 + self.cache_read * 0.2e-6 + self.out * 20e-6 + self.searches * 0.01, 3)
+
+
+def _run(client, messages, schema, usage):
+    """Web araması pause_turn verebilir; en fazla 3 kez devam eder. Metin bloğundaki JSON'u döner; kullanım usage'a eklenir."""
     for _ in range(3):
         resp = client.beta.messages.create(
             model=MODEL, max_tokens=4000,
             betas=["server-side-fallback-2026-07-01"], fallbacks="default",
-            cache_control={"type": "ephemeral"},  # 2. aşama ve pause_turn devamları 1. aşamanın arama sonuçlarını önbellekten okur
+            # Önbellek: pause_turn devamları ve 2. aşama, önceki çağrının tam ön ekini paylaşır → okuma ucuz.
+            # (2. aşama ilk kez görülen 1. aşama sonuçlarını önce yazar; kazanç devam turlarında.)
+            cache_control={"type": "ephemeral"},
             system=SYSTEM, messages=messages,
             tools=[{"type": "web_search_20260209", "name": "web_search", "max_uses": 8}],
             output_config={"format": {"type": "json_schema", "schema": schema}},
         )
+        usage.add(resp.usage)
         messages.append({"role": "assistant", "content": resp.content})
         if resp.stop_reason == "pause_turn":
             continue
         if resp.stop_reason == "refusal":
             raise RuntimeError("Claude yanıt vermedi (refusal)")
         text = next((b.text for b in resp.content if b.type == "text"), None)
-        return json.loads(text) if text else None, resp.usage
-    return None, None
+        return json.loads(text) if text else None
+    return None
 
 
 def analyze(home, away, league, start_iso, market_probs=None):
@@ -91,11 +118,9 @@ def analyze(home, away, league, start_iso, market_probs=None):
     q = (f"Maç: {home} - {away} ({league}), başlama: {start:%d.%m.%Y %H:%M} Türkiye saati. Bugün: {datetime.now(tr):%d.%m.%Y}. "
          "Güncel haberleri araştır ve tahminini ver.")
     messages = [{"role": "user", "content": q}]
-    blind, u1 = _run(client, messages, BLIND_SCHEMA)
-    out = {"model": MODEL, "blind": blind, "objection": None, "usage": {}}
-    if u1:
-        out["usage"] = {"in": u1.input_tokens, "out": u1.output_tokens, "cache_read": getattr(u1, "cache_read_input_tokens", 0) or 0,
-                        "cache_write": getattr(u1, "cache_creation_input_tokens", 0) or 0}
+    usage = Usage()
+    blind = _run(client, messages, BLIND_SCHEMA, usage)
+    out = {"model": MODEL, "blind": blind, "objection": None}
     if blind and market_probs and "MS" in market_probs:
         mp = market_probs
         q2 = ("Şimdi dünya piyasasının (Pinnacle) adil ihtimalleri: "
@@ -104,16 +129,9 @@ def analyze(home, away, league, start_iso, market_probs=None):
               + ". Soru: Bulduğun haberlerde bu ihtimalleri YANLIŞ çıkaracak somut bir bilgi var mı (örn. piyasanın henüz fiyatlamadığı "
                 "bir kadro haberi)? Yoksa 'ok' de. Kendi tahminin farklı diye 'warn' deme; sadece somut, yeni bilgi varsa.")
         messages.append({"role": "user", "content": q2})
-        obj, u2 = _run(client, messages, OBJECT_SCHEMA)
-        out["objection"] = obj
-        if u2:
-            out["usage"]["in"] = out["usage"].get("in", 0) + u2.input_tokens
-            out["usage"]["out"] = out["usage"].get("out", 0) + u2.output_tokens
-            out["usage"]["cache_read"] = out["usage"].get("cache_read", 0) + (getattr(u2, "cache_read_input_tokens", 0) or 0)
-            out["usage"]["cache_write"] = out["usage"].get("cache_write", 0) + (getattr(u2, "cache_creation_input_tokens", 0) or 0)
-    u = out["usage"]
-    if u:  # Opus 5.5: giriş 4$/M, önbellek yazma 5$/M, okuma 0.2$/M, çıkış 20$/M; arama ~0.01$/adet (≤8)
-        out["cost_usd"] = round(u.get("in", 0) * 4e-6 + u.get("cache_write", 0) * 5e-6 + u.get("cache_read", 0) * 0.2e-6 + u.get("out", 0) * 20e-6 + 0.08, 3)
+        out["objection"] = _run(client, messages, OBJECT_SCHEMA, usage)
+    out["usage"] = usage.dict()
+    out["cost_usd"] = usage.cost()
     return out
 
 
@@ -135,13 +153,19 @@ def analyze_and_store(m, market_probs, force=False):
     today = load_today(day)
     if any(r["code"] == m["code"] for r in today):
         return None
-    if len(today) >= MAX_PER_DAY and not force:
+    if force:
+        if sum(1 for r in today if r.get("forced")) >= MAX_FORCE_PER_DAY:
+            return None
+    elif len(today) >= MAX_PER_DAY:
         return None
     res = analyze(m["home"], m["away"], m["league"], m["start"].isoformat(), market_probs)
+    if not res.get("blind"):
+        print(f"Claude analizi boş döndü ({m['home']}-{m['away']}), kaydedilmedi; maliyet ${res.get('cost_usd', 0)}")
+        return None
     row = {"t": datetime.now(timezone.utc).isoformat(timespec="seconds"), "code": m["code"], "home": m["home"], "away": m["away"],
            "league": m["league"], "sport": m.get("sport_key"), "start": m["start"].isoformat(),
            "market": {k: {kk: round(vv, 4) for kk, vv in v.items()} for k, v in market_probs.items() if not k.startswith("_")},
-           "result": None, **res}
+           "result": None, "forced": bool(force), **res}
     os.makedirs(OUT_DIR, exist_ok=True)
     with open(f"{OUT_DIR}/{day}.jsonl", "a", encoding="utf-8") as f:
         f.write(json.dumps(row, ensure_ascii=False) + "\n")

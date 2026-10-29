@@ -348,7 +348,7 @@ def coupon_card(b, i, stale, sv, cr=None):
 <article class="coupon" style="animation-delay:{.55 + i*.12:.2f}s">
   <div class="top"><div class="teams">{esc(b['home'])}<br>{esc(b['away'])}</div>
   <div class="meta">{tr_time(b['start'], day=True)}<br>{esc(b['league'])}<br>Nesine kodu {b['code']}{esc(mbs)}</div></div>
-  <div class="pickbadge"><small>Önerilen bahis</small>{esc(PICK_SHORT.get((b['market'], b['pick']), b['pick']))}</div>
+  <div class="pickbadge"><small>{'Önerilen bahis' if ok else 'İzlenen bahis (veri eski)'}</small>{esc(PICK_SHORT.get((b['market'], b['pick']), b['pick']))}</div>
   <p class="pick">{esc(PICK_TR.get((b['market'], b['pick']), b['pick']))}<small>{MARKET_TR[b['market']]}</small></p>
   <dl>
     <dt>Nesine'nin verdiği oran</dt><dd>{b['nesine_odds']:.2f}</dd>
@@ -356,7 +356,9 @@ def coupon_card(b, i, stale, sv, cr=None):
     <dt>Bu ihtimale denk gelen adil oran</dt><dd>{b['fair_odds']:.2f}</dd>
     <dt>Nesine'nin fazladan verdiği</dt><dd class="good">+%{b['ev_pct']:.1f}</dd>
     <dt>Önerilen yatırım</dt><dd>kasanın %{b['stake']:.1f}'i</dd>
+    <dt>Nesine alt sınırı 50 TL → bu oran için gereken kasa</dt><dd>{(value.min_bankroll_for(b['stake']) or 0):,} TL</dd>
   </dl>
+  <div class="why">Nesine'de bir kupon en az <b>50 TL</b>. Kasanız bunun altındaysa 50 TL bu bahsin önerdiğinden çok daha büyük bir pay demektir; o zaman oynamamak doğru karardır.</div>
   {why}
   {claude_box(cr)}
   {status}
@@ -370,8 +372,10 @@ def combo_card(title, c, i, kind):
     ev_cls = "good" if c["ev_pct"] >= 0 else "bad"
     legs = "".join(f'<li><div>{esc(b["home"])} – {esc(b["away"])}<small><span class="pb">{esc(PICK_SHORT.get((b["market"], b["pick"]), b["pick"]))}</span>{tr_time(b["start"], day=True)}</small></div>'
                    f'<div class="p">{pct(b["fair_prob"])}</div><div class="o">{b["nesine_odds"]:.2f}</div></li>' for b in c["legs"])
-    verdict = (f"Uzun vadede bu kupona yatırılan her 100 TL'nin yaklaşık <b>{loss:.0f} TL'si kaybedilir</b>." if c["ev_pct"] < 0 else
-               f"Beklenen değer artı: 100 TL'ye yaklaşık <b>{c['ev_pct']:.0f} TL kazanç</b> beklenir.")
+    tl = value.MIN_COUPON_TL
+    verdict = (f"Nesine'nin en küçük kuponu {tl} TL. Bu kupona {tl} TL yatırılırsa tutarsa <b>{tl*c['odds']:.0f} TL</b> öder; "
+               f"uzun vadede her {tl} TL'nin yaklaşık <b>{loss*tl/100:.0f} TL'si kaybedilir</b>." if c["ev_pct"] < 0 else
+               f"Nesine'nin en küçük kuponu {tl} TL; tutarsa <b>{tl*c['odds']:.0f} TL</b> öder. Beklenen değer artı: {tl} TL'ye yaklaşık <b>{c['ev_pct']*tl/100:.0f} TL kazanç</b> beklenir.")
     return f"""
 <article class="coupon" style="animation-delay:{.4 + i*.1:.2f}s">
   <div class="top"><div class="title">{title}</div><div class="meta">{c['n']} maç · {kind}</div></div>
@@ -413,6 +417,7 @@ def claude_box(cr):
 def match_details(m, h2h_probs, sv, bets_by_code, cr=None):
     bets = bets_by_code.get(m["code"], [])
     best = max(bets, key=lambda b: b["ev_pct"]) if bets else None
+    rec_set = {(x["market"], x["pick"]) for x in bets if x["ev_pct"] >= value.EV_THRESHOLD and x["nesine_odds"] < value.MAX_ODDS}
     tag = (f'<span class="tag hit">+%{best["ev_pct"]:.1f} değer</span>' if best and best["ev_pct"] >= value.EV_THRESHOLD
            else f'<span class="tag">en iyisi {best["ev_pct"]:+.1f}%</span>' if best else '<span class="tag">karşılaştırma yok</span>')
     rows = ""
@@ -427,7 +432,7 @@ def match_details(m, h2h_probs, sv, bets_by_code, cr=None):
             ev_cls = "good" if ev is not None and ev >= value.EV_THRESHOLD else ""
             agree = pm is not None and pc is not None and abs(pm - pc) <= 0.05
             pc_cls = "good" if agree else ("dim" if pc is None else "")
-            rec = ' class="rec"' if (ev is not None and ev >= value.EV_THRESHOLD and o < value.MAX_ODDS) else ""
+            rec = ' class="rec"' if (mk, pick) in rec_set else ""
             rows += (f'<tr{rec}><td>{esc(PICK_TR.get((mk, pick), pick))}</td><td>{o:.2f}</td>'
                      f'<td>{pct(pm) if pm is not None else "—"}</td><td>{pct(ps) if ps is not None else "—"}</td>'
                      f'<td class="{pc_cls}">{pct(pc) if pc is not None else "—"}{" ✓" if agree else ""}</td>'
@@ -533,8 +538,8 @@ def build():
         r_txt = (f'{"kazandı" if res == "won" else "kaybetti" if res == "lost" else "iade"}' if res else "sonuç bekleniyor")
         r_cls = "good" if res == "won" else "bad" if res == "lost" else ""
         clv_txt = f" · kapanışa göre {clv:+.1f}%" if clv is not None else ""
-        al_html += (f'<li><time>{tr_time(a["t"])}</time><div>{esc(a["home"])} – {esc(a["away"])}<small><span class="pb">{esc(PICK_SHORT.get((a["market"], a["pick"]), a["pick"]))}</span>{esc(PICK_TR.get((a["market"], a["pick"]), a["pick"]))} · '
-                    f'Nesine {a["nesine_odds"]:.2f} · adil {a["fair_odds"]:.2f} · +%{a["ev_pct"]:.1f} · kasanın %{a["stake"]:.1f}\'i</small></div>'
+        al_html += (f'<li><time>{tr_time(a["t"])}</time><div>{esc(a["home"])} – {esc(a["away"])}<small><span class="pb">{esc(PICK_SHORT.get((a["market"], a["pick"]), a["pick"]))}</span>{MARKET_TR.get(a["market"], a["market"])} · '
+                    f'Nesine {a["nesine_odds"]:.2f} · adil {a["fair_odds"]:.2f} · +%{a["ev_pct"]:.1f} · kasanın %{a["stake"]:.1f}\'i (50 TL için ≥{(value.min_bankroll_for(a["stake"]) or 0):,} TL kasa)</small></div>'
                     f'<div class="r {r_cls}">{r_txt}{clv_txt}</div></li>')
     settled = [a for a in alerts if a.get("result") in ("won", "lost")]
     if settled:
@@ -615,11 +620,12 @@ def build():
 <h2 id="firsatlar">Fırsatlar <small>şu anki kayıtlara göre</small></h2>
 <p class="plain"><b>Bu ne demek?</b> Diyelim bir maçta ev sahibinin kazanma ihtimali gerçekte %50. Buna denk gelen "adil oran" 2.00'dır (100 ÷ 50). Nesine 2.10 veriyorsa, bize hak ettiğimizden fazla ödüyor demektir: işte "fırsat" bu. Nesine 1.85 veriyorsa (çoğu zaman öyle) fırsat yoktur.</p>
 <p class="lead">Fırsat demek için üç şart: Nesine oranı adil orandan en az <b>%3</b> yüksek, oran <b>3.00'ın altında</b> (yüksek oranlı sürprizlerde bu hesap yanıltıyor, geçmiş veriyle gördük) ve dünya piyasası verisi <b>10 dakikadan taze</b>.</p>
+<p class="plain"><b>Yatırım tutarı nasıl okunur?</b> Kartta "kasanın %2'si" gibi bir oran yazar; bu, matematiğin önerdiği pay. Nesine'de bir kupon en az <b>50 TL</b> olduğu için kartta ayrıca "bu oran için gereken kasa" yazar (örn. %2 için 2.500 TL). Kasanız daha küçükse, 50 TL'lik tek kupon bile önerilenden çok daha büyük risk demektir.</p>
 {cards_html}
 
 <h2 id="kuponlar">Kupon önerileri <small>önümüzdeki 48 saat, 3–5 maç</small></h2>
 <p class="plain"><b>Bu ne demek?</b> Kombine = birkaç maçı tek kupona yazmak; hepsi tutmalı. Oranlar çarpılır ama ihtimaller de çarpılır: %70 ihtimalli 3 maç bir arada %34 eder. Nesine her maçtan payını aldığı için (buna "marj" denir) kombinede bu pay katlanır.</p>
-<p class="note"><b>Açık konuşalım:</b> "En güvenli" kupon en sık tutan kupondur ama uzun vadede en çok kaybettiren de odur. Her kuponun altında 100 TL yatırsanız uzun vadede kaçının gideceği yazıyor. Karar sizin.</p>
+<p class="note"><b>Açık konuşalım:</b> "En güvenli" kupon en sık tutan kupondur ama uzun vadede en çok kaybettiren de odur. Nesine'de bir kupon en az <b>50 TL</b>; her kuponun altında 50 TL yatırsanız ne ödeyeceği ve uzun vadede kaçının gideceği yazıyor. Karar sizin.</p>
 {cp_html}
 
 <h2 id="gecmis">Geçmiş kuponlar <small>önerilenler tuttu mu?</small></h2>
