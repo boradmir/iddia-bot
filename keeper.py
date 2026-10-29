@@ -96,14 +96,26 @@ def maybe_watch(s, now):
         dispatch("watch.yml", max_minutes="340")
 
 
+def code_version():
+    """Takip edilen kod dosyalarının (py + iş akışları) içerik özeti; değişirse yeni kodla yeniden başlamak için."""
+    r = sh(["git", "ls-tree", "HEAD", "--", "*.py", ".github/workflows/", "aliases.json", "fd_aliases.json"], capture_output=True, text=True)
+    return r.stdout
+
+
 def main():
     max_minutes = float(sys.argv[sys.argv.index("--max-minutes") + 1]) if "--max-minutes" in sys.argv else 340
     chain = "--no-chain" not in sys.argv
     sh(["git", "config", "user.name", "iddia-bot"]); sh(["git", "config", "user.email", "actions@users.noreply.github.com"])
     deadline = time.time() + max_minutes * 60
+    version = code_version()
     log(f"Bekçi başladı, {max_minutes:.0f} dk çalışacak, zincir={'açık' if chain else 'kapalı'}")
     while True:
         now = datetime.now(timezone.utc)
+        # yeni kod geldiyse bu çalışma eski kodla devam etmesin: çık, zincir yeni kodla başlar
+        sh(["git", "pull", "--rebase", "-X", "theirs", "-q", "origin", "master"])
+        if code_version() != version:
+            log("Kod güncellendi; yeni sürümle yeniden başlıyorum.")
+            break
         s = load_status()
         record_once()
         s = load_status(); s["keeper_last"] = now.isoformat(timespec="seconds"); save_status(s)
