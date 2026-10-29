@@ -17,6 +17,11 @@ on:
 permissions:
   contents: write
 
+# Aynı anda iki gözcü çalışmasın (cron + Bekçi tetiklemesi çakışırsa ikincisi sıraya girer)
+concurrency:
+  group: watch
+  cancel-in-progress: false
+
 jobs:
   watch:
     runs-on: ubuntu-latest
