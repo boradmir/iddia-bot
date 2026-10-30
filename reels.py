@@ -13,6 +13,7 @@ W, H, FPS = 1080, 1920, 25
 VOICE, RATE, PITCH = "tr-TR-AhmetNeural", "+30%", "-2Hz"
 M_L, M_R = 72, 72            # kenar boşlukları
 SUB_Y = 1400                 # altyazı bandı
+COVER_LABEL = "Skordan öncesi"   # reels kapağındaki küçük etiket
 BANNED = ("banko", "kesin", "garanti", "çivi", "yatar", "kupon", "bahis")
 
 
@@ -386,7 +387,7 @@ def cover_image(img, m, th):
     """Kapak: kanca sahnesinin tam hâli + üstte etiket, altta göz işareti ve marka. Profil ızgarası ortadan kırpar (1:1 → y 420-1500);
     bütün öğeler bu kuşakta."""
     d = ImageDraw.Draw(img)
-    d.text((M_L, 340), tr_upper("Maç öncesi analiz"), font=font("displaysemi", 34), fill=YELLOW)
+    d.text((M_L, 340), tr_upper(COVER_LABEL), font=font("displaysemi", 34), fill=YELLOW)
     mk = logo.eye_mark(120)
     img.paste(mk, ((W - mk.width) // 2, 1210), mk)
     d.text((W / 2, 1350), "ANALİZ VE ÖTESİ", font=font("display", 48), fill=WHITE, anchor="ma")
