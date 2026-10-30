@@ -3,10 +3,10 @@ Adlar Nesine bülteninde geçtiği gibi (küçük harf karşılaştırma). tier(
 
 ANALYZE_MAX_TIER = 2   # sabah yapay zekâ analizi yalnız listeli kulüplerin (kademe 0-2) maçlarına; yoksa o gün analiz yok
 
-TIER0 = {"galatasaray", "fenerbahçe", "beşiktaş"}                      # Türkiye'nin üç büyüğü: her zaman en önde
+TIER0 = {"galatasaray", "fenerbahçe", "beşiktaş", "trabzonspor"}        # Türkiye'nin dört büyüğü: her zaman en önde
 TIER1 = {"real madrid", "barcelona", "man. city", "manchester city", "liverpool", "arsenal", "bayern münih", "bayern munih", "psg"}
 # not: Nesine'de "Paris" = Paris FC (PSG değil); PSG ayrı geçer
-TIER2 = {"trabzonspor", "atl madrid", "atletico madrid", "chelsea", "tottenham", "man. utd", "manchester utd", "man. united",
+TIER2 = {"atl madrid", "atletico madrid", "chelsea", "tottenham", "man. utd", "manchester utd", "man. united",
          "b. dortmund", "dortmund", "juventus", "inter", "ac milan", "milan", "napoli", "as roma", "roma", "b. leverkusen", "leverkusen"}
 
 
