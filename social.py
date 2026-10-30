@@ -295,9 +295,14 @@ def comment_card(m, ai, out_path):
     img = Image.new("RGB", (W, H), CREAM); d = ImageDraw.Draw(img)
     d.rectangle((0, 0, W, 230), fill=GREEN)
     start = m["start"].astimezone(TR)
-    text(d, (60, 50), tr_upper(f"Maç önü değerlendirme · {tr_date(m['start'])} · {start:%H:%M}"), font("displaysemi", 28), YELLOW)
+    mk = logo.mark_image(54); mk_x = int(W - 60 - font("semi", 26).getlength(HANDLE) - 14 - mk.width)
+    label = tr_upper(f"Maç önü · Biz ne düşünüyoruz? · {tr_date(m['start'])} · {start:%H:%M}")
+    fl = font("displaysemi", 28)
+    while fl.getlength(label) > mk_x - 60 - 30 and fl.size > 20:
+        fl = font("displaysemi", fl.size - 1)
+    text(d, (60, 50 + (28 - fl.size) // 2), label, fl, YELLOW)
     text(d, (W - 60, 50), HANDLE, font("semi", 26), WHITE, anchor="ra")
-    mk = logo.mark_image(54); d._image.paste(mk, (int(W - 60 - font("semi", 26).getlength(HANDLE) - 14 - mk.width), 62 - mk.height // 2), mk)
+    d._image.paste(mk, (mk_x, 62 - mk.height // 2), mk)
     fh = font("display", 70); title = f"{m['home']} – {m['away']}"
     while fh.getlength(title) > W - 120:
         fh = font("display", fh.size - 4)

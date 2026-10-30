@@ -13,8 +13,9 @@ Gönderilenler records/instagram.jsonl'da tutulur (tekrar gönderilmez). Secret 
 
 Kullanım: python instagram.py [--dry]
 """
-import json, os, sys, time, urllib.parse, urllib.request
+import json, os, sys, time, urllib.error, urllib.parse, urllib.request
 from datetime import datetime, timezone, timedelta
+import config  # .env yükler (yerelde); Actions'ta secrets zaten ortamda
 
 TOKEN_ENV = os.environ.get("IG_TOKEN", "")
 # Belirteç türüne göre uç nokta: "IGAA…" = Instagram login (graph.instagram.com), "EAA…" = Unified/Facebook login (graph.facebook.com)
@@ -62,8 +63,12 @@ def hashtags_for(m):
 def _post(path, params):
     data = urllib.parse.urlencode({**params, "access_token": TOKEN}).encode()
     req = urllib.request.Request(f"{API}/{path}", data=data, headers={"User-Agent": "iddia-bot"})
-    with urllib.request.urlopen(req, timeout=60) as r:
-        return json.loads(r.read())
+    try:
+        with urllib.request.urlopen(req, timeout=60) as r:
+            return json.loads(r.read())
+    except urllib.error.HTTPError as e:
+        body = e.read().decode("utf-8", "replace")[:500]
+        raise RuntimeError(f"API {e.code} {path}: {body}") from None
 
 
 def _get(path, params):
