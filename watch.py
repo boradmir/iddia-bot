@@ -262,8 +262,12 @@ def main():
     # başlamış kademe 0 maçları (bülten düşürmüş olabilir): son Nesine kaydından; maç içi takip için
     try:
         import clubs
-        _rows = build_site.read_jsonl("records/nesine/*.jsonl"); _t, _last = build_site.latest_snapshot(_rows)
-        started0 = [m for m in build_site.nesine_matches(_last) if clubs.tier(m) == 0 and now - timedelta(minutes=100) < m["start"] <= now]
+        # bülten başlayan maçı düşürür → son 6 saatin TÜM kayıtlarına bak (nesine_matches koda göre tekilleştirir)
+        _cut = (now - timedelta(hours=6)).isoformat()
+        _rows = [r for r in build_site.read_jsonl("records/nesine/*.jsonl") if r.get("t", "") >= _cut]
+        started0 = [m for m in build_site.nesine_matches(_rows) if clubs.tier(m) == 0 and now - timedelta(minutes=100) < m["start"] <= now]
+        if started0:
+            log("başlamış kademe 0 maçları: " + ", ".join(f"{m['home']}-{m['away']}" for m in started0))
     except Exception as e:
         log(f"başlamış maçlar okunamadı: {e}"); started0 = []
     if not targets:
