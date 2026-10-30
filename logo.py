@@ -95,14 +95,45 @@ def a_mark(d, cx, cy, s, dot=WHITE, line=(255, 255, 255), beyond=YELLOW, dark_bg
     d.ellipse((beyond_pt[0] - rb * 1.6, beyond_pt[1] - rb * 1.6, beyond_pt[0] + rb * 1.6, beyond_pt[1] + rb * 1.6), outline=beyond, width=max(2, lw // 2))
 
 
-def mark_image(h_px, line=(120, 160, 140)):
-    """Şeffaf zeminli, yumuşak kenarlı küçük işaret (kart imzası için). h_px = A yüksekliği."""
+def eye_mark(h_px, fg=(243, 239, 228), acc=(255, 207, 77)):
+    """v3 logo işareti (göz: üst kapak + spiral iris + sarı göz bebeği), şeffaf RGBA. h_px = yükseklik. 4x çizilip küçültülür.
+    Geometri assets/brand/v3/symbol-color.svg ile aynı (256 kutusu: kapak y 34→132, spiral merkez (128,132))."""
     S = 4
-    s = h_px * S
-    w, h = int(s * 1.5), int(s * 1.25)
-    img = Image.new("RGBA", (w, h), (0, 0, 0, 0)); d = ImageDraw.Draw(img)
-    a_mark(d, s * 0.5, h / 2, s, line=line)
-    return img.resize((w // S, h // S), Image.LANCZOS)
+    # 256'lık tasarım kutusunda işaret y=25..221 arasında (kapak kalınlığı dahil) → 196 yüksek, 236 geniş
+    scale = h_px * S / 196.0
+    W, H = int(236 * scale) + 2 * S, int(196 * scale) + 2 * S
+    img = Image.new("RGBA", (W, H), (0, 0, 0, 0)); d = ImageDraw.Draw(img)
+    ox, oy = S - 10 * scale, S - 25 * scale   # tasarım koordinatı → tuval
+    P = lambda x, y: (x * scale + ox, y * scale + oy)
+    lw = max(2, int(18 * scale))
+    # üst kapak: kübik Bézier (16,132) (60,34) (196,34) (240,132) örneklenir
+    pts = []
+    for i in range(0, 61):
+        t = i / 60
+        x = (1-t)**3*16 + 3*(1-t)**2*t*60 + 3*(1-t)*t**2*196 + t**3*240
+        y = (1-t)**3*132 + 3*(1-t)**2*t*34 + 3*(1-t)*t**2*34 + t**3*132
+        pts.append(P(x, y))
+    d.line(pts, fill=fg, width=lw, joint="curve")
+    for p in (pts[0], pts[-1]):
+        d.ellipse((p[0] - lw / 2, p[1] - lw / 2, p[0] + lw / 2, p[1] + lw / 2), fill=fg)
+    # spiral: yarım daire yaylar (merkez x, yarıçap, başlangıç açısı, bitiş açısı) — PIL açıları: 0 sağ, saat yönü
+    # (cx, cy, r, başlangıç, bitiş) — SVG'deki yaylarla birebir; son yay (48,132)→(228,100) r=100, merkez (145.1,155.9)
+    arcs = [(148, 132, 20, 180, 360), (128, 132, 40, 0, 180), (148, 132, 60, 180, 360), (128, 132, 80, 0, 180), (145.1, 155.9, 100, 194, 326)]
+    for cx, cy, r, a0, a1 in arcs:
+        x0, y0 = P(cx - r, cy - r); x1, y1 = P(cx + r, cy + r)
+        d.arc((x0, y0, x1, y1), start=a0, end=a1, fill=fg, width=lw)
+    # yay uçlarını yuvarlat (başlangıç: spiral merkezi; bitiş: (228,100))
+    for ex, ey in (P(128, 132), P(228, 100)):
+        d.ellipse((ex - lw / 2, ey - lw / 2, ex + lw / 2, ey + lw / 2), fill=fg)
+    # göz bebeği
+    px, py = P(128, 132); pr = 12 * scale
+    d.ellipse((px - pr, py - pr, px + pr, py + pr), fill=acc)
+    return img.resize((W // S, H // S), Image.LANCZOS)
+
+
+def mark_image(h_px, line=(120, 160, 140)):
+    """Kart imzası için işaret: v3 göz logosu (eski taktik-A yerine). line parametresi geriye uyumluluk için."""
+    return eye_mark(h_px)
 
 
 def hex_mark(d, cx, cy, s, fg=WHITE, accent=YELLOW):
