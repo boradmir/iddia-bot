@@ -146,6 +146,13 @@ def render_all():
     pitch_lines(d, W, H, (28, 70, 52))
     a_mark(d, W / 2, H / 2 + 40 * SS, 620 * SS, line=soft)
     finish(img, 1080, 1080).save(f"{OUT}/v2_profile.png")
+    # v2 avatar: profil fotoğrafı için (Instagram 150 px daireye küçültür) — daha büyük işaret, saha çizgisi yok, A ekseni ortada
+    img = canvas(1080, 1080); d = ImageDraw.Draw(img)
+    a_mark(d, W / 2 - 30 * SS, H / 2 + 20 * SS, 720 * SS, line=(150, 190, 170))
+    av = finish(img, 1080, 1080); av.save(f"{OUT}/v2_avatar.png")
+    # daire önizlemesi (telefonda görüneceği boyut)
+    small = av.resize((320, 320), Image.LANCZOS); mask = Image.new("L", (320, 320), 0); ImageDraw.Draw(mask).ellipse((0, 0, 319, 319), fill=255)
+    prev = Image.new("RGB", (320, 320), (18, 18, 18)); prev.paste(small, (0, 0), mask); prev.save(f"{OUT}/v2_avatar_preview.png")
     # v2 yazılı
     img = canvas(1080, 1080); d = ImageDraw.Draw(img)
     pitch_lines(d, W, H, (28, 70, 52))
