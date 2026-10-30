@@ -187,6 +187,49 @@ def polish(text, usage):
         return text
 
 
+# ---------- Okur testi: yayına çıkmadan önce TÜM metinler ikinci bir gözle denetlenir ve gerekirse düzeltilir
+QA_SYSTEM = """Sen bir spor yayınının son okuma editörüsün. Elindeki metinler Instagram'da yayınlanacak ve biri sesli okunacak.
+Görev: metinleri BAĞLAMI BİLMEYEN bir okurun gözüyle oku ve şunları yakalayıp düzelt (anlamı, isimleri, sayıları, bilgiyi DEĞİŞTİRME):
+1. Belirsiz ifade: bir sayı ya da yüzde neyin yüzdesi belli değilse açıkla (örn. "Göztepe yüzde 11" → "Göztepe'nin kazanma ihtimali yüzde 11").
+   Özne eksikse ekle. Zamirle kime gönderme yapıldığı belirsizse adı yaz.
+2. Dil: yanlış ek, kesme işareti, büyük/küçük harf, devrik cümle, 25 kelimeden uzun cümle, telgraf cümlesi (fiilsiz), gereksiz noktalı virgül.
+3. Ses: her yerde "biz" ağzı; "ben/bence/bana kalırsa/beni" varsa "biz" ağzına çevir.
+4. Yasak: oran (1.85 gibi), bahis, kupon, banko, kesin, garanti, ünlem.
+5. Seslendirme metni (reels_script): sesli okunacak; her cümle fiille biten tam cümle olsun, 4-14 kelime; "PİYASA." yer tutucusunu OLDUĞU GİBİ bırak
+   (kod, "Piyasaya göre X'in kazanma ihtimali yüzde A, Y'nin yüzde B." cümlesiyle değiştirecek).
+6. Kanca (hook) ve soru (question): tam cümle, tek başına anlaşılır.
+Çıktı: aynı alan adlarıyla JSON; değiştirmediğin alanı aynen döndür. "notes" alanına yaptığın düzeltmeleri kısaca yaz (Türkçe)."""
+
+
+def qa_texts(bl, home, away):
+    """Metin alanlarını okur testinden geçirir; düzeltilmiş alanları yerine yazar. Başarısızsa dokunmaz."""
+    fields = ["hook", "card_text", "comment", "risk", "risk_short", "question", "reels_script", "lineup_note"]
+    payload = {k: bl.get(k) for k in fields if bl.get(k)}
+    if not payload:
+        return bl
+    schema = {"type": "object", "properties": {**{k: {"type": "string"} for k in payload}, "notes": {"type": "string"}},
+              "required": list(payload) + ["notes"], "additionalProperties": False}
+    try:
+        client = _client()
+        resp = client.beta.messages.create(
+            model=MODEL, max_tokens=9000, betas=["server-side-fallback-2026-07-01"], fallbacks="default",
+            system=QA_SYSTEM,
+            messages=[{"role": "user", "content": f"Maç: {home} - {away}. Metinler (JSON):\n" + json.dumps(payload, ensure_ascii=False, indent=1)}],
+            output_config={"format": {"type": "json_schema", "schema": schema}},
+        )
+        t = next((b.text for b in resp.content if b.type == "text"), None)
+        out = json.loads(t) if t else {}
+        changed = [k for k in payload if out.get(k) and out[k].strip() != payload[k].strip()]
+        for k in changed:
+            bl[k] = out[k].strip()
+        bl["qa_notes"] = out.get("notes", "")
+        bl["qa_changed"] = changed
+        u = Usage(); u.add(resp.usage); bl["qa_cost_usd"] = u.cost()
+    except Exception as e:
+        print(f"okur testi hatası: {e}")
+    return bl
+
+
 def analyze(home, away, league, start_iso, market_probs=None):
     """Tek maç analizi. market_probs = {'MS': {'1','X','2'}, 'AU25': {...}, 'KG': {...}} (yalnızca 2. aşamada gösterilir)."""
     client = _client()
@@ -201,6 +244,7 @@ def analyze(home, away, league, start_iso, market_probs=None):
         for key in ("comment", "risk", "hook", "card_text", "lineup_note", "reels_script", "question", "risk_short"):
             if needs_polish(blind.get(key)):
                 blind[key] = polish(blind[key], usage); blind.setdefault("polished", []).append(key)
+        blind = qa_texts(blind, home, away)   # okur testi: belirsizlik, ek, ses, yasak kelimeler
     out = {"model": MODEL, "blind": blind, "objection": None}
     if blind and market_probs and "MS" in market_probs:
         mp = market_probs
@@ -359,6 +403,9 @@ def lineup_note(m, prev, rosters, market_probs=None):
     res = json.loads(text) if text else None
     if res and needs_polish(res.get("note")):
         res["note"] = polish(res["note"], usage); res["polished"] = True
+    if res and res.get("note"):
+        q = qa_texts({"card_text": res["note"]}, m["home"], m["away"])   # okur testi (kadro notu)
+        res["note"] = q.get("card_text", res["note"]); res["qa_notes"] = q.get("qa_notes", "")
     return {"model": MODEL, "kadro": res, "usage": usage.dict(), "cost_usd": usage.cost()}
 
 
