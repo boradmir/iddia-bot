@@ -979,7 +979,7 @@ def build():
 </section>
 
 <footer>Sayfa her 20 dakikada otomatik yenilenir; yatırım tavsiyesi değildir. Gerçekçi hedef: uzun vadede yatırılan paranın %2–5'i. Fırsatsız günler normaldir.
-<br>Kaynak kod: <a href="https://github.com/boradmir/iddia-bot">github.com/boradmir/iddia-bot</a></footer>
+</footer>
 </div>
 <script>
 (function(){{
