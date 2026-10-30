@@ -189,6 +189,12 @@ def analyze_and_store(m, market_probs, force=False):
         import clubs
         if clubs.tier(m) > clubs.ANALYZE_MAX_TIER:
             return None   # fırsat uyarısı yoksa yalnız büyük kulüp maçları
+        try:
+            import instagram
+            if any(s.get("code") == m["code"] and not str(s.get("type", "")).startswith("story") for s in instagram.load_log()):
+                return None   # paket Instagram'a zaten gitmiş: yorum artık gönderiye giremez, boşa harcama
+        except Exception:
+            pass
     if force:
         if sum(1 for r in today if r.get("forced")) >= MAX_FORCE_PER_DAY:
             return None
