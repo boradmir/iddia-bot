@@ -21,6 +21,7 @@ TOKEN_ENV = os.environ.get("IG_TOKEN", "")
 # Belirteç türüne göre uç nokta: "IGAA…" = Instagram login (graph.instagram.com), "EAA…" = Unified/Facebook login (graph.facebook.com)
 API = "https://graph.instagram.com/v21.0" if TOKEN_ENV.startswith("IG") else "https://graph.facebook.com/v21.0"
 PAGES = "https://boradmir.github.io/iddia-bot"
+RAW = "https://raw.githubusercontent.com/boradmir/iddia-bot/master/docs"   # story'ler için: push ile anında erişilir, Pages derlemesi beklenmez
 LOG = "records/instagram.jsonl"
 TR = timezone(timedelta(hours=3))
 TOKEN = os.environ.get("IG_TOKEN", "")

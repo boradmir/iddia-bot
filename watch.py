@@ -141,8 +141,8 @@ def story_async(m, rec, events_for_sport, aliases, dry):
                 git_publish(f"story {m['home']}-{m['away']}", dry)
             if dry or not os.environ.get("IG_TOKEN"):
                 return
-            url = f"{instagram.PAGES}/social/{day}/story_{m['code']}.jpg"
-            pid = instagram.post_story_for(m, url)
+            url = f"{instagram.RAW}/social/{day}/story_{m['code']}.jpg"
+            pid = instagram.post_story_for(m, url, size=os.path.getsize(path))
             log(f"Instagram story: {m['home']}-{m['away']} → {pid}" if pid else f"Story gönderilmedi (sınır/tekrar): {m['home']}-{m['away']}")
         except Exception as e:
             log(f"Story akışı hatası {m['home']}-{m['away']}: {type(e).__name__}: {e}")
@@ -185,7 +185,7 @@ def inplay_async(m, event_id, dry):
             git_publish(f"{kind} {m['home']}-{m['away']} {lv['score'].get('home')}-{lv['score'].get('away')}", dry)
         if dry or not os.environ.get("IG_TOKEN"):
             return
-        url = f"{instagram.PAGES}/social/{day}/{kind}_{m['code']}.jpg"
+        url = f"{instagram.RAW}/social/{day}/{kind}_{m['code']}.jpg"
         pid = instagram.post_story_for(m, url, kind="story_ht" if kind == "devre" else "story_ft", size=size)
         log(f"Instagram {kind} story: {m['home']}-{m['away']} → {pid}" if pid else f"{kind} story gönderilmedi (sınır/tekrar)")
 
