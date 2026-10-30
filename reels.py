@@ -165,6 +165,47 @@ def vignette():
     return _VIG
 
 
+BG_DIR = os.environ.get("REELS_BG_DIR", "assets/bg_v2")
+VIDEO_BG = os.environ.get("REELS_VIDEO_BG", "1") == "1"
+# analiz dünyası klipleri (Seedance 2.5): sahne → tercih sırası
+SCENE_CLIPS = {"hook": ["chalk_arrow", "spotlight_board", "chalk_pitch"], "teams": ["table_pitch", "magnet_board"],
+               "market": ["magnet_board", "chalk_pitch", "tactics_sheet"], "absences": ["pen_paper", "string_board", "analyst_desk"],
+               "risk": ["chalk_erase", "whistle_desk", "rain_window"], "question": ["chalk_dust", "analyst_desk", "chalk_arrow"]}
+_TINT = None
+
+
+def clip_for(scene, used):
+    """Sahne için kütüphaneden klip (varsa), aynı videoda tekrar etmemeye çalışır."""
+    cands = [n for n in SCENE_CLIPS.get(scene, []) if os.path.exists(f"{BG_DIR}/{n}.mp4")]
+    allc = [f[:-4] for f in os.listdir(BG_DIR) if f.endswith(".mp4")] if os.path.isdir(BG_DIR) else []
+    for n in cands + [c for c in allc if c not in used]:
+        if n not in used:
+            return n
+    return (cands or allc or [None])[0]
+
+
+def tint_layer(th):
+    """Video zemin üstüne marka tonlu karartma: üstte hafif, ortada güçlü (yazı okunsun), altta orta."""
+    global _TINT
+    if _TINT is None:
+        base = th["bg"]
+        lay = Image.new("RGBA", (W, H), base + (0,))
+        d = ImageDraw.Draw(lay)
+        for y in range(0, H, 2):
+            t = y / H
+            a = 90 if t < 0.12 else (125 + int(45 * min(1, (t - 0.12) / 0.3)) if t < 0.85 else 150)   # biraz daha açık: görüntü görünsün
+            d.rectangle((0, y, W, y + 1), fill=base + (a,))
+        _TINT = lay
+    return _TINT
+
+
+def background_video(frame_i, th):
+    """Video zemin modu: şeffaf kare + tonlama + üst şerit (asıl görüntü ffmpeg'de alta bindirilir)."""
+    img = tint_layer(th).copy()
+    ImageDraw.Draw(img).rectangle((0, 0, W, 12), fill=YELLOW)
+    return img
+
+
 def background(frame_i, th):
     img = Image.new("RGB", (W, H), th["bg"]); d = ImageDraw.Draw(img)
     c1, c2 = th["bg"], th["bg2"]
@@ -405,8 +446,10 @@ def render(m, bl, pm, er, out_mp4, absences=None):
     n = int(total * FPS)
     frames_dir = os.path.join(tmp, "f"); os.makedirs(frames_dir)
     PUSH = 0.16
+    use_video = VIDEO_BG and os.path.isdir(BG_DIR) and any(f.endswith(".mp4") for f in os.listdir(BG_DIR))
     def draw_scene(name, t_s):
-        img = background(fi, th); d = ImageDraw.Draw(img)
+        img = background_video(fi, th) if use_video else background(fi, th)
+        d = ImageDraw.Draw(img)
         if name == "hook": scene_hook(img, d, t_s, hook, th)
         elif name == "teams": scene_teams(img, d, t_s, m, th)
         elif name == "market": scene_market(img, d, t_s, m, pm, er)
@@ -427,7 +470,7 @@ def render(m, bl, pm, er, out_mp4, absences=None):
         if cur > 0 and t - ts < PUSH and name in ("absences", "risk"):
             k = ease_out_cubic((t - ts) / PUSH)
             prev = draw_scene(order[cur - 1][0], ts - order[cur - 1][1])
-            comp = Image.new(img.mode, (W, H), th["bg"])
+            comp = Image.new(img.mode, (W, H), (th["bg"] + (0,)) if img.mode == "RGBA" else th["bg"])
             comp.paste(prev, (0, int(-140 * k))); comp.paste(img.crop((0, 0, W, H)), (0, int(H * (1 - k) * 0.08)))
             img = comp
         d = ImageDraw.Draw(img)
@@ -437,19 +480,45 @@ def render(m, bl, pm, er, out_mp4, absences=None):
             subtitle(img, d, words, t, fsub)
         if fi == 0:
             cover = img.copy()
-        img.save(os.path.join(frames_dir, f"f{fi:04d}.jpg"), quality=92)
+        if use_video:
+            img.save(os.path.join(frames_dir, f"f{fi:04d}.png"))
+        else:
+            img.save(os.path.join(frames_dir, f"f{fi:04d}.jpg"), quality=92)
     # ses: ses 48k + pembe gürültü yatağı + sahne kesmelerinde tık; loudnorm
-    ticks = [ts for _, ts in order[1:]]
+    ticks = []   # tık efekti kaldırıldı (ucuz duruyordu); yalnız ses
     tick_inputs = []; tick_filters = []
     for i, ts in enumerate(ticks):
         tick_inputs += ["-f", "lavfi", "-t", "0.015", "-i", "sine=frequency=1800:sample_rate=48000"]
         tick_filters.append(f"[{2 + i}:a]adelay={int(ts*1000)}|{int(ts*1000)},volume=0.08[t{i}]")
     mix_in = "[v][n]" + "".join(f"[t{i}]" for i in range(len(ticks)))
+    # ses: sesli anlatım + tıklar; zemin gürültüsü YOK (kullanıcı karıncalanma duydu); sessiz yatak = anullsrc
     fc = (f"[0:a]aresample=48000,highpass=f=80,acompressor=ratio=3,volume=1.0[v];"
-          f"[1:a]volume=0.008[n];" + ";".join(tick_filters) + (";" if tick_filters else "") +
+          f"[1:a]volume=0.0[n];" + ";".join(tick_filters) + (";" if tick_filters else "") +
           f"{mix_in}amix=inputs={2 + len(ticks)}:duration=longest:normalize=0,loudnorm=I=-14:TP=-1:LRA=7[a]")
-    cmd = ["ffmpeg", "-y", "-loglevel", "error", "-framerate", str(FPS), "-i", os.path.join(frames_dir, "f%04d.jpg"),
-           "-i", voice, "-f", "lavfi", "-t", f"{total:.2f}", "-i", "anoisesrc=color=pink:sample_rate=48000"] + tick_inputs + [
+    bg_mp4 = None
+    if use_video:
+        # sahne süreleri → klip parçaları (döngüyle uzatılır) → birleştir
+        segs = []; used = []
+        for k, (nm, ts) in enumerate(order):
+            te = order[k + 1][1] if k + 1 < len(order) else total
+            clip = clip_for(nm, used); used.append(clip)
+            segs.append((clip, max(0.2, te - ts)))
+        seg_files = []
+        for k, (clip, dur) in enumerate(segs):
+            sf = os.path.join(tmp, f"seg{k}.mp4")
+            subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-stream_loop", "6", "-i", f"{BG_DIR}/{clip}.mp4", "-t", f"{dur:.2f}",
+                            "-vf", f"scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},setsar=1,fps={FPS},"
+                                   f"eq=contrast=1.04:saturation=0.9,vignette=PI/4.5,noise=alls=6:allf=t",
+                            "-an", "-c:v", "libx264", "-preset", "veryfast", "-crf", "18", sf], check=True)
+            seg_files.append(sf)
+        lst = os.path.join(tmp, "segs.txt")
+        with open(lst, "w", encoding="utf-8") as f:
+            for sf in seg_files:
+                f.write("file '" + sf.replace(chr(92), "/") + "'" + chr(10))
+        bg_mp4 = os.path.join(tmp, "bg.mp4")
+        subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", lst, "-c", "copy", bg_mp4], check=True)
+    cmd = ["ffmpeg", "-y", "-loglevel", "error", "-framerate", str(FPS), "-i", os.path.join(frames_dir, "f%04d.png" if use_video else "f%04d.jpg"),
+           "-i", voice, "-f", "lavfi", "-t", f"{total:.2f}", "-i", "anullsrc=r=48000:cl=stereo"] + tick_inputs + [
            "-filter_complex", fc.replace("[0:a]", "[1:a]").replace("[1:a]volume=0.008", "[2:a]volume=0.008") if False else fc,
            "-map", "0:v", "-map", "[a]", "-c:v", "libx264", "-crf", "18", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k",
            "-shortest", "-movflags", "+faststart", out_mp4]
@@ -459,9 +528,25 @@ def render(m, bl, pm, er, out_mp4, absences=None):
     for i in range(len(ticks)):
         fc2 = fc2.replace(f"[{2 + i}:a]adelay", f"[{3 + i}:a]adelay")
     cmd[cmd.index("-filter_complex") + 1] = fc2
+    if use_video:
+        # arka plan videosu en sona giriş olarak eklenir; kareler (şeffaf PNG) üstüne bindirilir
+        n_in = sum(1 for a in cmd if a == "-i")
+        i_fc = cmd.index("-filter_complex")
+        cmd[i_fc:i_fc] = ["-i", bg_mp4]
+        i_fc = cmd.index("-filter_complex")
+        cmd[i_fc + 1] = f"[{n_in}:v]scale={W}:{H},setsar=1[bgv];[bgv][0:v]overlay=0:0:format=auto,format=yuv420p[vout];" + cmd[i_fc + 1]
+        cmd[cmd.index("-map") + 1] = "[vout]"
     subprocess.run(cmd, check=True)
     cover_path = out_mp4[:-4] + "_kapak.jpg"
     if cover is not None:
+        if cover.mode == "RGBA":   # video zemin modunda kapak: ilk kareyi arka plan videosunun ilk karesiyle birleştir
+            try:
+                bgf = os.path.join(tmp, "bg0.png")
+                subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", bg_mp4, "-frames:v", "1", bgf], check=True)
+                base = Image.open(bgf).convert("RGBA").resize((W, H))
+            except Exception:
+                base = Image.new("RGBA", (W, H), th["bg"] + (255,))
+            cover = Image.alpha_composite(base, cover).convert("RGB")
         cover.save(cover_path, quality=92)
     shutil.rmtree(tmp, ignore_errors=True)
     return {"mp4": out_mp4, "cover": cover_path, "script": text, "seconds": round(total, 1), "words": len(words)}
