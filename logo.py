@@ -97,7 +97,7 @@ def a_mark(d, cx, cy, s, dot=WHITE, line=(255, 255, 255), beyond=YELLOW, dark_bg
 
 def eye_mark(h_px, fg=(243, 239, 228), acc=(255, 207, 77)):
     """v3 logo işareti (göz: üst kapak + spiral iris + sarı göz bebeği), şeffaf RGBA. h_px = yükseklik. 4x çizilip küçültülür.
-    Geometri assets/brand/v3/symbol-color.svg ile aynı (256 kutusu: kapak y 34→132, spiral merkez (128,132))."""
+    Geometri assets/brand/v3/symbol-color.svg ile aynı (G2: kapak 16→240, kontrol y=34; spiral 4 yay, merkez (128,132))."""
     S = 4
     # 256'lık tasarım kutusunda işaret y=25..221 arasında (kapak kalınlığı dahil) → 196 yüksek, 236 geniş
     scale = h_px * S / 196.0
@@ -118,12 +118,12 @@ def eye_mark(h_px, fg=(243, 239, 228), acc=(255, 207, 77)):
         d.ellipse((p[0] - lw / 2, p[1] - lw / 2, p[0] + lw / 2, p[1] + lw / 2), fill=fg)
     # spiral: yarım daire yaylar (merkez x, yarıçap, başlangıç açısı, bitiş açısı) — PIL açıları: 0 sağ, saat yönü
     # (cx, cy, r, başlangıç, bitiş) — SVG'deki yaylarla birebir; son yay (48,132)→(228,100) r=100, merkez (145.1,155.9)
-    arcs = [(148, 132, 20, 180, 360), (128, 132, 40, 0, 180), (148, 132, 60, 180, 360), (128, 132, 80, 0, 180), (145.1, 155.9, 100, 194, 326)]
+    arcs = [(148, 132, 20, 180, 360), (128, 132, 40, 0, 180), (148, 132, 60, 180, 360), (128, 132, 80, 0, 180)]   # G2: dört yay, (48,132)'de biter
     for cx, cy, r, a0, a1 in arcs:
         x0, y0 = P(cx - r, cy - r); x1, y1 = P(cx + r, cy + r)
         d.arc((x0, y0, x1, y1), start=a0, end=a1, fill=fg, width=lw)
     # yay uçlarını yuvarlat (başlangıç: spiral merkezi; bitiş: (228,100))
-    for ex, ey in (P(128, 132), P(228, 100)):
+    for ex, ey in (P(128, 132), P(48, 132)):
         d.ellipse((ex - lw / 2, ey - lw / 2, ex + lw / 2, ey + lw / 2), fill=fg)
     # göz bebeği
     px, py = P(128, 132); pr = 12 * scale
