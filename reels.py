@@ -427,7 +427,7 @@ def render(m, bl, pm, er, out_mp4, absences=None):
         if cur > 0 and t - ts < PUSH and name in ("absences", "risk"):
             k = ease_out_cubic((t - ts) / PUSH)
             prev = draw_scene(order[cur - 1][0], ts - order[cur - 1][1])
-            comp = Image.new("RGB", (W, H), th["bg"])
+            comp = Image.new(img.mode, (W, H), th["bg"])
             comp.paste(prev, (0, int(-140 * k))); comp.paste(img.crop((0, 0, W, H)), (0, int(H * (1 - k) * 0.08)))
             img = comp
         d = ImageDraw.Draw(img)
