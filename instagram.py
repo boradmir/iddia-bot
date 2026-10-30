@@ -28,7 +28,7 @@ TOKEN = os.environ.get("IG_TOKEN", "")
 USER_ID = os.environ.get("IG_USER_ID", "")
 MAX_PER_DAY = int(os.environ.get("IG_MAX_PER_DAY", "2"))
 HASHTAGS = "#maçanalizi"
-NOTE = "18+ · Bilgi amaçlıdır; tavsiye niteliği taşımaz."
+NOTE = "18+ · Burada kupon yok, okuma var. Karar sizin."
 LEAGUE_TAGS = {"soccer_turkey_super_league": "#SüperLig", "soccer_epl": "#PremierLeague", "soccer_spain_la_liga": "#LaLiga",
                "soccer_italy_serie_a": "#SerieA", "soccer_germany_bundesliga": "#Bundesliga", "soccer_france_ligue_one": "#Ligue1",
                "soccer_uefa_champs_league": "#ŞampiyonlarLigi", "soccer_uefa_europa_league": "#AvrupaLigi",
@@ -50,9 +50,9 @@ def hashtags_for(m):
     import social
     _, _, ha = social.team_style(m["home"]); _, _, aa = social.team_style(m["away"])
     tr = str.maketrans("İÇÖŞÜĞ", "ICOSUG")
-    pair = f"#{ha}v{aa}".translate(tr)
     teams = [m["home"], m["away"]]
     teams.sort(key=lambda t: 0 if t in BIG else 1)      # büyük kulüp önce
+    pair = tag_name(teams[0]) + tag_name(teams[1]).lstrip("#")   # #GalatasarayKonyaspor (aranan biçim)
     tags = [tag_name(teams[0]), tag_name(teams[1]), pair, LEAGUE_TAGS.get(m.get("sport_key"), ""), "#maçanalizi"]
     out, seen = [], set()
     for t in tags:
@@ -164,8 +164,8 @@ def existing_captions():
 
 
 def already_posted(m, caps):
-    key = f"{m['home']} – {m['away']} |"
-    return any(key in c for c in caps)
+    keys = (f"{m['home']} – {m['away']} |", f"{m['home']} – {m['away']} maç analizi")
+    return any(k in c for c in caps for k in keys)
 
 
 def load_log():
@@ -191,9 +191,13 @@ def caption_for(m, ai, pm):
                 cut = max(first.rfind(", ", 0, 190), first.rfind("; ", 0, 190))
                 first = (first[:cut].rstrip() + ".") if cut > 60 else first[:190].rsplit(" ", 1)[0].rstrip(",;") + "."
             hook = first
-    if hook:
-        parts.append(hook)
-    parts.append(f"{m['home']} – {m['away']} | {social.tr_date(m['start'])}, {start:%H:%M} | {m['league']}")
+    # ilk satır: arama için anahtar kelime + kanca
+    parts.append(f"{m['home']} – {m['away']} maç analizi: {hook}" if hook else f"{m['home']} – {m['away']} maç analizi")
+    parts.append(f"{social.tr_date(m['start'])}, {start:%H:%M} | {m['league']}")
+    # tam yazı açıklamada (kartta kısa sürüm var)
+    comment_full = (bl.get("comment") or "").strip()
+    if comment_full and comment_full != hook:
+        parts.append(comment_full)
     abs_ = [f"{a['player']} ({a['status']})" for a in (bl.get("absences") or [])[:4]]
     if abs_:
         parts.append("Eksikler: " + ", ".join(abs_))
@@ -201,8 +205,14 @@ def caption_for(m, ai, pm):
         parts.append(f"Uluslararası piyasanın ihtimali: {m['home']} %{pm['MS']['1']*100:.0f} · beraberlik %{pm['MS']['X']*100:.0f} · {m['away']} %{pm['MS']['2']*100:.0f}")
     if bl.get("risk"):
         parts.append("En büyük belirsizlik: " + bl["risk"])
+    q = (bl.get("question") or "").strip() or "Sen ne düşünüyorsun?"
+    parts.append(f"{q} Yoruma yaz. Maç sonu karşılaştırmak için kaydet.")
     parts.append(NOTE); parts.append(hashtags_for(m))
-    return "\n\n".join(parts)[:2100]
+    cap = "\n\n".join(parts)
+    if len(cap) > 2150:   # Instagram sınırı 2200: önce tam yazıyı kısalt
+        short = comment_full[:comment_full.rfind(". ", 0, 700) + 1] if comment_full else ""
+        cap = "\n\n".join(p if p != comment_full else short for p in parts)
+    return cap[:2190]
 
 
 def main():

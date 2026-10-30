@@ -38,7 +38,7 @@ def tr_date(dt):
     """'Cuma, 30 Ekim' biçimi (TSİ)."""
     dt = dt.astimezone(TR)
     return f"{DAYS_TR[dt.weekday()]}, {dt.day} {MONTHS_TR[dt.month]}"
-DISCLAIMER = "18+ · Bilgi amaçlıdır; tavsiye niteliği taşımaz. Veri: uluslararası piyasa, ESPN. Haber özetleri basından derlenmiştir."
+DISCLAIMER = "18+ · Burada kupon yok, okuma var. Karar sizin."
 
 
 # ----------------------------------------------------------------- araçlar
@@ -333,6 +333,24 @@ def match_card(m, pm, ai, er, out_path):
     save(img, out_path)
 
 
+def first_sentence(text_):
+    import re
+    s = re.split(r"(?<=[.!?])\s+", (text_ or "").strip())
+    return s[0] if s else ""
+
+
+def short_text(text_, max_words):
+    """Yazının ilk cümleleri, en fazla max_words kelime; cümle ortasında kesmez."""
+    import re
+    out, n = [], 0
+    for s in re.split(r"(?<=[.!?])\s+", (text_ or "").strip()):
+        w = len(s.split())
+        if out and n + w > max_words:
+            break
+        out.append(s); n += w
+    return " ".join(out)
+
+
 def comment_card(m, ai, out_path):
     bl = (ai or {}).get("blind") or {}
     if not bl.get("comment"):
@@ -352,13 +370,25 @@ def comment_card(m, ai, out_path):
     while fh.getlength(title) > W - 120:
         fh = font("display", fh.size - 4)
     text(d, (60, 110), title, fh, WHITE)
-    d.text((54, 226), "“", font=font("display", 160), fill=YELLOW)
-    y = 352; f = font("body", 30)
-    for ln in wrap(bl["comment"], f, W - 120):
-        if y > H - 360:
+    # tez: kalın tek cümle (yapay zekânın "hook" alanı; eski kayıtlarda yazının ilk cümlesi)
+    tez = (bl.get("hook") or "").strip() or first_sentence(bl["comment"])
+    y = 270; ft = font("display", 46)
+    for ln in wrap(tez, ft, W - 120)[:3]:
+        d.text((60, y), ln, font=ft, fill=th["bg"]); y += 54
+    d.rectangle((60, y + 10, 180, y + 16), fill=YELLOW); y += 44
+    # gövde: kart metni (en fazla ~80 kelime); eski kayıtlarda yazının ilk cümleleri
+    body = (bl.get("card_text") or "").strip()
+    if not body:   # eski kayıt: tez ilk cümleyse gövde ondan sonrasıyla başlasın
+        rest = bl["comment"].strip()
+        if rest.startswith(tez):
+            rest = rest[len(tez):].strip()
+        body = short_text(rest or bl["comment"], 80)
+    f = font("body", 34)
+    for ln in wrap(body, f, W - 120):
+        if y > H - 380:
             break
-        d.text((60, y), ln, font=f, fill=INK); y += 42
-    y += 14
+        d.text((60, y), ln, font=f, fill=INK); y += 46
+    y += 18
     if bl.get("risk"):
         d.rounded_rectangle((60, y, W - 60, y + 118), radius=18, fill=(255, 243, 204))
         text(d, (84, y + 16), "EN BÜYÜK BELİRSİZLİK", font("displaysemi", 24), (107, 77, 0))
