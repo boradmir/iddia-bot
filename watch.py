@@ -83,10 +83,18 @@ def git_setup(dry):
     subprocess.run(["git", "config", "user.email", "actions@users.noreply.github.com"], check=False)
 
 
+GIT_LOCK = __import__("threading").RLock()   # arka plan story akışları ile ana döngü aynı anda git çalıştırmasın
+
+
 def git_publish(msg, dry):
     """Kayıtları ve sayfayı repoya yazar. Rebase takılırsa iptal eder, sonraki döngüde yeniden dener."""
     if dry:
         return
+    with GIT_LOCK:
+        return _git_publish(msg)
+
+
+def _git_publish(msg):
     subprocess.run(["git", "add", "records/", "docs/"], check=False)
     if subprocess.run(["git", "diff", "--cached", "--quiet"], check=False).returncode == 0:
         return  # değişiklik yok
@@ -103,7 +111,6 @@ def git_publish(msg, dry):
 
 
 CLAUDE_LOCK = threading.Lock()
-GIT_LOCK = threading.Lock()   # arka plan story akışı ile ana döngü aynı anda git çalıştırmasın
 
 
 def story_async(m, rec, events_for_sport, aliases, dry):
@@ -159,6 +166,66 @@ def claude_async(m, probs, force=False):
     threading.Thread(target=run, daemon=True).start()
 
 
+INPLAY = {}   # code → thread (maç içi takip: devre arası / maç sonu story'si)
+
+
+def inplay_async(m, event_id, dry):
+    """Kademe 0 maçı başladı: 43. dakikadan itibaren 30 sn'de bir ESPN; devre arasında ve maç sonunda skor story'si."""
+    import clubs, story, instagram
+    if m["code"] in INPLAY or clubs.tier(m) > 0 or not event_id:
+        return
+
+    def post(kind, lv):
+        day = m["start"].astimezone(timezone(timedelta(hours=3))).strftime("%Y-%m-%d")
+        os.makedirs(f"docs/social/{day}", exist_ok=True)
+        path = f"docs/social/{day}/{kind}_{m['code']}.jpg"
+        story.score_card(m, lv, "ht" if kind == "devre" else "ft", path)
+        size = os.path.getsize(path)
+        with GIT_LOCK:
+            git_publish(f"{kind} {m['home']}-{m['away']} {lv['score'].get('home')}-{lv['score'].get('away')}", dry)
+        if dry or not os.environ.get("IG_TOKEN"):
+            return
+        url = f"{instagram.PAGES}/social/{day}/{kind}_{m['code']}.jpg"
+        pid = instagram.post_story_for(m, url, kind="story_ht" if kind == "devre" else "story_ft", size=size)
+        log(f"Instagram {kind} story: {m['home']}-{m['away']} → {pid}" if pid else f"{kind} story gönderilmedi (sınır/tekrar)")
+
+    def run():
+        try:
+            ko = m["start"]
+            done = {"ht": False, "ft": False}
+            while True:
+                mins = (datetime.now(timezone.utc) - ko).total_seconds() / 60
+                if mins > 150:
+                    break
+                want = ("ht" if not done["ht"] and mins >= 43 else None) or ("ft" if not done["ft"] and mins >= 88 else None)
+                if not want:
+                    time.sleep(30); continue
+                try:
+                    lv = espn.live(m["sport_key"], event_id)
+                except Exception as e:
+                    log(f"ESPN canlı hatası {m['home']}-{m['away']}: {e}"); time.sleep(30); continue
+                st = (lv or {}).get("status") or ""
+                if st == "STATUS_HALFTIME" and not done["ht"]:
+                    done["ht"] = True
+                    log(f"Devre arası: {m['home']}-{m['away']} {lv['score']}"); post("devre", lv)
+                elif st in ("STATUS_FULL_TIME", "STATUS_FINAL", "STATUS_FINAL_PEN", "STATUS_FINAL_AET"):
+                    done["ht"] = True
+                    if not done["ft"]:
+                        done["ft"] = True
+                        log(f"Maç sonu: {m['home']}-{m['away']} {lv['score']}"); post("macsonu", lv)
+                    break
+                elif st in ("STATUS_POSTPONED", "STATUS_CANCELED", "STATUS_ABANDONED"):
+                    break
+                elif want == "ht" and mins > 70:
+                    done["ht"] = True   # devre arası kaçtı (ESPN gecikti); maç sonunu bekle
+                time.sleep(30)
+        except Exception as e:
+            log(f"Maç içi takip hatası {m['home']}-{m['away']}: {type(e).__name__}: {e}")
+    t = threading.Thread(target=run, daemon=True); t.start()
+    INPLAY[m["code"]] = t
+    log(f"Maç içi takip başladı: {m['home']}-{m['away']}")
+
+
 def rebuild_page():
     try:
         os.makedirs("docs", exist_ok=True)
@@ -178,6 +245,13 @@ def main():
 
     data = nesine.fetch(save_path=None)
     targets = [m for m in nesine.parse(data) if now < m["start"] <= horizon]
+    # başlamış kademe 0 maçları (bülten düşürmüş olabilir): son Nesine kaydından; maç içi takip için
+    try:
+        import clubs
+        _rows = build_site.read_jsonl("records/nesine/*.jsonl"); _t, _last = build_site.latest_snapshot(_rows)
+        started0 = [m for m in build_site.nesine_matches(_last) if clubs.tier(m) == 0 and now - timedelta(minutes=100) < m["start"] <= now]
+    except Exception as e:
+        log(f"başlamış maçlar okunamadı: {e}"); started0 = []
     if not targets:
         log("İzlenecek maç yok; çıkılıyor.")
         save_json(WSTATUS, {"active": False, "note": "", "updated": now.isoformat(timespec="seconds")})
@@ -203,9 +277,23 @@ def main():
         now = datetime.now(timezone.utc)
         ts = now.isoformat(timespec="seconds")
         live = [m for m in targets if m["start"] > now]
-        if not live:
-            log("Tüm maçlar başladı; bitiriliyor.")
+        # kademe 0 maçı başladıysa maç içi takibe al (devre arası / maç sonu story'si); ESPN kimliği kadro adımından gelir
+        for m in targets + started0:
+            if m["start"] <= now and (now - m["start"]) < timedelta(minutes=100) and m["code"] not in INPLAY:
+                eid = espn_ids.get(m["code"])
+                if not eid and not dry:
+                    try:
+                        r = espn.fetch_match(m, None); eid = r["event_id"] if r else None
+                        if eid:
+                            espn_ids[m["code"]] = eid
+                    except Exception as e:
+                        log(f"ESPN kimlik hatası: {e}")
+                inplay_async(m, eid, dry)
+        if not live and not any(t.is_alive() for t in INPLAY.values()):
+            log("Tüm maçlar başladı ve maç içi takip yok; bitiriliyor.")
             break
+        if not live:
+            time.sleep(30); continue
         # 1) Nesine (bedava)
         try:
             data = nesine.fetch(save_path=None)

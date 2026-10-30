@@ -121,6 +121,47 @@ def save(rec):
             f.write(json.dumps(r, ensure_ascii=False) + "\n")
 
 
+STAT_KEYS = {"possessionPct": "Topla oynama", "totalShots": "Şut", "shotsOnTarget": "İsabetli şut", "wonCorners": "Korner",
+             "foulsCommitted": "Faul", "offsides": "Ofsayt"}
+
+
+def live(sport_key, event_id):
+    """Canlı durum: {"status": STATUS_*, "clock", "score": {"home","away"}, "goals": [...], "cards": [...], "stats": {takım: {ad: değer}}}.
+    Kaynak: summary (header + keyEvents + boxscore); keyEvents boşsa scoreboard details."""
+    import html as _h
+    slug = SLUG.get(sport_key)
+    if not slug or not event_id:
+        return None
+    s = _get(f"https://site.api.espn.com/apis/site/v2/sports/soccer/{slug}/summary?event={event_id}")
+    comp = (s.get("header") or {}).get("competitions", [{}])[0]
+    st = comp.get("status", {}).get("type", {})
+    out = {"status": st.get("name"), "state": st.get("state"), "clock": comp.get("status", {}).get("displayClock"),
+           "score": {}, "goals": [], "cards": [], "stats": {}, "teams": {}}
+    for c in comp.get("competitors", []):
+        side = c.get("homeAway")
+        out["teams"][side] = c.get("team", {}).get("displayName")
+        try:
+            out["score"][side] = int(c.get("score"))
+        except (TypeError, ValueError):
+            out["score"][side] = None
+    name_to_side = {v: k for k, v in out["teams"].items()}
+    for k in s.get("keyEvents") or []:
+        typ = (k.get("type") or {}).get("text", "") or ""
+        who = [_h.unescape(p.get("athlete", {}).get("displayName", "")) for p in k.get("participants", []) if p.get("athlete")]
+        side = name_to_side.get((k.get("team") or {}).get("displayName"))
+        minute = (k.get("clock") or {}).get("displayValue", "")
+        if k.get("scoringPlay") or "Goal" in typ:
+            out["goals"].append({"side": side, "player": who[0] if who else "", "minute": minute,
+                                 "own": "Own" in typ, "pen": "Penalty" in typ})
+        elif "Red" in typ:
+            out["cards"].append({"side": side, "player": who[0] if who else "", "minute": minute, "kind": "red"})
+    for t in (s.get("boxscore") or {}).get("teams", []):
+        side = name_to_side.get(t.get("team", {}).get("displayName"))
+        if side:
+            out["stats"][side] = {STAT_KEYS[x["name"]]: x.get("displayValue") for x in t.get("statistics", []) if x.get("name") in STAT_KEYS}
+    return out
+
+
 def fetch_match(m, event_id=None):
     """Nesine maçı için ESPN verisini çek ve kaydet. Döner: kayıt | None."""
     eid = event_id or find_event(m["sport_key"], m["home"], m["away"], m["start"])

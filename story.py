@@ -80,6 +80,103 @@ def lineup_column(d, x, y, w, team, roster, er, box=GREEN3):
     return y
 
 
+def _num(v):
+    try:
+        return float(str(v).replace("%", "").replace(",", "."))
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def score_card(m, live, kind, out_path, er=None):
+    """Devre arası (kind='ht') / maç sonu (kind='ft') story'si: skor, goller, kırmızı kartlar, oranlı istatistik çubukları. Yorum yok."""
+    th = social.theme(m.get("sport_key")); img = background(th); d = ImageDraw.Draw(img)
+    start = m["start"].astimezone(TR)
+    hc1, hc2, _ = team_style(m["home"], er); ac1, ac2, _ = team_style(m["away"], er)
+    st = live.get("stats") or {}
+    rows = [k for k in ("Topla oynama", "Şut", "İsabetli şut", "Korner", "Faul") if k in (st.get("home") or {}) or k in (st.get("away") or {})]
+    evs = live.get("goals", []) + live.get("cards", [])
+    n_ev = max(len([g for g in evs if (g.get("side") or "home") == "home"]), len([g for g in evs if g.get("side") == "away"]))
+    content_h = 56 + 70 + 330 + (n_ev * 50 + 30 if n_ev else 70) + (30 + 50 + len(rows) * 96 if rows else 0) + 50
+    f2 = font("body", 22); dl = wrap(DISCLAIMER, f2, SW - 120)
+    yb = SH - SAFE_BOTTOM - 30 * len(dl)
+    y = SAFE_TOP + max(0, int((yb - 40 - SAFE_TOP - content_h) / 2))
+    # başlık
+    text(d, (60, y), tr_upper("Devre arası" if kind == "ht" else "Maç sonu"), font("displaysemi", 30), YELLOW)
+    mk = logo.mark_image(54); hx = int(SW - 60 - font("semi", 26).getlength(HANDLE))
+    text(d, (SW - 60, y), HANDLE, font("semi", 26), WHITE, anchor="ra")
+    img.paste(mk, (hx - 14 - mk.width, y + 12 - mk.height // 2), mk)
+    y += 56
+    text(d, (60, y), f"{tr_date(m['start'])} · {start:%H:%M} · {m.get('league', '')}", font("body", 28), PALE); y += 70
+    # skor: takım adları renkli şeritle, büyük beyaz rakamlar, ince ayraç
+    half = (SW - 120) / 2
+    sh_, sa = live["score"].get("home"), live["score"].get("away")
+    fn = font("display", 44)
+    for cx, nm, c1, c2, x0 in ((60 + half / 2, m["home"], hc1, hc2, 60), (60 + half + half / 2, m["away"], ac1, ac2, 60 + half)):
+        f = fn
+        while f.getlength(nm) > half - 40 and f.size > 24:
+            f = font("display", f.size - 2)
+        d.text((cx, y + 22), nm, font=f, fill=WHITE, anchor="mm")
+        d.rounded_rectangle((x0 + 30, y + 54, x0 + half - 30, y + 62), radius=4, fill=c1)
+        if c2 and c2 != c1:
+            d.rounded_rectangle((x0 + 30, y + 62, x0 + half - 30, y + 66), radius=2, fill=c2)
+    fs = font("display", 230)
+    d.text((60 + half / 2, y + 200), str(sh_ if sh_ is not None else "-"), font=fs, fill=WHITE, anchor="mm")
+    d.text((60 + half + half / 2, y + 200), str(sa if sa is not None else "-"), font=fs, fill=WHITE, anchor="mm")
+    d.rounded_rectangle((SW / 2 - 4, y + 130, SW / 2 + 4, y + 270), radius=4, fill=YELLOW)
+    y += 330
+    # goller + kırmızı kartlar: ev solda, deplasman sağda
+    fg_ = font("semi", 30); fm = font("display", 28)
+    cols = {"home": 60, "away": 60 + half + 20}
+    ys = {"home": y, "away": y}
+    events = sorted(evs, key=lambda g: int("".join(ch for ch in g.get("minute", "0") if ch.isdigit()) or 0))
+    for g in events:
+        side = g.get("side") or "home"
+        x = cols[side]; yy = ys[side]
+        if g.get("kind") == "red":
+            d.rounded_rectangle((x, yy + 4, x + 22, yy + 34), radius=4, fill=(226, 72, 60), outline=WHITE, width=1)
+            label = short_name(g.get("player") or "", fg_, half - 110)
+        else:
+            d.ellipse((x, yy + 6, x + 26, yy + 32), fill=WHITE); d.ellipse((x + 7, yy + 13, x + 19, yy + 25), fill=th["bg"])
+            label = short_name(g.get("player") or "", fg_, half - 110) + (" (P)" if g.get("pen") else "") + (" (KK)" if g.get("own") else "")
+        d.text((x + 38, yy + 19), label, font=fg_, fill=WHITE, anchor="lm")
+        d.text((x + half - 30, yy + 19), g.get("minute", ""), font=fm, fill=YELLOW, anchor="rm")
+        ys[side] = yy + 50
+    y = max(ys.values()) + (30 if events else 0)
+    if not events:
+        text(d, (SW / 2, y + 10), "Gol yok", font("body", 28), PALE, anchor="ma"); y += 70
+    # istatistik: her satır takım renkli oranlı çubuk; baskın taraf daha uzun
+    if rows:
+        y += 30
+        text(d, (SW / 2, y), tr_upper("İlk yarı" if kind == "ht" else "Maç") + " İSTATİSTİKLERİ", font("displaysemi", 26), YELLOW, anchor="ma"); y += 50
+        fv, fl = font("display", 40), font("semi", 25)
+        bar_x0, bar_x1, bh = 60, SW - 60, 26
+        for k in rows:
+            hv = (st.get("home") or {}).get(k, "-"); av = (st.get("away") or {}).get(k, "-")
+            hn, an = _num(hv), _num(av)
+            tot = hn + an
+            share = 0.5 if tot <= 0 else hn / tot
+            if k == "Topla oynama":
+                hv = f"%{_num(hv):.0f}"; av = f"%{_num(av):.0f}"
+            d.text((bar_x0, y + 18), str(hv), font=fv, fill=WHITE if hn >= an else PALE, anchor="lm")
+            d.text((SW / 2, y + 18), k, font=fl, fill=PALE, anchor="mm")
+            d.text((bar_x1, y + 18), str(av), font=fv, fill=WHITE if an >= hn else PALE, anchor="rm")
+            by = y + 48
+            d.rounded_rectangle((bar_x0, by, bar_x1, by + bh), radius=bh // 2, fill=th["box"])
+            w = bar_x1 - bar_x0 - 6
+            hw = int(w * share)
+            if hw > 0:
+                d.rounded_rectangle((bar_x0, by, bar_x0 + hw + 3, by + bh), radius=bh // 2, fill=hc1)
+            if w - hw > 0:
+                d.rounded_rectangle((bar_x0 + hw + 3, by, bar_x1, by + bh), radius=bh // 2, fill=ac1)
+            y += 96
+    text(d, (60, y + 6), "Kaynak: ESPN", font("body", 22), (150, 175, 160))
+    d.line((60, yb - 16, SW - 60, yb - 16), fill=(60, 95, 78), width=2)
+    for ln in dl:
+        d.text((60, yb), ln, font=f2, fill=(170, 190, 180)); yb += 30
+    save(img, out_path)
+    return out_path
+
+
 def story_card(m, rosters, note, pm, out_path, er=None):
     th = social.theme(m.get("sport_key")); img = background(th); d = ImageDraw.Draw(img)
     start = m["start"].astimezone(TR)

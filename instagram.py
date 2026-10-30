@@ -104,7 +104,7 @@ def publish_carousel(image_urls, caption):
     return _post(f"{USER_ID}/media_publish", {"creation_id": c["id"]})["id"]
 
 
-MAX_STORY_PER_DAY = int(os.environ.get("IG_STORY_MAX_PER_DAY", "2"))
+MAX_STORY_PER_DAY = int(os.environ.get("IG_STORY_MAX_PER_DAY", "3"))   # tür başına (kadro / devre arası / maç sonu)
 
 
 def publish_story(image_url):
@@ -115,36 +115,38 @@ def publish_story(image_url):
     return _post(f"{USER_ID}/media_publish", {"creation_id": c["id"]})["id"]
 
 
-def wait_public(url, timeout=480):
-    """GitHub Pages görseli yayınlayana kadar bekle (en fazla timeout sn)."""
+def wait_public(url, timeout=480, size=None):
+    """GitHub Pages görseli yayınlayana kadar bekle (en fazla timeout sn). size verilirse dosya boyutu eşleşene kadar
+    (aynı adreste eski bir sürüm varsa yenisi gelsin diye)."""
     t0 = time.time()
     while time.time() - t0 < timeout:
         try:
             req = urllib.request.Request(url, method="HEAD", headers={"User-Agent": "iddia-bot", "Cache-Control": "no-cache"})
             with urllib.request.urlopen(req, timeout=20) as r:
-                if r.status == 200:
+                if r.status == 200 and (size is None or int(r.headers.get("Content-Length", 0)) == size):
                     return True
         except Exception:
             pass
-        time.sleep(20)
+        time.sleep(10)
     return False
 
 
-def post_story_for(m, image_url):
-    """Maç için kadro story'si: günde en fazla MAX_STORY_PER_DAY, maç başına bir kez. Günlüğe type=story yazar."""
+def post_story_for(m, image_url, kind="story", size=None):
+    """Maç story'si (kind: story=kadro, story_ht=devre arası, story_ft=maç sonu): tür başına günde en fazla
+    MAX_STORY_PER_DAY, maç+tür başına bir kez. Günlüğe type=kind yazar."""
     if not (TOKEN and USER_ID):
         return None
     today = str(datetime.now(TR).date())
     log = load_log()
-    if any(s.get("type") == "story" and s.get("code") == m["code"] for s in log):
+    if any(s.get("type") == kind and s.get("code") == m["code"] for s in log):
         return None
-    if sum(1 for s in log if s.get("type") == "story" and s.get("day") == today) >= MAX_STORY_PER_DAY:
+    if sum(1 for s in log if s.get("type") == kind and s.get("day") == today) >= MAX_STORY_PER_DAY:
         return None
-    if not wait_public(image_url):
+    if not wait_public(image_url, size=size):
         raise RuntimeError(f"görsel yayına girmedi: {image_url}")
     pid = publish_story(image_url)
     with open(LOG, "a", encoding="utf-8") as f:
-        f.write(json.dumps({"day": today, "type": "story", "code": m["code"], "home": m["home"], "away": m["away"], "post_id": pid,
+        f.write(json.dumps({"day": today, "type": kind, "code": m["code"], "home": m["home"], "away": m["away"], "post_id": pid,
                             "t": datetime.now(timezone.utc).isoformat(timespec="seconds")}, ensure_ascii=False) + "\n")
     return pid
 
@@ -201,7 +203,7 @@ def main():
     dry = "--dry" in sys.argv or not (TOKEN and USER_ID)
     today = datetime.now(TR).date()
     sent = load_log()
-    sent_today = [s for s in sent if s["day"] == str(today) and s.get("type") != "story"]
+    sent_today = [s for s in sent if s["day"] == str(today) and not str(s.get("type", "")).startswith("story")]
     # --only Konyaspor,Nice : sadece bu ev sahiplerini gönder (günlük sınır ve günlük yok sayılır; elle yeniden yükleme için)
     only = [s.strip().lower() for s in sys.argv[sys.argv.index("--only") + 1].split(",")] if "--only" in sys.argv else None
     if only is None and len(sent_today) >= MAX_PER_DAY:
@@ -215,7 +217,7 @@ def main():
     ai = {r["code"]: r for r in build_site.read_jsonl("records/claude/*.jsonl") if r.get("blind")}
     pin = build_site.pinnacle_events(build_site.read_jsonl("records/pinnacle/*.jsonl"))
     aliases = json.load(open("aliases.json", encoding="utf-8")) if os.path.exists("aliases.json") else {}
-    done = {s["code"] for s in sent if s.get("type") != "story"}
+    done = {s["code"] for s in sent if not str(s.get("type", "")).startswith("story")}
     caps = existing_captions() if (TOKEN and USER_ID) else []  # kuru modda da hesaptaki gönderilere bak
     # öncelik: yorumu olan (iki kartlı) maçlar, sonra en yakın başlangıç
     cands = []
