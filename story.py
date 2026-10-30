@@ -5,7 +5,7 @@ Kullanım: story.story_card(m, rosters, note, pm, out_path)
 """
 import html
 from PIL import Image, ImageDraw
-import logo, match, social
+import logo, match, social, icons
 from social import (font, wrap, text, tr_upper, tr_date, save, team_style, GREEN, GREEN2, GREEN3, YELLOW, CREAM, INK,
                     WHITE, PALE, HANDLE, DISCLAIMER, TR)
 
@@ -155,17 +155,16 @@ def score_card(m, live, kind, out_path, er=None):
     ys = {"home": y, "away": y}
     events = sorted(evs, key=lambda g: int("".join(ch for ch in g.get("minute", "0") if ch.isdigit()) or 0))
     fs_ = font("semi", 24)
-    _BALL = ball_icon(30)
+    _BALL = icons.ball(30); _SUB = icons.sub(30); _RED = icons.red_card(34)
     for g in events:
         side = g.get("side") or "home"
         x = cols[side]; yy = ys[side]
         if g.get("kind") == "red":
-            d.rounded_rectangle((x, yy + 4, x + 22, yy + 34), radius=4, fill=(226, 72, 60), outline=WHITE, width=1)
+            img.paste(_RED, (int(x) - 2, int(yy) + 2), _RED)
             d.text((x + 38, yy + 19), short_name(g.get("player") or "", fg_, half - 110), font=fg_, fill=WHITE, anchor="lm")
         elif g.get("kind") == "sub":
             # değişiklik: yeşil ok giren, kırmızı ok çıkan
-            d.polygon([(x + 4, yy + 24), (x + 12, yy + 10), (x + 20, yy + 24)], fill=(62, 227, 140))
-            d.polygon([(x + 6, yy + 16), (x + 14, yy + 30), (x + 22, yy + 16)], fill=(226, 72, 60))
+            img.paste(_SUB, (int(x) - 2, int(yy) + 4), _SUB)
             p_in = short_name(g.get("player") or "", fs_, (half - 130) * 0.55)
             p_out = short_name(g.get("out") or "", fs_, (half - 130) * 0.45)
             d.text((x + 38, yy + 19), p_in, font=fs_, fill=WHITE, anchor="lm")
@@ -260,13 +259,13 @@ def story_card(m, rosters, note, pm, out_path, er=None):
             sw = (SW - 120 - 12 * (len(small) - 1)) / len(small)
             for i, (lab, p) in enumerate(small):
                 x = 60 + i * (sw + 12)
-                d.rounded_rectangle((x, y, x + sw, y + 84), radius=14, fill=th["box"])
-                d.text((x + 16, y + 6), f"%{p * 100:.0f}", font=font("display", 42), fill=WHITE)
-                fl = font("semi", 19); lab2 = lab
-                while fl.getlength(lab2) > sw - 30 and len(lab2) > 4:
+                d.rounded_rectangle((x, y, x + sw, y + 56), radius=12, fill=th["box"])
+                d.text((x + 16, y + 28), f"%{p * 100:.0f}", font=font("display", 34), fill=WHITE, anchor="lm")
+                fl = font("semi", 20); lab2 = lab
+                while fl.getlength(lab2) > sw - 110 and len(lab2) > 4:
                     lab2 = lab2[:-1]
-                d.text((x + 16, y + 56), lab2, font=fl, fill=PALE)
-            y += 108
+                d.text((x + sw - 16, y + 28), lab2, font=fl, fill=PALE, anchor="rm")
+            y += 76
     # dipnot yeri (güvenli alanın üstünde) → kadro notu için kalan yükseklik
     f2 = font("body", 22); dl = wrap(DISCLAIMER, f2, SW - 120)
     yb = SH - SAFE_BOTTOM - 30 * len(dl)

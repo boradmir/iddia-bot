@@ -19,7 +19,7 @@ def save(img, path):
     """Instagram için JPEG: kalite 95, renk alt örnekleme kapalı (kırmızı/sarı yazılar bulanmasın)."""
     img.convert("RGB").save(path, "JPEG", quality=95, subsampling=0, optimize=True)
 import build_site, espn, prob, odds, match
-import logo
+import logo, icons
 
 W, H = 1080, 1350
 GREEN, GREEN2, GREEN3 = (11, 42, 31), (16, 66, 48), (24, 92, 66)
@@ -183,24 +183,16 @@ def form_strip(d, x, y, games, size=44):
 
 
 def status_icon(d, x, y, status, h=28):
-    """Durum simgesi: cezalı = kırmızı kart, sakat = beyaz daire içinde kırmızı artı, şüpheli = sarı '?', döndü = yeşil tik."""
+    """Durum simgesi (icons.py, pürüzsüz): cezalı = eğik kırmızı kart, sakat = ilk yardım, şüpheli = soru, döndü = tik."""
+    img = d._image
     if status == "cezalı":
-        d.rounded_rectangle((x + 4, y, x + 4 + h * 0.68, y + h), radius=4, fill=(226, 30, 30), outline=WHITE, width=2)
-        return h * 0.68 + 8
+        ic = icons.red_card(h + 8); img.paste(ic, (int(x), int(y) - 4), ic); return ic.width + 4
     if status == "sakat":
-        d.ellipse((x, y, x + h, y + h), fill=WHITE)
-        t = h * 0.22; c = h / 2
-        d.rectangle((x + c - t / 2, y + h * 0.2, x + c + t / 2, y + h * 0.8), fill=(220, 30, 30))
-        d.rectangle((x + h * 0.2, y + c - t / 2, x + h * 0.8, y + c + t / 2), fill=(220, 30, 30))
-        return h + 4
+        ic = icons.medical(h + 2); img.paste(ic, (int(x), int(y) - 1), ic); return h + 6
     if status == "şüpheli":
-        d.ellipse((x, y, x + h, y + h), fill=YELLOW)
-        d.text((x + h / 2, y + h / 2 + 1), "?", font=font("display", int(h * 0.85)), fill=GREEN, anchor="mm")
-        return h + 4
+        ic = icons.question(h + 2); img.paste(ic, (int(x), int(y) - 1), ic); return h + 6
     if status == "döndü":
-        d.ellipse((x, y, x + h, y + h), fill=SIGNAL)
-        d.line((x + h * 0.25, y + h * 0.52, x + h * 0.43, y + h * 0.72, x + h * 0.76, y + h * 0.3), fill=GREEN, width=max(2, int(h * 0.12)), joint="curve")
-        return h + 4
+        ic = icons.check(h + 2); img.paste(ic, (int(x), int(y) - 1), ic); return h + 6
     return 0
 
 
@@ -208,7 +200,7 @@ def status_pill(d, x, y, s, status):
     """Etiket: simge + metin; metin 'Oyuncu · durum'."""
     col = {"sakat": (120, 30, 30), "cezalı": (90, 20, 20), "şüpheli": (110, 85, 0), "döndü": (20, 90, 50)}
     f = font("semi", 23)
-    icon_w = {"cezalı": 28 * 0.68 + 8, "sakat": 32, "şüpheli": 32, "döndü": 32}.get(status, 0)
+    icon_w = {"cezalı": icons.red_card(36).width + 4, "sakat": 34, "şüpheli": 34, "döndü": 34}.get(status, 0)
     w = f.getlength(s) + 28 + icon_w
     d.rounded_rectangle((x, y, x + w, y + 44), radius=22, fill=col.get(status, GREY))
     status_icon(d, x + 12, y + 8, status, 28)
