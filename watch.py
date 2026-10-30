@@ -118,8 +118,12 @@ def story_async(m, rec, events_for_sport, aliases, dry):
     def run():
         try:
             import clubs, story, instagram
-            if clubs.tier(m) > clubs.ANALYZE_MAX_TIER or not claude_check.find_prev(m["code"]):
+            # şimdilik yalnız kademe 0 (dört büyük) ve sabah yorumu olan maçlar; iki takımın da 11'i açıklanmış olmalı
+            if clubs.tier(m) > 0 or not claude_check.find_prev(m["code"]):
                 return
+            full = [r for r in (rec.get("rosters") or {}).values() if len(r.get("starters") or []) >= 11]
+            if len(full) < 2:
+                log(f"Kadro story'si beklemede (iki 11 de açıklanmadı): {m['home']}-{m['away']}"); return
             if claude_check.kadro_before(m["code"]):
                 return
             pm = None
@@ -359,9 +363,11 @@ def main():
                 if rec:
                     espn_ids[m["code"]] = rec["event_id"]
                     if rec["lineup"]:
-                        espn_done.add(m["code"]); log(f"Kadro açıklandı: {m['home']}-{m['away']}")
-                        ev_s = pin_events.get(m["sport_key"], (None, []))[1]
-                        story_async(m, rec, ev_s, aliases, dry)
+                        both = len([r for r in (rec.get("rosters") or {}).values() if len(r.get("starters") or []) >= 11]) >= 2
+                        if both or (m["start"] - now) < timedelta(minutes=20):   # iki 11 de geldi (ya da maça 20 dk kaldı): artık bekleme
+                            espn_done.add(m["code"]); log(f"Kadro açıklandı: {m['home']}-{m['away']}" + ("" if both else " (tek takım)"))
+                            ev_s = pin_events.get(m["sport_key"], (None, []))[1]
+                            story_async(m, rec, ev_s, aliases, dry)
             except Exception as e:
                 log(f"ESPN hatası: {e}")
 
