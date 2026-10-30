@@ -117,3 +117,19 @@ def sub(size):
 def paste(img, icon, x, y):
     img.paste(icon, (int(x), int(y)), icon)
     return icon.width
+
+
+@lru_cache(maxsize=None)
+def arrow_up(size):
+    """Yeşil yukarı ok (giren oyuncu)."""
+    img, d = _canvas(size, size); R = size * S
+    _arrow(d, R * 0.5, R * 0.08, R * 0.92, R * 0.3, SIGNAL, up=True)
+    return _down(img, size, size)
+
+
+@lru_cache(maxsize=None)
+def arrow_down(size):
+    """Kırmızı aşağı ok (çıkan oyuncu)."""
+    img, d = _canvas(size, size); R = size * S
+    _arrow(d, R * 0.5, R * 0.08, R * 0.92, R * 0.3, (235, 80, 70), up=False)
+    return _down(img, size, size)

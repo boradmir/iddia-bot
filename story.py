@@ -133,7 +133,9 @@ def score_card(m, live, kind, out_path, er=None):
     evs = sorted(live.get("goals", []) + live.get("cards", []) + live.get("subs", []), key=_min)
     by_side = {sd: [g for g in evs if (g.get("side") or "home") == sd] for sd in ("home", "away")}
     two_col = {sd: len(v) > 6 for sd, v in by_side.items()}
-    rows_side = {sd: ((len(v) + 1) // 2 if two_col[sd] else len(v)) for sd, v in by_side.items()}
+    def _wt(lst):
+        return sum(1.5 if g.get("kind") == "sub" else 1.0 for g in lst)
+    rows_side = {sd: (_wt(v) / 2 if two_col[sd] else _wt(v)) for sd, v in by_side.items()}
     n_ev = max(rows_side.values())
     f2 = font("body", 22); dl = wrap(DISCLAIMER, f2, SW - 120)
     yb = SH - SAFE_BOTTOM - 30 * len(dl)
@@ -184,6 +186,8 @@ def score_card(m, live, kind, out_path, er=None):
     fs_ = font("semi", 24); fc = font("semi", 24); fmc = font("display", 24)
     _BALL = icons.ball(30); _SUB = icons.sub(30); _RED = icons.red_card(34)
     _BALLs = icons.ball(24); _SUBs = icons.sub(24); _REDs = icons.red_card(28)
+    _UP = icons.arrow_up(26); _DN = icons.arrow_down(22); _UPs = icons.arrow_up(22); _DNs = icons.arrow_down(18)
+    fso = font("semi", 22); fco = font("semi", 20)
     for sd in ("home", "away"):
         lst = by_side[sd]
         if not two_col[sd]:
@@ -193,34 +197,44 @@ def score_card(m, live, kind, out_path, er=None):
                     img.paste(_RED, (int(x) - 2, int(yy) + 2), _RED)
                     d.text((x + 38, yy + 19), short_name(g.get("player") or "", fg_, half - 110), font=fg_, fill=WHITE, anchor="lm")
                 elif g.get("kind") == "sub":
-                    img.paste(_SUB, (int(x) - 2, int(yy) + 4), _SUB)
-                    p_in = short_name(g.get("player") or "", fs_, (half - 130) * 0.55)
-                    p_out = short_name(g.get("out") or "", fs_, (half - 130) * 0.45)
-                    d.text((x + 38, yy + 19), p_in, font=fs_, fill=WHITE, anchor="lm")
-                    d.text((x + 38 + fs_.getlength(p_in) + 10, yy + 19), f"← {p_out}", font=fs_, fill=PALE, anchor="lm")
+                    img.paste(_UP, (int(x) + 2, int(yy) + 6), _UP)
+                    d.text((x + 38, yy + 17), short_name(g.get("player") or "", fs_, half - 120), font=fs_, fill=WHITE, anchor="lm")
+                    img.paste(_DN, (int(x) + 2, int(yy + row_h * 0.5 + 8)), _DN)
+                    d.text((x + 38, yy + row_h * 0.5 + 19), short_name(g.get("out") or "", fso, half - 120), font=fso, fill=PALE, anchor="lm")
                 else:
                     img.paste(_BALL, (int(x) - 2, int(yy) + 4), _BALL)
                     label = short_name(g.get("player") or "", fg_, half - 110) + (" (P)" if g.get("pen") else "") + (" (KK)" if g.get("own") else "")
                     d.text((x + 38, yy + 19), label, font=fg_, fill=WHITE, anchor="lm")
                 d.text((x + half - 30, yy + 19), g.get("minute", ""), font=fm, fill=YELLOW, anchor="rm")
-                ys[sd] = yy + row_h
+                ys[sd] = yy + (row_h * 1.5 if g.get("kind") == "sub" else row_h)
         else:
             # iki sütun: sıkışık biçim (değişikliklerde yalnız giren oyuncu), soldan sağa doldurulur
             cw_ = (half - 20) / 2
-            n_rows = rows_side[sd]
+            # olayları iki sütuna ağırlığa göre böl (değişiklik 1.5 satır)
+            total = _wt(lst); acc = 0.0; split = len(lst)
             for i, g in enumerate(lst):
-                col, row = divmod(i, n_rows)
-                x = cols[sd] + col * (cw_ + 20); yy = ys[sd] + row * row_h
-                if g.get("kind") == "red":
-                    img.paste(_REDs, (int(x), int(yy) + 6), _REDs); label = short_name(g.get("player") or "", fc, cw_ - 92)
-                elif g.get("kind") == "sub":
-                    img.paste(_SUBs, (int(x), int(yy) + 8), _SUBs); label = short_name(g.get("player") or "", fc, cw_ - 92)
-                else:
-                    img.paste(_BALLs, (int(x), int(yy) + 8), _BALLs)
-                    label = short_name(g.get("player") or "", fc, cw_ - 92) + (" (P)" if g.get("pen") else "") + (" (KK)" if g.get("own") else "")
-                d.text((x + 32, yy + 19), label, font=fc, fill=WHITE if g.get("kind") != "sub" else PALE, anchor="lm")
-                d.text((x + cw_ - 4, yy + 19), g.get("minute", ""), font=fmc, fill=YELLOW, anchor="rm")
-            ys[sd] = ys[sd] + n_rows * row_h
+                acc += 1.5 if g.get("kind") == "sub" else 1.0
+                if acc >= total / 2:
+                    split = i + 1; break
+            col_h = 0.0
+            for col, chunk in enumerate((lst[:split], lst[split:])):
+                yy = ys[sd]; x = cols[sd] + col * (cw_ + 20)
+                for g in chunk:
+                    if g.get("kind") == "red":
+                        img.paste(_REDs, (int(x), int(yy) + 6), _REDs)
+                        d.text((x + 32, yy + 19), short_name(g.get("player") or "", fc, cw_ - 92), font=fc, fill=WHITE, anchor="lm")
+                    elif g.get("kind") == "sub":
+                        img.paste(_UPs, (int(x) + 2, int(yy) + 8), _UPs)
+                        d.text((x + 32, yy + 17), short_name(g.get("player") or "", fc, cw_ - 92), font=fc, fill=WHITE, anchor="lm")
+                        img.paste(_DNs, (int(x) + 2, int(yy + row_h * 0.5 + 10)), _DNs)
+                        d.text((x + 32, yy + row_h * 0.5 + 19), short_name(g.get("out") or "", fco, cw_ - 92), font=fco, fill=PALE, anchor="lm")
+                    else:
+                        img.paste(_BALLs, (int(x), int(yy) + 8), _BALLs)
+                        d.text((x + 32, yy + 19), short_name(g.get("player") or "", fc, cw_ - 92) + (" (P)" if g.get("pen") else "") + (" (KK)" if g.get("own") else ""), font=fc, fill=WHITE, anchor="lm")
+                    d.text((x + cw_ - 4, yy + 19), g.get("minute", ""), font=fmc, fill=YELLOW, anchor="rm")
+                    yy += row_h * 1.5 if g.get("kind") == "sub" else row_h
+                col_h = max(col_h, yy - ys[sd])
+            ys[sd] = ys[sd] + col_h
     y = max(ys.values()) + (30 if events else 0)
     if not events:
         text(d, (SW / 2, y + 10), "Gol yok", font("body", 28), PALE, anchor="ma"); y += 70
