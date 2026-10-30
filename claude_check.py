@@ -198,6 +198,10 @@ Görev: metinleri BAĞLAMI BİLMEYEN bir okurun gözüyle oku ve şunları yakal
 5. Seslendirme metni (reels_script): sesli okunacak; her cümle fiille biten tam cümle olsun, 4-14 kelime; "PİYASA." yer tutucusunu OLDUĞU GİBİ bırak
    (kod, "Piyasaya göre X'in kazanma ihtimali yüzde A, Y'nin yüzde B." cümlesiyle değiştirecek).
 6. Kanca (hook) ve soru (question): tam cümle, tek başına anlaşılır.
+7. Okunuş (pronounce): metinlerde geçen ve Türkçe okunduğunda yanlış çıkacak yabancı kişi adlarını (oyuncu, hoca) listele; her biri için
+   Türk spikerin söylediği gibi Türkçe harflerle okunuşunu yaz (örn. Kuyt → Kayt, Skriniar → Şkriniar, Juan → Huan, Henrique → Enrike,
+   Brown → Braun, Mourinho → Morinyo). Türkçe okunuşu zaten doğru olan adları (Oppong, Talisca, Ake) listeye alma. Kelime sayısı korunsun
+   (tek kelimelik ad → tek kelime). Yabancı ad yoksa boş liste.
 Çıktı: aynı alan adlarıyla JSON; değiştirmediğin alanı aynen döndür. "notes" alanına yaptığın düzeltmeleri kısaca yaz (Türkçe)."""
 
 
@@ -207,8 +211,10 @@ def qa_texts(bl, home, away):
     payload = {k: bl.get(k) for k in fields if bl.get(k)}
     if not payload:
         return bl
-    schema = {"type": "object", "properties": {**{k: {"type": "string"} for k in payload}, "notes": {"type": "string"}},
-              "required": list(payload) + ["notes"], "additionalProperties": False}
+    pron = {"type": "array", "items": {"type": "object", "properties": {"name": {"type": "string"}, "spoken": {"type": "string"}},
+                                        "required": ["name", "spoken"], "additionalProperties": False}}
+    schema = {"type": "object", "properties": {**{k: {"type": "string"} for k in payload}, "notes": {"type": "string"}, "pronounce": pron},
+              "required": list(payload) + ["notes", "pronounce"], "additionalProperties": False}
     try:
         client = _client()
         resp = client.beta.messages.create(
@@ -223,6 +229,7 @@ def qa_texts(bl, home, away):
         for k in changed:
             bl[k] = out[k].strip()
         bl["qa_notes"] = out.get("notes", "")
+        bl["pronounce"] = {p["name"].strip(): p["spoken"].strip() for p in out.get("pronounce") or [] if p.get("name") and p.get("spoken")}
         bl["qa_changed"] = changed
         u = Usage(); u.add(resp.usage); bl["qa_cost_usd"] = u.cost()
     except Exception as e:

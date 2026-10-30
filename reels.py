@@ -166,10 +166,11 @@ PRONOUNCE = {
 }
 
 
-def spoken_text(text):
-    """Seslendirme için okunuş sözlüğünü uygular; token sayısı aynı kalır."""
+def spoken_text(text, extra=None):
+    """Seslendirme için okunuş sözlüğünü uygular; token sayısı aynı kalır. extra: yapay zekânın pakete yazdığı okunuşlar (öncelikli)."""
     out = text
-    for k, v in PRONOUNCE.items():
+    table = dict(PRONOUNCE); table.update({k: v for k, v in (extra or {}).items() if k and v and len(k.split()) == len(v.split())})
+    for k, v in table.items():
         if k == v or k not in out:
             continue
         out = re.sub(rf"(?<![\wğüşöçİĞÜŞÖÇ]){re.escape(k)}(?![\wğüşöçĞÜŞÖÇ])", v, out)
@@ -179,8 +180,8 @@ def spoken_text(text):
     return out
 
 
-def tts(text, out_mp3):
-    spoken = spoken_text(text)
+def tts(text, out_mp3, pronounce=None):
+    spoken = spoken_text(text, pronounce)
     words = tts_eleven(spoken, out_mp3) if (ELEVEN_KEY and ELEVEN_VOICE) else asyncio.run(_tts(spoken, out_mp3))
     # altyazıda özgün yazım: kelime sayıları eşitse metni geri koy
     orig = text.split()
@@ -552,7 +553,7 @@ def render(m, bl, pm, er, out_mp4, absences=None):
     text, parts = build_script(m, bl, pm, absences)
     tmp = tempfile.mkdtemp(prefix="reels_")
     voice = os.path.join(tmp, "voice.mp3")
-    words = tts(text, voice)
+    words = tts(text, voice, bl.get("pronounce"))
     vdur = (words[-1]["t"] + words[-1]["d"]) if words else 11.0
     total = max(11.0, vdur + 0.9)
     ai_script = bool((bl.get("reels_script") or "").strip())
