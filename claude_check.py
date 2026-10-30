@@ -44,8 +44,8 @@ hook: gönderinin ilk satırı ve kartın tezi; yazının en çarpıcı tespiti,
 card_text: kartta görünecek kısa gövde, 3-4 cümle, en fazla 80 kelime; comment'in özü, hook'u tekrar etmez.
 question: okura tek soru (en fazla 90 karakter), yoruma davet; oran/bahis yok.
 risk_short: belirsizliğin konuşma dilinde kısa hali, en fazla 12 kelime, 2-3 parça virgülle (seslendirme metni için).
-reels_script: seslendirme metni (24-28 kelime, biz ağzı, konuşma dili). Bu metin sesli okunacak: yazdıktan sonra sesli okur gibi kontrol et,
-devrik ve uzun cümle olmasın, her cümle en fazla 10 kelime, yabancı adlar Türkçe okunuşa uygun yazılsın (Leão → Leao gerekmez, olduğu gibi).
+reels_script: seslendirme metni (38-46 kelime, 6-7 tam cümle, biz ağzı, konuşma dili, telgraf dili yasak). Sesli okunacak: her cümle fiille
+bitsin, 4-12 kelime arası olsun, devrik cümle olmasın; yabancı adlar olduğu gibi yazılsın. Ekranda görünen kanca (hook) da tam bir cümle olmalı.
 risk: tek cümle, ölçülü ("En büyük soru işareti…", "Sonucu en çok şu belirsizleştiriyor:…"); "en büyük belirsizlik" kalıbını cümle içinde tekrarlama. absences: haberlerde geçen her eksik/şüpheli/dönen oyuncu için
 takımdaki yeri (as/rotasyon/yedek), son maçlardaki durumu ve bu maça somut etkisi (yerine kim oynar, hangi bölge zayıflar);
 emin olmadığın yere 'bilinmiyor' yaz, uydurma. lineup_note: muhtemel 11 / diziliş, 1-2 cümle; bilgi yoksa boş.
@@ -61,7 +61,7 @@ BLIND_SCHEMA = {
         "card_text": {"type": "string", "description": "Kartta görünecek kısa gövde: 3-4 cümle, EN FAZLA 80 kelime, yazının özü; hook'u tekrar etme; kusursuz Türkçe"},
         "question": {"type": "string", "description": "Okura tek soru, en fazla 90 karakter, yoruma davet eder (örn. 'Barış Alper'siz sol kanat yeter mi?'); oran/bahis yok"},
         "risk_short": {"type": "string", "description": "Belirsizliğin konuşma dilinde kısa hali: en fazla 12 kelime, virgülle ayrılmış 2-3 parça (örn. 'Abdülkerim yok, savunma rotasyonlu, Konya ilk yarım saat basar'); seslendirme için"},
-        "reels_script": {"type": "string", "description": "SESLENDİRME METNİ, 24-28 kelime, konuşma dili, biz ağzı, kısa cümleler, kusursuz Türkçe. Sıra zorunlu: (1) kanca, en fazla 8 kelime, bir sayı veya isim içersin; (2) ikinci cümle olarak SADECE 'PİYASA.' yaz (sayıları biz ekleyeceğiz; sen piyasa yüzdesini bilmiyorsun, uydurma); (3) en fazla iki eksik oyuncu, 'X cezalı, Y şüpheli.' biçiminde (yoksa atla); (4) 'Bizi düşündüren: ...' en fazla 12 kelime; (5) okura tek soru; (6) 'Yoruma yazın.' Oran, bahis, kupon, 'banko', 'kesin' yok. Sayılar rakamla (yüzde 62)."},
+        "reels_script": {"type": "string", "description": "SESLENDİRME METNİ: 38-46 kelime, 6-7 TAM cümle, her cümlede fiil var; bir analistin kamera karşısında sakin ve akıcı konuşması gibi. Telgraf dili YASAK ('Brown cezalı, Asensio sakat.' gibi yarım cümleler olmaz; 'Brown cezası yüzünden yok, Asensio da sakatlıktan dönmedi.' gibi yaz). Biz ağzı. İçerik sırası: (1) ilgi çeken açılış cümlesi, bir isim ya da sayı içersin; (2) ikinci cümle olarak SADECE 'PİYASA.' yaz (piyasa yüzdelerini biz ekleriz; sen bilmiyorsun, uydurma); (3) en önemli 1-2 eksiği tam cümleyle anlat (yoksa atla); (4) bizi düşündüren şeyi bir-iki tam cümleyle anlat; (5) okura içten tek soru; (6) kapanış: 'Yorumlara bekliyoruz.' Oran, bahis, kupon, banko, kesin yok. Sayılar rakamla. Yazdıktan sonra sesli okur gibi kontrol et: akmayan yeri düzelt."},
         "comment": {"type": "string", "description": "ZORUNLU, asla boş bırakma: 4-6 cümle, ölçülü bir analist sesiyle kusursuz Türkçe maç önü yazısı; samimi kalıp en fazla bir kez; kalıp açılış yok; somut isim/sayı/an; görüş + dayanağı. Haber bulunamadıysa da yaz."},
         "risk": {"type": "string", "description": "Tek cümle, ölçülü: bu maçta sonucu en çok belirsizleştiren şey"},
         "confidence": {"type": "string", "enum": ["düşük", "orta", "yüksek"]},
