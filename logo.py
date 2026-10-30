@@ -9,6 +9,7 @@
   v3_*.png         alternatif yön: altıgen top paneli + radar çizgisi
 Kullanım: python logo.py
 """
+import os
 import math, os, shutil
 from PIL import Image, ImageDraw, ImageFont
 
@@ -95,7 +96,48 @@ def a_mark(d, cx, cy, s, dot=WHITE, line=(255, 255, 255), beyond=YELLOW, dark_bg
     d.ellipse((beyond_pt[0] - rb * 1.6, beyond_pt[1] - rb * 1.6, beyond_pt[0] + rb * 1.6, beyond_pt[1] + rb * 1.6), outline=beyond, width=max(2, lw // 2))
 
 
+KIT_SYMBOL = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "brand", "v3", "symbol-on-green.png")
+_KIT = None
+
+
+def kit_symbol():
+    """Kit işareti (1600 px, yeşil zeminli PNG) → şeffaf RGBA, işaretin sınır kutusuna kırpılmış. Bir kez hesaplanır."""
+    global _KIT
+    if _KIT is not None:
+        return _KIT
+    im = Image.open(KIT_SYMBOL).convert("RGB")
+    w, h = im.size
+    bg = im.getpixel((w // 2, 12))   # zemin yeşili (üst kenar ortası, yuvarlak köşelerden uzak)
+    px = im.load()
+    out = Image.new("RGBA", (w, h), (0, 0, 0, 0)); op = out.load()
+    # alfa: zemin renginden uzaklık (kemik rengi ~ en uzak); kenar yumuşaklığı korunur, renk zeminden arındırılır
+    fg = (243, 239, 228)
+    dmax = max(1, sum(abs(a - b) for a, b in zip(fg, bg)))
+    for y in range(h):
+        for x in range(w):
+            r, g, b = px[x, y]
+            d = abs(r - bg[0]) + abs(g - bg[1]) + abs(b - bg[2])
+            if d < 12:
+                continue
+            a = min(1.0, d / dmax)
+            # zemini çıkar: renk = bg + (piksel - bg) / a
+            rr = max(0, min(255, int(bg[0] + (r - bg[0]) / a))); gg = max(0, min(255, int(bg[1] + (g - bg[1]) / a))); bb = max(0, min(255, int(bg[2] + (b - bg[2]) / a)))
+            op[x, y] = (rr, gg, bb, int(255 * a))
+    _KIT = out.crop(out.getbbox())
+    return _KIT
+
+
 def eye_mark(h_px, fg=(243, 239, 228), acc=(255, 207, 77)):
+    """Marka işareti, kit dosyasından (tek kaynak). h_px = yükseklik; en-boy oranı korunur. Dosya yoksa çizim yedeği."""
+    try:
+        k = kit_symbol()
+        w = max(1, int(round(k.width * h_px / k.height)))
+        return k.resize((w, max(1, int(h_px))), Image.LANCZOS)
+    except Exception:
+        return eye_mark_drawn(h_px, fg, acc)
+
+
+def eye_mark_drawn(h_px, fg=(243, 239, 228), acc=(255, 207, 77)):
     """v3 logo işareti (göz: üst kapak + spiral iris + sarı göz bebeği), şeffaf RGBA. h_px = yükseklik. 4x çizilip küçültülür.
     Geometri assets/brand/v3/symbol-color.svg ile aynı (G2: kapak 16→240, kontrol y=34; spiral 4 yay, merkez (128,132))."""
     S = 4

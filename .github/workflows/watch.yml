@@ -3,7 +3,7 @@ name: Maç günü gözcüsü
 on:
   schedule:
     - cron: "0 11 * * *"     # öğle/akşamüstü maçları (UTC 11:00 → ~16:40'a kadar)
-    - cron: "55 16 * * *"    # akşam maçları (UTC 16:55 → ~22:35'e kadar)
+    - cron: "20 16 * * *"    # akşam maçları: 16:20 UTC'de sıraya girer, öğle gözcüsü bitince (~16:40) hemen devralır, boşluk yok; ~22:20'ye kadar
   workflow_dispatch:
     inputs:
       max_minutes:
