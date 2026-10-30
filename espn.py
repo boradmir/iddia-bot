@@ -136,7 +136,7 @@ def live(sport_key, event_id):
     comp = (s.get("header") or {}).get("competitions", [{}])[0]
     st = comp.get("status", {}).get("type", {})
     out = {"status": st.get("name"), "state": st.get("state"), "clock": comp.get("status", {}).get("displayClock"),
-           "score": {}, "goals": [], "cards": [], "stats": {}, "teams": {}}
+           "score": {}, "goals": [], "cards": [], "subs": [], "stats": {}, "teams": {}}
     for c in comp.get("competitors", []):
         side = c.get("homeAway")
         out["teams"][side] = c.get("team", {}).get("displayName")
@@ -155,6 +155,14 @@ def live(sport_key, event_id):
                                  "own": "Own" in typ, "pen": "Penalty" in typ})
         elif "Red" in typ:
             out["cards"].append({"side": side, "player": who[0] if who else "", "minute": minute, "kind": "red"})
+        elif "Substitution" in typ:
+            # ESPN: participants[0] = giren, [1] = çıkan ("X replaces Y")
+            txt = k.get("text") or ""
+            p_in, p_out = (who + ["", ""])[:2]
+            if " replaces " in txt:
+                a, b = txt.split(" replaces ", 1)
+                p_in = _h.unescape(a.split(". ")[-1].strip()); p_out = _h.unescape(b.strip().rstrip("."))
+            out["subs"].append({"side": side, "player": p_in, "out": p_out, "minute": minute, "kind": "sub"})
     for t in (s.get("boxscore") or {}).get("teams", []):
         side = name_to_side.get(t.get("team", {}).get("displayName"))
         if side:

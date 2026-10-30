@@ -94,12 +94,17 @@ def score_card(m, live, kind, out_path, er=None):
     hc1, hc2, _ = team_style(m["home"], er); ac1, ac2, _ = team_style(m["away"], er)
     st = live.get("stats") or {}
     rows = [k for k in ("Topla oynama", "Şut", "İsabetli şut", "Korner", "Faul") if k in (st.get("home") or {}) or k in (st.get("away") or {})]
-    evs = live.get("goals", []) + live.get("cards", [])
+    evs = live.get("goals", []) + live.get("cards", []) + live.get("subs", [])
     n_ev = max(len([g for g in evs if (g.get("side") or "home") == "home"]), len([g for g in evs if g.get("side") == "away"]))
-    content_h = 56 + 70 + 330 + (n_ev * 50 + 30 if n_ev else 70) + (30 + 50 + len(rows) * 96 if rows else 0) + 50
     f2 = font("body", 22); dl = wrap(DISCLAIMER, f2, SW - 120)
     yb = SH - SAFE_BOTTOM - 30 * len(dl)
-    y = SAFE_TOP + max(0, int((yb - 40 - SAFE_TOP - content_h) / 2))
+    avail = yb - 40 - SAFE_TOP
+    row_h, stat_h = 50, 96
+    content_h = 56 + 70 + 330 + (n_ev * row_h + 30 if n_ev else 70) + (30 + 50 + len(rows) * stat_h if rows else 0) + 50
+    if content_h > avail:   # çok olay varsa satırları sıkıştır
+        row_h, stat_h = 42, 84
+        content_h = 56 + 70 + 330 + (n_ev * row_h + 30 if n_ev else 70) + (30 + 50 + len(rows) * stat_h if rows else 0) + 50
+    y = SAFE_TOP + max(0, int((avail - content_h) / 2))
     # başlık
     text(d, (60, y), tr_upper("Devre arası" if kind == "ht" else "Maç sonu"), font("displaysemi", 30), YELLOW)
     mk = logo.mark_image(54); hx = int(SW - 60 - font("semi", 26).getlength(HANDLE))
@@ -129,18 +134,27 @@ def score_card(m, live, kind, out_path, er=None):
     cols = {"home": 60, "away": 60 + half + 20}
     ys = {"home": y, "away": y}
     events = sorted(evs, key=lambda g: int("".join(ch for ch in g.get("minute", "0") if ch.isdigit()) or 0))
+    fs_ = font("semi", 24)
     for g in events:
         side = g.get("side") or "home"
         x = cols[side]; yy = ys[side]
         if g.get("kind") == "red":
             d.rounded_rectangle((x, yy + 4, x + 22, yy + 34), radius=4, fill=(226, 72, 60), outline=WHITE, width=1)
-            label = short_name(g.get("player") or "", fg_, half - 110)
+            d.text((x + 38, yy + 19), short_name(g.get("player") or "", fg_, half - 110), font=fg_, fill=WHITE, anchor="lm")
+        elif g.get("kind") == "sub":
+            # değişiklik: yeşil ok giren, kırmızı ok çıkan
+            d.polygon([(x + 4, yy + 24), (x + 12, yy + 10), (x + 20, yy + 24)], fill=(62, 227, 140))
+            d.polygon([(x + 6, yy + 16), (x + 14, yy + 30), (x + 22, yy + 16)], fill=(226, 72, 60))
+            p_in = short_name(g.get("player") or "", fs_, (half - 130) * 0.55)
+            p_out = short_name(g.get("out") or "", fs_, (half - 130) * 0.45)
+            d.text((x + 38, yy + 19), p_in, font=fs_, fill=WHITE, anchor="lm")
+            d.text((x + 38 + fs_.getlength(p_in) + 10, yy + 19), f"← {p_out}", font=fs_, fill=PALE, anchor="lm")
         else:
             d.ellipse((x, yy + 6, x + 26, yy + 32), fill=WHITE); d.ellipse((x + 7, yy + 13, x + 19, yy + 25), fill=th["bg"])
             label = short_name(g.get("player") or "", fg_, half - 110) + (" (P)" if g.get("pen") else "") + (" (KK)" if g.get("own") else "")
-        d.text((x + 38, yy + 19), label, font=fg_, fill=WHITE, anchor="lm")
+            d.text((x + 38, yy + 19), label, font=fg_, fill=WHITE, anchor="lm")
         d.text((x + half - 30, yy + 19), g.get("minute", ""), font=fm, fill=YELLOW, anchor="rm")
-        ys[side] = yy + 50
+        ys[side] = yy + row_h
     y = max(ys.values()) + (30 if events else 0)
     if not events:
         text(d, (SW / 2, y + 10), "Gol yok", font("body", 28), PALE, anchor="ma"); y += 70
@@ -168,7 +182,7 @@ def score_card(m, live, kind, out_path, er=None):
                 d.rounded_rectangle((bar_x0, by, bar_x0 + hw + 3, by + bh), radius=bh // 2, fill=hc1)
             if w - hw > 0:
                 d.rounded_rectangle((bar_x0 + hw + 3, by, bar_x1, by + bh), radius=bh // 2, fill=ac1)
-            y += 96
+            y += stat_h
     text(d, (60, y + 6), "Kaynak: ESPN", font("body", 22), (150, 175, 160))
     d.line((60, yb - 16, SW - 60, yb - 16), fill=(60, 95, 78), width=2)
     for ln in dl:

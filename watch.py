@@ -190,35 +190,49 @@ def inplay_async(m, event_id, dry):
         log(f"Instagram {kind} story: {m['home']}-{m['away']} → {pid}" if pid else f"{kind} story gönderilmedi (sınır/tekrar)")
 
     def run():
+        """Planlanan saate değil ESPN'in durumuna/dakikasına göre: gecikmeli başlangıç, uzatmalar sorun değil.
+        Sorgu sıklığı: normalde 60 sn; ilk yarı 40'+ ve ikinci yarı 85'+ iken 15 sn (düdükten sonra ~30 sn içinde yakalar)."""
         try:
             ko = m["start"]
             done = {"ht": False, "ft": False}
+            last_st = None
             while True:
                 mins = (datetime.now(timezone.utc) - ko).total_seconds() / 60
-                if mins > 150:
+                if mins > 210:   # 3,5 saat: uzatma + gecikme payı
                     break
-                want = ("ht" if not done["ht"] and mins >= 43 else None) or ("ft" if not done["ft"] and mins >= 88 else None)
-                if not want:
-                    time.sleep(30); continue
                 try:
                     lv = espn.live(m["sport_key"], event_id)
                 except Exception as e:
                     log(f"ESPN canlı hatası {m['home']}-{m['away']}: {e}"); time.sleep(30); continue
                 st = (lv or {}).get("status") or ""
-                if st == "STATUS_HALFTIME" and not done["ht"]:
-                    done["ht"] = True
-                    log(f"Devre arası: {m['home']}-{m['away']} {lv['score']}"); post("devre", lv)
+                clock = (lv or {}).get("clock") or ""
+                try:
+                    minute = int("".join(ch for ch in clock.split("+")[0] if ch.isdigit()) or 0)
+                except ValueError:
+                    minute = 0
+                if st != last_st:
+                    log(f"ESPN durum {m['home']}-{m['away']}: {st} {clock} {lv.get('score')}")
+                    last_st = st
+                if st == "STATUS_HALFTIME":
+                    if not done["ht"]:
+                        done["ht"] = True
+                        log(f"Devre arası: {m['home']}-{m['away']} {lv['score']}"); post("devre", lv)
+                    wait = 60
                 elif st in ("STATUS_FULL_TIME", "STATUS_FINAL", "STATUS_FINAL_PEN", "STATUS_FINAL_AET"):
-                    done["ht"] = True
                     if not done["ft"]:
                         done["ft"] = True
                         log(f"Maç sonu: {m['home']}-{m['away']} {lv['score']}"); post("macsonu", lv)
                     break
-                elif st in ("STATUS_POSTPONED", "STATUS_CANCELED", "STATUS_ABANDONED"):
-                    break
-                elif want == "ht" and mins > 70:
-                    done["ht"] = True   # devre arası kaçtı (ESPN gecikti); maç sonunu bekle
-                time.sleep(30)
+                elif st in ("STATUS_POSTPONED", "STATUS_CANCELED", "STATUS_ABANDONED", "STATUS_SUSPENDED"):
+                    log(f"Maç içi takip bitti ({st}): {m['home']}-{m['away']}"); break
+                elif st == "STATUS_SECOND_HALF":
+                    done["ht"] = True   # devre arası görülmediyse artık geçti
+                    wait = 15 if minute >= 85 else 60
+                elif st == "STATUS_FIRST_HALF":
+                    wait = 15 if minute >= 40 else 60
+                else:   # SCHEDULED / DELAYED / bilinmeyen: başlamayı bekle
+                    wait = 60
+                time.sleep(wait)
         except Exception as e:
             log(f"Maç içi takip hatası {m['home']}-{m['away']}: {type(e).__name__}: {e}")
     t = threading.Thread(target=run, daemon=True); t.start()
@@ -279,7 +293,7 @@ def main():
         live = [m for m in targets if m["start"] > now]
         # kademe 0 maçı başladıysa maç içi takibe al (devre arası / maç sonu story'si); ESPN kimliği kadro adımından gelir
         for m in targets + started0:
-            if m["start"] <= now and (now - m["start"]) < timedelta(minutes=100) and m["code"] not in INPLAY:
+            if m["start"] <= now and (now - m["start"]) < timedelta(minutes=150) and m["code"] not in INPLAY:
                 eid = espn_ids.get(m["code"])
                 if not eid and not dry:
                     try:
