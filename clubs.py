@@ -1,6 +1,8 @@
 """Büyük kulüp önceliği: yapay zekâ analizi ve Instagram paylaşımı sırasında, lig sırasından önce bakılır.
 Adlar Nesine bülteninde geçtiği gibi (küçük harf karşılaştırma). tier(m): 0 = en büyük, 1 = büyük, 9 = diğer."""
 
+ANALYZE_MAX_TIER = 1   # sabah yapay zekâ analizi yalnız bu kademe ve üstündeki (0-1) maçlara; diğer günler analiz yok
+
 TIER1 = {"galatasaray", "fenerbahçe", "beşiktaş", "real madrid", "barcelona", "man. city", "manchester city",
          "liverpool", "arsenal", "bayern münih", "bayern munih", "psg", "paris"}
 TIER2 = {"trabzonspor", "atl madrid", "atletico madrid", "chelsea", "tottenham", "man. utd", "manchester utd", "man. united",

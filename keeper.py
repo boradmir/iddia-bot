@@ -108,6 +108,10 @@ def maybe_morning_claude(s, now):
         from datetime import timezone as _tz, timedelta as _td
         tr = _tz(_td(hours=3))
         ms = [m for m in nesine.parse(nesine.fetch(save_path=None)) if m["start"].astimezone(tr).date() == now.astimezone(tr).date() and m["start"] > now]
+        # yalnız büyük kulüplü maçlar (clubs.py kademe 0-1); yoksa o gün sabah analizi yapılmaz
+        ms = [m for m in ms if clubs.tier(m) <= clubs.ANALYZE_MAX_TIER]
+        if not ms:
+            log("Sabah analizi: bugün büyük kulüp maçı yok, analiz yapılmadı"); return
         # sıra: büyük kulüp kademesi (clubs.py) → lig sırası → başlangıç saati
         ms.sort(key=lambda m: (clubs.tier(m), PRIORITY.index(m["sport_key"]) if m["sport_key"] in PRIORITY else 99, m["start"]))
         # en son Pinnacle kaydından piyasa ihtimali (varsa) — itiraz aşaması için
