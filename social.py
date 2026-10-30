@@ -10,7 +10,7 @@ Kartlar:
 
 Kullanım: python social.py [--date 2026-10-30]
 """
-import glob, json, os, shutil, sys
+import glob, json, math, os, random, shutil, sys
 from datetime import datetime, timezone, timedelta
 from PIL import Image, ImageDraw, ImageFont
 
@@ -75,19 +75,72 @@ def text(d, xy, s, f, fill, anchor="la", max_w=None):
     d.text(xy, fit(s, f, max_w) if max_w else s, font=f, fill=fill, anchor=anchor)
 
 
-def pitch_background():
-    """Dikey yeşil degrade + yarı saydam saha çizgileri (orta yuvarlak, orta çizgi, ceza sahası yayı)."""
-    img = Image.new("RGB", (W, H), GREEN)
-    d = ImageDraw.Draw(img)
-    for y in range(H):
-        t = y / H
-        d.line((0, y, W, y), fill=tuple(int(GREEN[i] + (GREEN2[i] - GREEN[i]) * t) for i in range(3)))
-    ov = Image.new("RGBA", (W, H), (0, 0, 0, 0)); od = ImageDraw.Draw(ov)
+# Tema: Avrupa kupalarında farklı zemin (lig maçları yeşil saha). bg/bg2 degrade, box koyu kutu rengi, motif arka plan deseni.
+THEMES = {
+    "default": {"bg": GREEN, "bg2": GREEN2, "box": GREEN3, "label": None, "motif": "pitch"},
+    "soccer_uefa_champs_league": {"bg": (8, 20, 54), "bg2": (16, 36, 92), "box": (30, 56, 118), "label": "Şampiyonlar Ligi", "motif": "stars"},
+    "soccer_uefa_europa_league": {"bg": (34, 16, 6), "bg2": (72, 32, 10), "box": (118, 58, 18), "label": "Avrupa Ligi", "motif": "rings"},
+    "soccer_uefa_europa_conference_league": {"bg": (6, 32, 36), "bg2": (10, 58, 64), "box": (18, 92, 100), "label": "Konferans Ligi", "motif": "hex"},
+}
+
+
+def theme(sport_key):
+    return THEMES.get(sport_key or "", THEMES["default"])
+
+
+def _star(od, cx, cy, r, fill):
+    pts = []
+    for i in range(10):
+        a = math.radians(-90 + i * 36); rr = r if i % 2 == 0 else r * 0.42
+        pts.append((cx + rr * math.cos(a), cy + rr * math.sin(a)))
+    od.polygon(pts, fill=fill)
+
+
+def motif_overlay(w, h, th):
+    """Yarı saydam desen katmanı: saha çizgileri (lig), yıldızlar (ŞL), halkalar (AL), altıgenler (KL)."""
+    ov = Image.new("RGBA", (w, h), (0, 0, 0, 0)); od = ImageDraw.Draw(ov)
     line = (255, 255, 255, 26)
-    od.ellipse((W / 2 - 300, 720 - 300, W / 2 + 300, 720 + 300), outline=line, width=4)
-    od.line((0, 720, W, 720), fill=line, width=4)
-    od.arc((W / 2 - 520, H - 120, W / 2 + 520, H + 700), start=200, end=340, fill=line, width=4)
-    return Image.alpha_composite(img.convert("RGBA"), ov).convert("RGB")
+    mid = int(h * 0.533)
+    kind = th.get("motif", "pitch")
+    if kind == "pitch":
+        od.ellipse((w / 2 - 300, mid - 300, w / 2 + 300, mid + 300), outline=line, width=4)
+        od.line((0, mid, w, mid), fill=line, width=4)
+        od.arc((w / 2 - 520, h - 120, w / 2 + 520, h + 700), start=200, end=340, fill=line, width=4)
+    elif kind == "stars":
+        rnd = random.Random(7)
+        for _ in range(26):
+            x, y, r = rnd.uniform(40, w - 40), rnd.uniform(40, h - 40), rnd.uniform(6, 22)
+            _star(od, x, y, r, (255, 255, 255, rnd.randint(14, 34)))
+        od.ellipse((w / 2 - 320, mid - 320, w / 2 + 320, mid + 320), outline=(255, 255, 255, 18), width=4)
+    elif kind == "rings":
+        cx, cy = w * 0.82, h * 0.62
+        for i in range(6):
+            r = 120 + i * 110
+            od.ellipse((cx - r, cy - r, cx + r, cy + r), outline=(255, 190, 120, 22), width=5)
+    elif kind == "hex":
+        R = 150
+        for row in range(-1, int(h / (R * 1.5)) + 2):
+            for col in range(-1, int(w / (R * 1.732)) + 2):
+                cx = col * R * 1.732 + (R * 0.866 if row % 2 else 0); cy = row * R * 1.5
+                pts = [(cx + R * 0.95 * math.cos(math.radians(60 * k + 30)), cy + R * 0.95 * math.sin(math.radians(60 * k + 30))) for k in range(6)]
+                od.polygon(pts, outline=(180, 255, 240, 16))
+    return ov
+
+
+def gradient(w, h, th):
+    img = Image.new("RGB", (w, h), th["bg"]); d = ImageDraw.Draw(img)
+    c1, c2 = th["bg"], th["bg2"]
+    for y in range(h):
+        t = y / h
+        d.line((0, y, w, y), fill=tuple(int(c1[i] + (c2[i] - c1[i]) * t) for i in range(3)))
+    return img
+
+
+def pitch_background(th=None):
+    """Dikey degrade + temanın yarı saydam deseni (lig: saha çizgileri; Avrupa kupaları: kendi deseni)."""
+    th = th or THEMES["default"]
+    img = gradient(W, H, th)
+    return Image.alpha_composite(img.convert("RGBA"), motif_overlay(W, H, th)).convert("RGB")
 
 
 def tr_upper(s):
@@ -208,7 +261,7 @@ def badge(img, d, cx, cy, r, name, er=None):
 
 # ----------------------------------------------------------------- kartlar
 def match_card(m, pm, ai, er, out_path):
-    img = pitch_background(); d = ImageDraw.Draw(img)
+    th = theme(m.get("sport_key")); img = pitch_background(th); d = ImageDraw.Draw(img)
     start = m["start"].astimezone(TR)
     d.rectangle((0, 0, W, 10), fill=YELLOW)
     topbar(d, f"Maç analizi · {start:%d.%m} · {m['league']}")
@@ -228,7 +281,7 @@ def match_card(m, pm, ai, er, out_path):
         text(d, (60, y), "ULUSLARARASI PİYASANIN İHTİMALİ", font("displaysemi", 26), YELLOW); y += 40
         hc1, hc2, _ = team_style(m["home"], er); ac1, ac2, _ = team_style(m["away"], er)
         def lum(c): return 0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2]
-        cols = [(f"{m['home']} kazanır", pm["MS"]["1"], hc1), ("Beraberlik", pm["MS"]["X"], GREEN3), (f"{m['away']} kazanır", pm["MS"]["2"], ac1)]
+        cols = [(f"{m['home']} kazanır", pm["MS"]["1"], hc1), ("Beraberlik", pm["MS"]["X"], th["box"]), (f"{m['away']} kazanır", pm["MS"]["2"], ac1)]
         best = max(p for _, p, _ in cols)
         bw = (W - 120 - 24) / 3
         for i, (lab, p, c1) in enumerate(cols):
@@ -248,8 +301,8 @@ def match_card(m, pm, ai, er, out_path):
             xx += w
         y += 30
         if "AU25" in pm and "KG" in pm:
-            x = pill(d, 60, y, f"3+ gol  %{pm['AU25']['Üst']*100:.0f}", font("semi", 24), GREEN3, WHITE)
-            pill(d, x, y, f"Karşılıklı gol  %{pm['KG']['Var']*100:.0f}", font("semi", 24), GREEN3, WHITE)
+            x = pill(d, 60, y, f"3+ gol  %{pm['AU25']['Üst']*100:.0f}", font("semi", 24), th["box"], WHITE)
+            pill(d, x, y, f"Karşılıklı gol  %{pm['KG']['Var']*100:.0f}", font("semi", 24), th["box"], WHITE)
             y += 64
     l5 = (er or {}).get("last5") or {}
     leaders = (er or {}).get("leaders") or {}
@@ -293,7 +346,7 @@ def comment_card(m, ai, out_path):
     if not bl.get("comment"):
         return False
     img = Image.new("RGB", (W, H), CREAM); d = ImageDraw.Draw(img)
-    d.rectangle((0, 0, W, 230), fill=GREEN)
+    th = theme(m.get("sport_key")); d.rectangle((0, 0, W, 230), fill=th["bg"])
     start = m["start"].astimezone(TR)
     mk = logo.mark_image(54); mk_x = int(W - 60 - font("semi", 26).getlength(HANDLE) - 14 - mk.width)
     label = tr_upper(f"Maç önü · Biz ne düşünüyoruz? · {tr_date(m['start'])} · {start:%H:%M}")

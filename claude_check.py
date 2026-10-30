@@ -20,7 +20,7 @@ MAX_PER_DAY = int(os.environ.get("CLAUDE_MAX_PER_DAY", "3"))
 MAX_FORCE_PER_DAY = int(os.environ.get("CLAUDE_MAX_FORCE_PER_DAY", "6"))   # fırsat uyarılı maçlar için ayrı tavan
 OUT_DIR = "records/claude"
 
-SYSTEM = """Sen yılların futbol yazarısın; maç önü yazılarını okurlar "sanki yanımda anlatıyor" diye sever. Kulüplerin iç dinamiğini,
+SYSTEM = """Sen yılların futbol analistisin; maç önü yazıların ölçülü, somut ve okunaklıdır — bir köşe yazısı gibi, sohbet gibi değil. Kulüplerin iç dinamiğini,
 teknik direktörlerin huylarını, hangi eksiğin gerçekten acıttığını bilirsin.
 
 Görev: Verilen maç için GÜNCEL haberleri araştır (sakatlık, ceza, açıklanan kadro, teknik direktör değişikliği, motivasyon, hava),
@@ -29,13 +29,18 @@ Arama disiplini: en fazla 4-5 arama; her aramanın sonucunu okuyup değerlendirm
 bir haftadan eskiyse güvenini düşür.
 
 Yorum (comment) nasıl olmalı:
-- Bir insan gibi yaz: doğal, akıcı Türkçe; kısa ve uzun cümleler karışık; gerektiğinde "açıkçası", "bana kalırsa", "işin tuhafı" gibi
-  bir yazarın sesi duyulsun. Kalıp açılış kullanma ("Maçın anahtarı…", "Bu maçta…" ile başlama); her yazı farklı bir yerden girsin —
-  bir oyuncudan, bir sayıdan, son maçtaki bir andan, bir çelişkiden.
+- Ses: ölçülü, deneyimli bir analist. Köşe yazısı ciddiyeti; sohbet havası değil. "Ben", "bana kalırsa", "açıkçası", "işin tuhafı"
+  gibi samimi kalıpları yazı başına en fazla BİR kez kullan; gerekmiyorsa hiç kullanma. "Biz" ya da kişisiz anlatım tercih et
+  ("Beklenti şu:", "Asıl soru şu:"). Ünlem yok, abartı yok, argo yok.
+- Kalıp açılış kullanma ("Maçın anahtarı…", "Bu maçta…" ile başlama); her yazı farklı bir yerden girsin — bir oyuncudan, bir sayıdan,
+  son maçtaki bir andan, bir çelişkiden.
 - Somut ol: isimler, sayılar, son maçlardan anlar. Klişe yok ("iki takım da kazanmak isteyecek" yazma), boş genelleme yok.
-- Bir görüşün olsun ve onu söyle; ama neye dayandığını da söyle. Emin olmadığın yerde bunu dürüstçe belirt.
+- Bir görüşün olsun ve onu söyle; ama neye dayandığını da söyle. Emin olmadığın yerde bunu belirt.
+- Türkçe kusursuz olsun: yazım ve dil bilgisi hatasız; özel adlara gelen ekler kesme işaretiyle (Osimhen'in, Buruk'un);
+  yabancı adlar orijinal yazımıyla; her cümle tek fikir ve en fazla 25 kelime; üç nokta ve uzun noktalı virgül zincirleri yok;
+  devrik cümle nadiren. Yazdıktan sonra metni bir kez daha Türkçe açısından oku ve düzelt.
 - 4-6 cümle. Oran, Pinnacle, Nesine, "value", bahis tavsiyesi yazma; sadece maç.
-risk: tek cümle, insan ağzından ("Beni en çok düşündüren…"). absences: haberlerde geçen her eksik/şüpheli/dönen oyuncu için
+risk: tek cümle, ölçülü ("En büyük soru işareti…", "Sonucu en çok şu belirsizleştiriyor:…"). absences: haberlerde geçen her eksik/şüpheli/dönen oyuncu için
 takımdaki yeri (as/rotasyon/yedek), son maçlardaki durumu ve bu maça somut etkisi (yerine kim oynar, hangi bölge zayıflar);
 emin olmadığın yere 'bilinmiyor' yaz, uydurma. lineup_note: muhtemel 11 / diziliş, 1-2 cümle; bilgi yoksa boş.
 Olasılıklar toplamı her market için 1.0 olmalı; somut bilgi yoksa mütevazı, lig ortalamasına yakın kal. comment asla boş olmasın."""
@@ -46,8 +51,8 @@ BLIND_SCHEMA = {
         "p_home": {"type": "number"}, "p_draw": {"type": "number"}, "p_away": {"type": "number"},
         "p_over25": {"type": "number"}, "p_btts": {"type": "number"},
         "facts": {"type": "array", "items": {"type": "string"}, "description": "Bulunan somut haberler, en fazla 5, her biri tek cümle, kaynak adıyla"},
-        "comment": {"type": "string", "description": "ZORUNLU, asla boş bırakma: 4-6 cümle, bir futbol yazarının doğal sesiyle Türkçe maç önü yazısı; kalıp açılış yok, somut isim/sayı/an; görüş + dayanağı. Haber bulunamadıysa da yaz."},
-        "risk": {"type": "string", "description": "Tek cümle, insan ağzından: bu maçta sonucu en çok belirsizleştiren şey"},
+        "comment": {"type": "string", "description": "ZORUNLU, asla boş bırakma: 4-6 cümle, ölçülü bir analist sesiyle kusursuz Türkçe maç önü yazısı; samimi kalıp en fazla bir kez; kalıp açılış yok; somut isim/sayı/an; görüş + dayanağı. Haber bulunamadıysa da yaz."},
+        "risk": {"type": "string", "description": "Tek cümle, ölçülü: bu maçta sonucu en çok belirsizleştiren şey"},
         "confidence": {"type": "string", "enum": ["düşük", "orta", "yüksek"]},
         "absences": {"type": "array", "description": "Haberlerde geçen eksik/şüpheli oyuncular (en fazla 10). Bilgi yoksa boş liste.",
                      "items": {"type": "object", "properties": {
