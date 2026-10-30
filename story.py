@@ -80,6 +80,26 @@ def lineup_column(d, x, y, w, team, roster, er, box=GREEN3):
     return y
 
 
+def ball_icon(size, dark=(20, 30, 26)):
+    """Futbol topu simgesi (RGBA): beyaz top, ortada siyah beşgen, kenarlarda beş siyah parça. 4x çizilip küçültülür."""
+    import math
+    S = 4; R = size * S / 2; cx = cy = R
+    img = Image.new("RGBA", (size * S, size * S), (0, 0, 0, 0)); d = ImageDraw.Draw(img)
+    d.ellipse((1, 1, size * S - 2, size * S - 2), fill=WHITE, outline=dark, width=max(2, S))
+    def pt(r, ang):
+        return (cx + r * math.cos(math.radians(ang)), cy + r * math.sin(math.radians(ang)))
+    inner = [pt(R * 0.36, -90 + i * 72) for i in range(5)]
+    d.polygon(inner, fill=dark)
+    for i in range(5):
+        a = -90 + i * 72
+        p1 = pt(R * 0.36, a); p2 = pt(R * 0.78, a)
+        d.line((p1, p2), fill=dark, width=max(2, int(S * 1.5)))
+        # kenar parçası: dış halkaya yakın beşgen dilimi
+        poly = [pt(R * 0.78, a), pt(R * 0.98, a - 20), pt(R * 0.98, a + 20)]
+        d.polygon(poly, fill=dark)
+    return img.resize((size, size), Image.LANCZOS)
+
+
 def _num(v):
     try:
         return float(str(v).replace("%", "").replace(",", "."))
@@ -135,6 +155,7 @@ def score_card(m, live, kind, out_path, er=None):
     ys = {"home": y, "away": y}
     events = sorted(evs, key=lambda g: int("".join(ch for ch in g.get("minute", "0") if ch.isdigit()) or 0))
     fs_ = font("semi", 24)
+    _BALL = ball_icon(30)
     for g in events:
         side = g.get("side") or "home"
         x = cols[side]; yy = ys[side]
@@ -150,7 +171,7 @@ def score_card(m, live, kind, out_path, er=None):
             d.text((x + 38, yy + 19), p_in, font=fs_, fill=WHITE, anchor="lm")
             d.text((x + 38 + fs_.getlength(p_in) + 10, yy + 19), f"← {p_out}", font=fs_, fill=PALE, anchor="lm")
         else:
-            d.ellipse((x, yy + 6, x + 26, yy + 32), fill=WHITE); d.ellipse((x + 7, yy + 13, x + 19, yy + 25), fill=th["bg"])
+            img.paste(_BALL, (int(x) - 2, int(yy) + 4), _BALL)
             label = short_name(g.get("player") or "", fg_, half - 110) + (" (P)" if g.get("pen") else "") + (" (KK)" if g.get("own") else "")
             d.text((x + 38, yy + 19), label, font=fg_, fill=WHITE, anchor="lm")
         d.text((x + half - 30, yy + 19), g.get("minute", ""), font=fm, fill=YELLOW, anchor="rm")
