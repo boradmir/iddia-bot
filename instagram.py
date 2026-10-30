@@ -157,7 +157,9 @@ def main():
     today = datetime.now(TR).date()
     sent = load_log()
     sent_today = [s for s in sent if s["day"] == str(today)]
-    if len(sent_today) >= MAX_PER_DAY:
+    # --only Konyaspor,Nice : sadece bu ev sahiplerini gönder (günlük sınır ve günlük yok sayılır; elle yeniden yükleme için)
+    only = [s.strip().lower() for s in sys.argv[sys.argv.index("--only") + 1].split(",")] if "--only" in sys.argv else None
+    if only is None and len(sent_today) >= MAX_PER_DAY:
         print(f"Bugünkü sınır dolu ({MAX_PER_DAY})"); return
     day_dir = f"docs/social/{today}"
     if not os.path.isdir(day_dir):
@@ -173,7 +175,12 @@ def main():
     # öncelik: yorumu olan (iki kartlı) maçlar, sonra en yakın başlangıç
     cands = []
     for m, ev, score in match.match_all(nm, pin, aliases):
-        if m["code"] in done or not os.path.exists(f"{day_dir}/match_{m['code']}.jpg"):
+        if not os.path.exists(f"{day_dir}/match_{m['code']}.jpg"):
+            continue
+        if only is not None:
+            if not any(k in m["home"].lower() for k in only):
+                continue
+        elif m["code"] in done:
             continue
         if already_posted(m, caps):
             print(f"atlandı (hesapta zaten var): {m['home']}-{m['away']}"); continue
@@ -181,7 +188,7 @@ def main():
         has_comment = os.path.exists(f"{day_dir}/yorum_{m['code']}.jpg")
         cands.append((0 if has_comment else 1, m["start"], m, pm, has_comment))
     cands.sort(key=lambda x: (x[0], x[1]))
-    budget = MAX_PER_DAY - len(sent_today)
+    budget = len(cands) if only is not None else MAX_PER_DAY - len(sent_today)
     for _, _, m, pm, has_comment in cands[:budget]:
         urls = [f"{PAGES}/social/{today}/match_{m['code']}.jpg"] + ([f"{PAGES}/social/{today}/yorum_{m['code']}.jpg"] if has_comment else [])
         cap = caption_for(m, ai.get(m["code"]), pm)
