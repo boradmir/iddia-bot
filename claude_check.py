@@ -40,7 +40,8 @@ Yorum (comment) nasıl olmalı:
   yabancı adlar orijinal yazımıyla; her cümle tek fikir ve en fazla 25 kelime; üç nokta ve uzun noktalı virgül zincirleri yok;
   devrik cümle nadiren. Yazdıktan sonra metni bir kez daha Türkçe açısından oku ve düzelt.
 - 4-6 cümle. Oran, Pinnacle, Nesine, "value", bahis tavsiyesi yazma; sadece maç.
-risk: tek cümle, ölçülü ("En büyük soru işareti…", "Sonucu en çok şu belirsizleştiriyor:…"). absences: haberlerde geçen her eksik/şüpheli/dönen oyuncu için
+hook: gönderinin ilk satırı; yazının en çarpıcı tespiti, TAM ve kısa bir cümle (en fazla 110 karakter), yazıdaki cümlenin kopyası olmak zorunda değil.
+risk: tek cümle, ölçülü ("En büyük soru işareti…", "Sonucu en çok şu belirsizleştiriyor:…"); "en büyük belirsizlik" kalıbını cümle içinde tekrarlama. absences: haberlerde geçen her eksik/şüpheli/dönen oyuncu için
 takımdaki yeri (as/rotasyon/yedek), son maçlardaki durumu ve bu maça somut etkisi (yerine kim oynar, hangi bölge zayıflar);
 emin olmadığın yere 'bilinmiyor' yaz, uydurma. lineup_note: muhtemel 11 / diziliş, 1-2 cümle; bilgi yoksa boş.
 Olasılıklar toplamı her market için 1.0 olmalı; somut bilgi yoksa mütevazı, lig ortalamasına yakın kal. comment asla boş olmasın."""
@@ -51,6 +52,7 @@ BLIND_SCHEMA = {
         "p_home": {"type": "number"}, "p_draw": {"type": "number"}, "p_away": {"type": "number"},
         "p_over25": {"type": "number"}, "p_btts": {"type": "number"},
         "facts": {"type": "array", "items": {"type": "string"}, "description": "Bulunan somut haberler, en fazla 5, her biri tek cümle, kaynak adıyla"},
+        "hook": {"type": "string", "description": "Gönderinin ilk satırı: TAM bir cümle, en fazla 110 karakter, yazının en çarpıcı tespiti; kısaltma/üç nokta yok, oran/bahis yok"},
         "comment": {"type": "string", "description": "ZORUNLU, asla boş bırakma: 4-6 cümle, ölçülü bir analist sesiyle kusursuz Türkçe maç önü yazısı; samimi kalıp en fazla bir kez; kalıp açılış yok; somut isim/sayı/an; görüş + dayanağı. Haber bulunamadıysa da yaz."},
         "risk": {"type": "string", "description": "Tek cümle, ölçülü: bu maçta sonucu en çok belirsizleştiren şey"},
         "confidence": {"type": "string", "enum": ["düşük", "orta", "yüksek"]},
@@ -64,7 +66,7 @@ BLIND_SCHEMA = {
                          "required": ["team", "player", "status", "role", "recent", "impact"], "additionalProperties": False}},
         "lineup_note": {"type": "string", "description": "Muhtemel 11 / diziliş / kadro notu, 1-2 cümle; bilgi yoksa boş"},
     },
-    "required": ["p_home", "p_draw", "p_away", "p_over25", "p_btts", "facts", "comment", "risk", "confidence", "absences", "lineup_note"],
+    "required": ["p_home", "p_draw", "p_away", "p_over25", "p_btts", "facts", "hook", "comment", "risk", "confidence", "absences", "lineup_note"],
     "additionalProperties": False,
 }
 OBJECT_SCHEMA = {
