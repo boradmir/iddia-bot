@@ -266,7 +266,8 @@ def main():
         # 4) Durum + sayfa + yayın
         note = f"{len(live)} maç izleniyor, {len(window)} tanesi pencerede; bugün kalan Pinnacle bütçesi {budget} istek"
         save_json(WSTATUS, {"active": True, "note": note, "updated": ts, "alerts_today": len(alerted)})
-        if new_alerts or polled_any or time.time() - last_publish > 600:
+        # yayın: uyarı varsa hemen, yoksa 10 dk'da bir (her push bir Pages derlemesi; saatte 10 derleme sınırı)
+        if new_alerts or time.time() - last_publish > 600:
             rebuild_page()
             git_publish(f"gözcü {now:%H:%M}" + (f" – {len(new_alerts)} uyarı" if new_alerts else ""), dry)
             last_publish = time.time()

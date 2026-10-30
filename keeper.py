@@ -222,20 +222,23 @@ def main():
         fix_watch_status()
         record_once()
         s = load_status(); s["keeper_last"] = now.isoformat(timespec="seconds"); save_status(s)
+        # Tur başına TEK push: her push bir Pages derlemesi tetikliyor (saatte 10 derleme sınırı var); ara adımlar hata verse de kayıt gider
+        try:
+            maybe_results(s, now)
+            maybe_watch(s, now)
+            maybe_espn(now)
+            maybe_morning_claude(load_status(), now)
+            if now.minute < 20:  # saatte bir: paylaşım kartları (yerel, ücretsiz)
+                r = sh([sys.executable, "social.py"], capture_output=True, text=True); log((r.stdout or r.stderr).strip()[:200])
+            # Instagram gönderimi (secret varsa): günde bir kez, 08:30 TSİ (05:30 UTC); döngü bu saate denk gelecek şekilde bekler
+            s2 = load_status()
+            if os.environ.get("IG_TOKEN") and (now.hour, now.minute) >= IG_POST_UTC and s2.get("ig_day") != now.strftime("%Y-%m-%d"):
+                sh([sys.executable, "social.py"], capture_output=True, text=True)  # kartlar taze olsun
+                r = sh([sys.executable, "instagram.py"], capture_output=True, text=True); log("instagram: " + (r.stdout or r.stderr).strip()[:300])
+                s2["ig_day"] = now.strftime("%Y-%m-%d"); save_status(s2)
+        except Exception as e:
+            log(f"Tur içi hata (kayıt yine de gönderiliyor): {e}")
         publish(f"kayıt {now:%Y-%m-%d %H:%M}")
-        maybe_results(s, now)
-        maybe_watch(s, now)
-        maybe_espn(now)
-        maybe_morning_claude(load_status(), now)
-        if now.minute < 20:  # saatte bir: paylaşım kartları (yerel, ücretsiz)
-            r = sh([sys.executable, "social.py"], capture_output=True, text=True); log((r.stdout or r.stderr).strip()[:200])
-        # Instagram gönderimi (secret varsa): günde bir kez, 08:30 TSİ (05:30 UTC); döngü bu saate denk gelecek şekilde bekler
-        s2 = load_status()
-        if os.environ.get("IG_TOKEN") and (now.hour, now.minute) >= IG_POST_UTC and s2.get("ig_day") != now.strftime("%Y-%m-%d"):
-            sh([sys.executable, "social.py"], capture_output=True, text=True)  # kartlar taze olsun
-            r = sh([sys.executable, "instagram.py"], capture_output=True, text=True); log("instagram: " + (r.stdout or r.stderr).strip()[:300])
-            s2["ig_day"] = now.strftime("%Y-%m-%d"); save_status(s2)
-        publish(f"espn/kart {now:%H:%M}")
         # yeni kod geldiyse bu çalışma eski kodla devam etmesin (kayıt alındı, şimdi çıkılabilir)
         pull()
         if code_version() != version:
