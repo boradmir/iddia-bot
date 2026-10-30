@@ -147,10 +147,47 @@ def tts_eleven(text, out_mp3, voice_id=None, model=None):
     return words
 
 
+# Okunuş sözlüğü: yalnız seslendirme girdisine uygulanır; altyazıda özgün yazım görünür. Kelime sayısı korunur (çok kelimeli ad → aynı sayıda kelime).
+PRONOUNCE = {
+    "Kuyt": "Kayt", "Oosterwolde": "Osterwolde", "Brown": "Braun", "Skriniar": "Şkriniar", "Juan": "Huan", "Henrique": "Enrike",
+    "Ake": "Ake", "Szymański": "Şimanski", "Szymanski": "Şimanski", "En-Nesyri": "En-Nesiri", "Mourinho": "Morinyo", "Tedesco": "Tedesko",
+    "Semedo": "Semedu", "Djiku": "Ciku", "Icardi": "İkardi", "Osimhen": "Osimen", "Sané": "Zane", "Sane": "Zane", "Torreira": "Toreyra",
+    "Jakobs": "Yakobs", "Sallai": "Şallai", "Ndidi": "Indidi", "Cerny": "Çerni", "Durán": "Duran", "Jhon": "Con", "Abraham": "Eybrıhem",
+    "Rashford": "Raşford", "Lewandowski": "Levandovski", "Mbappé": "Embape", "Mbappe": "Embape", "Vinicius": "Vinisyus", "Bellingham": "Belingım",
+    "Haaland": "Haland", "Foden": "Fodın", "Kane": "Keyn", "Musiala": "Musiyala", "Dembélé": "Dembele", "Doué": "Due", "Kvaratskhelia": "Kvaratshelya",
+    "Wirtz": "Virts", "Gyökeres": "Yökeres", "Ødegaard": "Ödegor", "Guardiola": "Guardiyola", "Enrique": "Enrike", "Hjulmand": "Yulmand",
+    "Solskjær": "Solşer", "Salah": "Salah", "Szoboszlai": "Soboslai", "Gravenberch": "Gravenberh", "Mac Allister": "Mek Alister",
+    "Rüdiger": "Rüdiger", "Courtois": "Kurtua", "Tchouaméni": "Çuameni", "Camavinga": "Kamavinga", "Vitinha": "Vitinya", "Hakimi": "Hakimi",
+    "Olise": "Olise", "Kimmich": "Kimmih", "Neuer": "Noyer", "Lookman": "Lukman", "Yıldız": "Yıldız", "Çalhanoğlu": "Çalhanoğlu",
+    "Lautaro": "Lautaro", "Thuram": "Türam", "Onana": "Onana", "Lemina": "Lemina", "Sara": "Sara", "Barış": "Barış", "Rafa": "Rafa",
+    "Paulista": "Paulista", "Ndidi": "Indidi", "Jota": "Jota", "Talisca": "Talişka", "Fred": "Fred", "Nelson": "Nelsın", "Oppong": "Oppong",
+    "Levent": "Levent", "Jurásek": "Yurasek", "Jurasek": "Yurasek", "Okay": "Okay", "Kadıoğlu": "Kadıoğlu", "Ederson": "Ederson",
+    "Bruno": "Bruno", "Mane": "Mane", "Xavi": "Çavi", "Hazard": "Azar", "Dzeko": "Ceko", "Džeko": "Ceko", "Kerem": "Kerem",
+}
+
+
+def spoken_text(text):
+    """Seslendirme için okunuş sözlüğünü uygular; token sayısı aynı kalır."""
+    out = text
+    for k, v in PRONOUNCE.items():
+        if k == v or k not in out:
+            continue
+        out = re.sub(rf"(?<![\wğüşöçİĞÜŞÖÇ]){re.escape(k)}(?![\wğüşöçĞÜŞÖÇ])", v, out)
+    # ünlü uyumu: Kuyt→Kayt gibi değişimlerde ek de uyar (Kayt'ün → Kayt'ın)
+    for a, b in (("Kayt'ü", "Kayt'ı"), ("Kayt'e", "Kayt'a"), ("Kayt'te", "Kayt'ta"), ("Kayt'le", "Kayt'la")):
+        out = out.replace(a, b)
+    return out
+
+
 def tts(text, out_mp3):
-    if ELEVEN_KEY and ELEVEN_VOICE:
-        return tts_eleven(text, out_mp3)
-    return asyncio.run(_tts(text, out_mp3))
+    spoken = spoken_text(text)
+    words = tts_eleven(spoken, out_mp3) if (ELEVEN_KEY and ELEVEN_VOICE) else asyncio.run(_tts(spoken, out_mp3))
+    # altyazıda özgün yazım: kelime sayıları eşitse metni geri koy
+    orig = text.split()
+    if len(orig) == len(words):
+        for w, o in zip(words, orig):
+            w["w"] = o
+    return words
 
 
 # ----------------------------------------------------------------- zemin
@@ -421,17 +458,24 @@ def scene_risk(img, d, t, risk, th):
 
 
 def scene_question(img, d, t, question, th):
-    f = font("display", 110)
-    draw_words(img, tr_upper(question), f, M_L, 400, W - M_L - M_R, t, fill=YELLOW, stagger=0.07, dur=0.24, line_h=118)
-    d.text((M_L, 820), "Yoruma yazın · Maçtan sonra karşılaştırırız", font=font("semi", 36), fill=PALE)
+    # uzun soruda yazı küçülür (en çok 4 satır); alt satırlar sorunun bittiği yere göre yerleşir, üst üste binme olmaz
+    text, max_w = tr_upper(question), W - M_L - M_R
+    for size in (110, 96, 84, 74, 66):
+        f = font("display", size); lines = wrap(text, f, max_w)
+        if len(lines) <= (3 if size >= 96 else 4):
+            break
+    y_end = draw_words(img, text, f, M_L, 400, max_w, t, fill=YELLOW, stagger=0.07, dur=0.24, line_h=int(size * 1.07))
+    cta_y = max(820, y_end + 40)
+    d.text((M_L, cta_y), "Yoruma yazın · Maçtan sonra karşılaştırırız", font=font("semi", 36), fill=PALE)
+    logo_y = cta_y + 180
     # göz: kırpma (ilk 0.25 sn kapak iner-kalkar) + nefes
     blink = 1 - abs(math.sin(min(t, 0.25) / 0.25 * math.pi)) * 0.6 if t < 0.25 else 1
     mk = logo.eye_mark(int(150 * (1 + 0.03 * math.sin(t * 2 * math.pi / 1.2))))
     if blink < 1:
         mk = mk.resize((mk.width, max(1, int(mk.height * blink))), Image.LANCZOS)
-    img.paste(mk, ((W - mk.width) // 2, 1000 + (150 - mk.height) // 2), mk)
-    d.text((W / 2, 1180), "ANALİZ VE ÖTESİ", font=font("display", 56), fill=WHITE, anchor="ma")
-    d.text((W / 2, 1250), HANDLE, font=font("semi", 32), fill=PALE, anchor="ma")
+    img.paste(mk, ((W - mk.width) // 2, logo_y + (150 - mk.height) // 2), mk)
+    d.text((W / 2, logo_y + 180), "ANALİZ VE ÖTESİ", font=font("display", 56), fill=WHITE, anchor="ma")
+    d.text((W / 2, logo_y + 250), HANDLE, font=font("semi", 32), fill=PALE, anchor="ma")
     d.text((M_L, 1580), DISCLAIMER, font=font("body", 26), fill=(170, 190, 180))
 
 
