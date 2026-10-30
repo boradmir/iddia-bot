@@ -46,7 +46,7 @@ def build_script(m, bl, pm, absences):
     if rs and ms:
         market = f"Piyasaya göre {m['home']} yüzde {ms['1']*100:.0f}, {m['away']} yüzde {ms['2']*100:.0f}."
         rs = re.sub(r"P[İI]YASA\.?", market, rs, count=1) if "PİYASA" in rs or "PIYASA" in rs else re.sub(r"Piyasaya göre[^.]*\.", market, rs, count=1)
-    if rs and 18 <= len(rs.split()) <= 52 and not re.search(r"\b(ben|bana|bence|beni)\b", rs, re.I):
+    if rs and 18 <= len(rs.split()) <= 64 and not re.search(r"\b(ben|bana|bence|beni)\b", rs, re.I):
         sents = [s.strip() for s in re.split(r"(?<=[.!?])\s+", rs) if s.strip()]
         return rs, sents
     hook = (bl.get("hook") or "").strip().rstrip(".")
