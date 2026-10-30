@@ -879,6 +879,7 @@ def build():
     cnt = lambda n: f'<span class="cnt">{n}</span>' if n else ""
     return f"""<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>İddia Bot</title>
+<meta name="robots" content="noindex, nofollow, noarchive">
 <meta name="description" content="Nesine oranlarını dünya piyasasıyla karşılaştıran deneme sayfası.">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
