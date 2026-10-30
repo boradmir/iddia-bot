@@ -57,13 +57,26 @@ def _fg(c1, c2):
     return c2 if sum(c2) > sum(c1) else WHITE
 
 
+def crest_for(team, er, size):
+    """ESPN takım arması (varsa). er = espn.fetch_match kaydı ("teams" içinde logo adresi)."""
+    import espn
+    for tname, t in ((er or {}).get("teams") or {}).items():
+        if match.similarity(team, tname) >= 0.6 and t.get("logo"):
+            return espn.team_logo(t["logo"], size)
+    return None
+
+
 def lineup_column(d, x, y, w, team, roster, er, box=GREEN3):
     c1, c2, _ = team_style(team, er)
     d.rounded_rectangle((x, y, x + w, y + 64), radius=16, fill=c1)
+    crest = crest_for(team, er, 48)
+    tx = x + 18
+    if crest:
+        d._image.paste(crest, (int(x + 12), int(y + 8)), crest); tx = x + 70
     f = font("display", 34)
-    while f.getlength(team) > w - 120 and f.size > 22:
+    while f.getlength(team) > w - 120 - (52 if crest else 0) and f.size > 22:
         f = font("display", f.size - 2)
-    d.text((x + 18, y + 32), team, font=f, fill=_fg(c1, c2), anchor="lm")
+    d.text((tx, y + 32), team, font=f, fill=_fg(c1, c2), anchor="lm")
     form = (roster or {}).get("formation") or "—"
     d.text((x + w - 18, y + 32), form, font=font("displaysemi", 30), fill=_fg(c1, c2), anchor="rm")
     y += 80
@@ -114,16 +127,26 @@ def score_card(m, live, kind, out_path, er=None):
     hc1, hc2, _ = team_style(m["home"], er); ac1, ac2, _ = team_style(m["away"], er)
     st = live.get("stats") or {}
     rows = [k for k in ("Topla oynama", "Şut", "İsabetli şut", "Korner", "Faul") if k in (st.get("home") or {}) or k in (st.get("away") or {})]
-    evs = live.get("goals", []) + live.get("cards", []) + live.get("subs", [])
+    # olaylar: goller + kırmızı kartlar her zaman; değişiklikler taraf başına en fazla 6 olay kalacak şekilde (en erken olanlar)
+    def _min(g):
+        return int("".join(ch for ch in (g.get("minute") or "0").split("+")[0] if ch.isdigit()) or 0)
+    evs = []
+    for side in ("home", "away"):
+        core = [g for g in live.get("goals", []) + live.get("cards", []) if (g.get("side") or "home") == side]
+        subs = sorted([g for g in live.get("subs", []) if (g.get("side") or "home") == side], key=_min)
+        evs += core + subs[:max(0, 6 - len(core))]
     n_ev = max(len([g for g in evs if (g.get("side") or "home") == "home"]), len([g for g in evs if g.get("side") == "away"]))
     f2 = font("body", 22); dl = wrap(DISCLAIMER, f2, SW - 120)
     yb = SH - SAFE_BOTTOM - 30 * len(dl)
     avail = yb - 40 - SAFE_TOP
     row_h, stat_h = 50, 96
-    content_h = 56 + 70 + 330 + (n_ev * row_h + 30 if n_ev else 70) + (30 + 50 + len(rows) * stat_h if rows else 0) + 50
+    content_h = 56 + 70 + 70 + 330 + (n_ev * row_h + 30 if n_ev else 70) + (30 + 50 + len(rows) * stat_h if rows else 0) + 50
+    def _h():
+        return 56 + 70 + 70 + 330 + (n_ev * row_h + 30 if n_ev else 70) + (30 + 50 + len(rows) * stat_h if rows else 0) + 50
     if content_h > avail:   # çok olay varsa satırları sıkıştır
-        row_h, stat_h = 42, 84
-        content_h = 56 + 70 + 330 + (n_ev * row_h + 30 if n_ev else 70) + (30 + 50 + len(rows) * stat_h if rows else 0) + 50
+        row_h, stat_h = 42, 84; content_h = _h()
+    if content_h > avail and "Faul" in rows:   # hâlâ sığmıyorsa faul satırını düşür
+        rows.remove("Faul"); content_h = _h()
     y = SAFE_TOP + max(0, int((avail - content_h) / 2))
     # başlık
     text(d, (60, y), tr_upper("Devre arası" if kind == "ht" else "Maç sonu"), font("displaysemi", 30), YELLOW)
@@ -132,11 +155,16 @@ def score_card(m, live, kind, out_path, er=None):
     img.paste(mk, (hx - 14 - mk.width, y + 12 - mk.height // 2), mk)
     y += 56
     text(d, (60, y), f"{tr_date(m['start'])} · {start:%H:%M} · {m.get('league', '')}", font("body", 28), PALE); y += 70
+    if er and (er.get("teams") or {}):
+        y += 70   # armalar için yer
     # skor: takım adları renkli şeritle, büyük beyaz rakamlar, ince ayraç
     half = (SW - 120) / 2
     sh_, sa = live["score"].get("home"), live["score"].get("away")
     fn = font("display", 44)
     for cx, nm, c1, c2, x0 in ((60 + half / 2, m["home"], hc1, hc2, 60), (60 + half + half / 2, m["away"], ac1, ac2, 60 + half)):
+        crest = crest_for(nm, er, 72)
+        if crest:
+            img.paste(crest, (int(cx - 36), int(y - 60)), crest)
         f = fn
         while f.getlength(nm) > half - 40 and f.size > 24:
             f = font("display", f.size - 2)
@@ -203,7 +231,8 @@ def score_card(m, live, kind, out_path, er=None):
             if w - hw > 0:
                 d.rounded_rectangle((bar_x0 + hw + 3, by, bar_x1, by + bh), radius=bh // 2, fill=ac1)
             y += stat_h
-    text(d, (60, y + 6), "Kaynak: ESPN", font("body", 22), (150, 175, 160))
+    if y + 40 < yb - 20:
+        text(d, (60, y + 6), "Kaynak: ESPN", font("body", 22), (150, 175, 160))
     d.line((60, yb - 16, SW - 60, yb - 16), fill=(60, 95, 78), width=2)
     for ln in dl:
         d.text((60, yb), ln, font=f2, fill=(170, 190, 180)); yb += 30

@@ -183,7 +183,11 @@ def inplay_async(m, event_id, dry):
         day = m["start"].astimezone(timezone(timedelta(hours=3))).strftime("%Y-%m-%d")
         os.makedirs(f"docs/social/{day}", exist_ok=True)
         path = f"docs/social/{day}/{kind}_{m['code']}.jpg"
-        story.score_card(m, lv, "ht" if kind == "devre" else "ft", path)
+        try:
+            er = espn.fetch_match(m, event_id)
+        except Exception:
+            er = None
+        story.score_card(m, lv, "ht" if kind == "devre" else "ft", path, er=er)
         size = os.path.getsize(path)
         with GIT_LOCK:
             git_publish(f"{kind} {m['home']}-{m['away']} {lv['score'].get('home')}-{lv['score'].get('away')}", dry)

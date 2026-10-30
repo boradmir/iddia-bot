@@ -87,7 +87,8 @@ def extract(summary):
             for c in comp.get("competitors", []) or []:
                 t = c.get("team", {}) or {}
                 if t.get("displayName"):
-                    out.setdefault("teams", {})[t["displayName"]] = {"abbr": t.get("abbreviation"), "color": t.get("color"), "alt": t.get("alternateColor"), "home": c.get("homeAway") == "home"}
+                    logo = t.get("logo") or next((l.get("href") for l in t.get("logos", []) if l.get("href")), None)
+                    out.setdefault("teams", {})[t["displayName"]] = {"abbr": t.get("abbreviation"), "color": t.get("color"), "alt": t.get("alternateColor"), "home": c.get("homeAway") == "home", "logo": logo}
     except Exception:
         pass
     for t in summary.get("lastFiveGames", []) or []:
@@ -123,6 +124,32 @@ def save(rec):
 
 STAT_KEYS = {"possessionPct": "Topla oynama", "totalShots": "Şut", "shotsOnTarget": "İsabetli şut", "wonCorners": "Korner",
              "foulsCommitted": "Faul", "offsides": "Ofsayt"}
+
+
+_LOGO_CACHE = {}
+
+
+def team_logo(url, size):
+    """Takım arması (ESPN CDN) → RGBA PIL görseli, kenarı size px. İndirilemezse None. (Yalnız story'lerde kullanılır.)"""
+    if not url:
+        return None
+    key = (url, size)
+    if key in _LOGO_CACHE:
+        return _LOGO_CACHE[key]
+    try:
+        import io, urllib.request
+        from PIL import Image
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=15) as r:
+            img = Image.open(io.BytesIO(r.read())).convert("RGBA")
+        img.thumbnail((size, size), Image.LANCZOS)
+        canvas = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+        canvas.paste(img, ((size - img.width) // 2, (size - img.height) // 2), img)
+        _LOGO_CACHE[key] = canvas
+        return canvas
+    except Exception:
+        _LOGO_CACHE[key] = None
+        return None
 
 
 def live(sport_key, event_id):
