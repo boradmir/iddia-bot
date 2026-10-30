@@ -7,6 +7,7 @@ Böylece zincir kopmadıkça kayıt hiç durmaz. Cron çalışmaya başlarsa da 
 
 Kullanım: python keeper.py [--max-minutes 340] [--no-chain]
 """
+import re
 import json, os, subprocess, sys, time
 from datetime import datetime, timezone, timedelta
 import nesine, espn, claude_check, build_site, odds, prob, match, clubs
@@ -92,7 +93,8 @@ def maybe_results(s, now):
             break
 
 
-IG_POST_UTC = (5, 30)   # 08:30 Türkiye saati
+IG_POST_UTC = (6, 50)   # 09:50 TSİ'den itibaren her turda instagram.py çağrılır; saati gelen gönderi gider (saatler instagram.post_slots)
+NEXT_SLOT_UTC = None     # instagram.py'nin bildirdiği bir sonraki yayın saati (UTC saat, dakika)
 PRIORITY = ["soccer_turkey_super_league", "soccer_epl", "soccer_uefa_champs_league", "soccer_spain_la_liga", "soccer_italy_serie_a",
             "soccer_germany_bundesliga", "soccer_france_ligue_one", "soccer_uefa_europa_league", "soccer_uefa_europa_conference_league", "soccer_uefa_nations_league"]
 
@@ -230,12 +232,15 @@ def main():
             maybe_morning_claude(load_status(), now)
             if now.minute < 20:  # saatte bir: paylaşım kartları (yerel, ücretsiz)
                 r = sh([sys.executable, "social.py"], capture_output=True, text=True); log((r.stdout or r.stderr).strip()[:200])
-            # Instagram gönderimi (secret varsa): günde bir kez, 08:30 TSİ (05:30 UTC); döngü bu saate denk gelecek şekilde bekler
-            s2 = load_status()
-            if os.environ.get("IG_TOKEN") and (now.hour, now.minute) >= IG_POST_UTC and s2.get("ig_day") != now.strftime("%Y-%m-%d"):
-                sh([sys.executable, "social.py"], capture_output=True, text=True)  # kartlar taze olsun
-                r = sh([sys.executable, "instagram.py"], capture_output=True, text=True); log("instagram: " + (r.stdout or r.stderr).strip()[:300])
-                s2["ig_day"] = now.strftime("%Y-%m-%d"); save_status(s2)
+            # Instagram gönderimi (secret varsa): 09:50 TSİ'den sonra her turda; saati gelen gönderi gider, gelmeyen "planlı" diye bildirilir
+            global NEXT_SLOT_UTC
+            NEXT_SLOT_UTC = None
+            if os.environ.get("IG_TOKEN") and (now.hour, now.minute) >= IG_POST_UTC:
+                r = sh([sys.executable, "instagram.py"], capture_output=True, text=True); out = (r.stdout or r.stderr).strip()
+                log("instagram: " + out[:300])
+                mm = re.search(r"NEXT_SLOT_UTC=(\d\d):(\d\d)", out)
+                if mm:
+                    NEXT_SLOT_UTC = (int(mm.group(1)), int(mm.group(2)))
         except Exception as e:
             log(f"Tur içi hata (kayıt yine de gönderiliyor): {e}")
         publish(f"kayıt {now:%Y-%m-%d %H:%M}")
@@ -247,11 +252,13 @@ def main():
         if time.time() + RECORD_MIN * 60 > deadline:
             break
         wait = RECORD_MIN * 60
-        # 08:30 TSİ gönderimi tam zamanında olsun: bir sonraki tur o saati atlayacaksa, o saate kadar bekle
-        nxt = datetime.now(timezone.utc).replace(hour=IG_POST_UTC[0], minute=IG_POST_UTC[1], second=10, microsecond=0)
-        left = (nxt - datetime.now(timezone.utc)).total_seconds()
-        if 0 < left < wait:
-            wait = left
+        # gönderi tam saatinde gitsin: bir sonraki yayın saati (ya da ilk kontrol saati) bu turun içindeyse o saate kadar bekle
+        for hm in (NEXT_SLOT_UTC, IG_POST_UTC):
+            if hm:
+                nxt = datetime.now(timezone.utc).replace(hour=hm[0], minute=hm[1], second=10, microsecond=0)
+                left = (nxt - datetime.now(timezone.utc)).total_seconds()
+                if 0 < left < wait:
+                    wait = left
         time.sleep(wait)
     if chain:
         dispatch("keeper.yml")

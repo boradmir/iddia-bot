@@ -258,6 +258,41 @@ def caption_for(m, ai, pm):
     return cap[:2190]
 
 
+PLAN = "records/plan.json"
+
+
+def day_plan(day):
+    """Günün planı (reels saati vb.); dosya yoksa boş."""
+    try:
+        return json.load(open(PLAN, encoding="utf-8")).get(str(day), {})
+    except Exception:
+        return {}
+
+
+def post_slots(cands, today):
+    """Her aday için yayın saati (TR). İlk: 12:00; maç 15:00'ten erkense 10:00; o gün reels 2 saat içindeyse 2 saat öne (en erken 09:00).
+    Sonrakiler: maçtan 3 saat önce, öncekinden en az 90 dk sonra, maçtan en geç 1 saat önce."""
+    plan = day_plan(today)
+    slots = []
+    prev = None
+    for i, (_, m, pm, has_comment) in enumerate(cands):
+        ko = m["start"].astimezone(TR)
+        if i == 0:
+            t = ko.replace(hour=12, minute=0, second=0, microsecond=0)
+            if ko < ko.replace(hour=15, minute=0):
+                t = t.replace(hour=10)
+            ra = plan.get("reels_at")
+            if ra:
+                rh, rm = map(int, ra.split(":")); r_at = ko.replace(hour=rh, minute=rm, second=0, microsecond=0)
+                if abs((r_at - t).total_seconds()) < 2 * 3600:
+                    t = max(r_at - timedelta(hours=2), ko.replace(hour=9, minute=0, second=0, microsecond=0))
+        else:
+            t = max(ko - timedelta(hours=3), prev + timedelta(minutes=90))
+        t = min(t, ko - timedelta(hours=1))
+        slots.append(t); prev = t
+    return slots
+
+
 def main():
     import build_site, prob, odds, match
     dry = "--dry" in sys.argv or not (TOKEN and USER_ID)
@@ -296,11 +331,18 @@ def main():
         cands.append(((0 if has_comment else 1, clubs.tier(m), m["start"]), m, pm, has_comment))
     cands.sort(key=lambda x: x[0])  # yorumu olan → büyük kulüp → erken başlayan
     budget = len(cands) if only is not None else MAX_PER_DAY - len(sent_today)
-    for _, m, pm, has_comment in cands[:budget]:
+    picked = cands[:budget]
+    # yayın saatleri: bugün gönderilmişler de sıraya sayılır (ikinci gönderi aralığı için)
+    slots = post_slots([(None, {"start": datetime.fromisoformat(x["t"]).astimezone(TR)}, None, None) for x in sent_today] + picked, today)[len(sent_today):] if only is None else [None] * len(picked)
+    now_tr = datetime.now(TR)
+    pending = []
+    for (_, m, pm, has_comment), slot in zip(picked, slots):
+        if slot is not None and now_tr < slot:
+            pending.append(slot); print(f"planlı {slot:%H:%M}: {m['home']}-{m['away']}"); continue
         urls = [f"{PAGES}/social/{today}/match_{m['code']}.jpg"] + ([f"{PAGES}/social/{today}/yorum_{m['code']}.jpg"] if has_comment else [])
         cap = caption_for(m, ai.get(m["code"]), pm)
         if dry:
-            print(f"[kuru] {m['home']}-{m['away']}: {len(urls)} görsel\n{cap[:300]}...\n"); continue
+            print(f"[kuru] {m['home']}-{m['away']} ({slot and f'{slot:%H:%M}'}): {len(urls)} görsel\n{cap[:300]}...\n"); continue
         try:
             pid = publish_carousel(urls, cap)
             with open(LOG, "a", encoding="utf-8") as f:
@@ -309,6 +351,8 @@ def main():
             print(f"Gönderildi: {m['home']}-{m['away']} ({pid})")
         except Exception as e:
             print(f"Gönderim hatası {m['home']}-{m['away']}: {e}")
+    if pending:
+        print(f"NEXT_SLOT_UTC={min(pending).astimezone(timezone.utc):%H:%M}")
 
 
 INTRO_CAPTION = """Skordan öncesini okuruz.
