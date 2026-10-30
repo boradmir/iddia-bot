@@ -14,14 +14,13 @@ OUT = "docs/social/intro"
 def card1():
     img = pitch_background(); d = ImageDraw.Draw(img)
     mk = logo.mark_image(360)
-    img.paste(mk, ((W - mk.width) // 2, 120), mk)
+    img.paste(mk, (int(W / 2 - mk.width / 3), 120), mk)  # A'nın ekseni (işaretin 1/3'ü; sağdaki nokta hariç) ortada
     d.text((W / 2, 720), "ANALİZ", font=font("display", 150), fill=WHITE, anchor="mm")
     d.text((W / 2, 830), "V E   Ö T E S İ", font=ImageFont.truetype("assets/fonts/BarlowCondensed-SemiBold.ttf", 78), fill=YELLOW, anchor="mm")
     d.text((W / 2, 960), "Skordan öncesini okuruz.", font=font("semi", 40), fill=WHITE, anchor="mm")
     d.text((W / 2, 1020), "Kadro · form · sakatlık · ihtimaller", font=font("body", 30), fill=PALE, anchor="mm")
     d.text((W / 2, 1140), HANDLE, font=font("semi", 30), fill=YELLOW, anchor="mm")
-    footer(d, dark=True)
-    save(img, f"{OUT}/intro_1.jpg")
+    save(img, f"{OUT}/intro_1.jpg")  # kapakta 18+ dipnotu yok; 4. kartta var
 
 
 def bullets(d, y, items, fg=WHITE, dim=PALE, maxw=W - 160):
