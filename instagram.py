@@ -205,8 +205,8 @@ def caption_for(m, ai, pm):
         parts.append(f"Uluslararası piyasanın ihtimali: {m['home']} %{pm['MS']['1']*100:.0f} · beraberlik %{pm['MS']['X']*100:.0f} · {m['away']} %{pm['MS']['2']*100:.0f}")
     if bl.get("risk"):
         parts.append("En büyük belirsizlik: " + bl["risk"])
-    q = (bl.get("question") or "").strip() or "Sen ne düşünüyorsun?"
-    parts.append(f"{q} Yoruma yaz. Maç sonu karşılaştırmak için kaydet.")
+    q = (bl.get("question") or "").strip() or "Siz ne düşünüyorsunuz?"
+    parts.append(f"{q} Yoruma yazın. Maç sonu karşılaştırmak için kaydedin.")
     parts.append(NOTE); parts.append(hashtags_for(m))
     cap = "\n\n".join(parts)
     if len(cap) > 2150:   # Instagram sınırı 2200: önce tam yazıyı kısalt

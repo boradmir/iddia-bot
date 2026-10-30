@@ -5,6 +5,7 @@ Kullanım (deneme): python reels.py --demo
 """
 import asyncio, json, math, os, re, shutil, subprocess, sys, tempfile
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
+import config  # .env (ELEVENLABS_API_KEY, ELEVENLABS_VOICE_ID)
 import social, logo, icons
 from social import font, wrap, tr_upper, team_style, GREEN, GREEN2, GREEN3, YELLOW, CREAM, WHITE, PALE, INK, HANDLE, DISCLAIMER, TR
 
@@ -40,11 +41,19 @@ def build_script(m, bl, pm, absences):
     """Seslendirme metni (28-36 kelime) ve sahne çapaları (kelime indeksleri)."""
     ms = pm["MS"] if pm and "MS" in pm else None
     fav_side = max(ms, key=ms.get) if ms else None
+    # yapay zekânın yazdığı seslendirme metni varsa ve ölçüye uyuyorsa onu kullan
+    rs = (bl.get("reels_script") or "").strip()
+    if rs and ms:
+        market = f"Piyasaya göre {m['home']} yüzde {ms['1']*100:.0f}, {m['away']} yüzde {ms['2']*100:.0f}."
+        rs = re.sub(r"P[İI]YASA\.?", market, rs, count=1) if "PİYASA" in rs or "PIYASA" in rs else re.sub(r"Piyasaya göre[^.]*\.", market, rs, count=1)
+    if rs and 18 <= len(rs.split()) <= 34 and not re.search(r"\b(ben|bana|bence|beni)\b", rs, re.I):
+        sents = [s.strip() for s in re.split(r"(?<=[.!?])\s+", rs) if s.strip()]
+        return rs, sents
     hook = (bl.get("hook") or "").strip().rstrip(".")
     if not hook or len(hook.split()) > 8:
         if ms and ms[fav_side] >= 0.6:
             fav = m["home"] if fav_side == "1" else (m["away"] if fav_side == "2" else "beraberlik")
-            hook = f"Piyasa {fav} için yüzde {ms[fav_side]*100:.0f} diyor. Ben o kadar emin değilim"
+            hook = f"Piyasa {fav} için yüzde {ms[fav_side]*100:.0f} diyor. Biz o kadar emin değiliz"
         elif absences:
             hook = f"{absences[0]['player'].split()[-1]} yok. Bu maçı değiştirir mi"
         else:
@@ -60,10 +69,16 @@ def build_script(m, bl, pm, absences):
         parts.append(", ".join(f"{a['player'].split()[-1]} {a['status']}" for a in absences[:2]) + ".")
     risk_short = (bl.get("risk_short") or short_words(bl.get("risk"), 12)).rstrip(".")
     if risk_short:
-        parts.append(f"Beni düşündüren: {risk_short}.")
-    q = (bl.get("question") or "Sen ne diyorsun?").strip()
+        parts.append(f"Bizi düşündüren: {risk_short}.")
+    q = (bl.get("question") or "Siz ne diyorsunuz?").strip()
     parts.append(q if q.endswith("?") else q + "?")
-    parts.append("Yoruma yaz.")
+    parts.append("Yoruma yazın.")
+    # süre bütçesi: ~13 sn için en fazla 28 kelime; sırayla eksikler cümlesi, sonra piyasa cümlesi düşer
+    def n_words(ps): return sum(len(p.split()) for p in ps)
+    if n_words(parts) > 28 and absences:
+        parts = [p for p in parts if not p.startswith(absences[0]['player'].split()[-1])]
+    if n_words(parts) > 28 and ms:
+        parts = [p for i, p in enumerate(parts) if i != 1]
     text = " ".join(parts)
     for b in BANNED:
         text = re.sub(rf"\b{b}\w*", "", text, flags=re.I)
@@ -86,7 +101,42 @@ async def _tts(text, out_mp3):
     return words
 
 
+ELEVEN_KEY = os.environ.get("ELEVENLABS_API_KEY", "")
+ELEVEN_VOICE = os.environ.get("ELEVENLABS_VOICE_ID", "")
+ELEVEN_MODEL = os.environ.get("ELEVENLABS_MODEL", "eleven_multilingual_v2")
+
+
+def tts_eleven(text, out_mp3, voice_id=None, model=None):
+    """ElevenLabs: ses + karakter zaman damgaları → kelime zamanları (altyazı senkronu için)."""
+    import base64, urllib.request
+    voice_id = voice_id or ELEVEN_VOICE
+    body = json.dumps({"text": text, "model_id": model or ELEVEN_MODEL,
+                       "voice_settings": {"stability": 0.40, "similarity_boost": 0.85, "style": 0.38, "use_speaker_boost": True}}).encode()   # Ahu "orta" ayar
+    req = urllib.request.Request(f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}/with-timestamps?output_format=mp3_44100_128",
+                                 data=body, headers={"xi-api-key": ELEVEN_KEY, "Content-Type": "application/json"})
+    with urllib.request.urlopen(req, timeout=120) as r:
+        res = json.loads(r.read())
+    with open(out_mp3, "wb") as f:
+        f.write(base64.b64decode(res["audio_base64"]))
+    al = res.get("alignment") or res.get("normalized_alignment") or {}
+    chars, starts, ends = al.get("characters", []), al.get("character_start_times_seconds", []), al.get("character_end_times_seconds", [])
+    words, cur, t0 = [], "", None
+    for ch, st, en in zip(chars, starts, ends):
+        if ch.isspace():
+            if cur:
+                words.append({"t": t0, "d": max(0.05, en_prev - t0), "w": cur}); cur, t0 = "", None
+            continue
+        if t0 is None:
+            t0 = st
+        cur += ch; en_prev = en
+    if cur:
+        words.append({"t": t0, "d": max(0.05, en_prev - t0), "w": cur})
+    return words
+
+
 def tts(text, out_mp3):
+    if ELEVEN_KEY and ELEVEN_VOICE:
+        return tts_eleven(text, out_mp3)
     return asyncio.run(_tts(text, out_mp3))
 
 
@@ -282,7 +332,7 @@ def scene_risk(img, d, t, risk, th):
 def scene_question(img, d, t, question, th):
     f = font("display", 110)
     draw_words(img, tr_upper(question), f, M_L, 400, W - M_L - M_R, t, fill=YELLOW, stagger=0.07, dur=0.24, line_h=118)
-    d.text((M_L, 820), "Yoruma yaz · Maçtan sonra karşılaştırırız", font=font("semi", 36), fill=PALE)
+    d.text((M_L, 820), "Yoruma yazın · Maçtan sonra karşılaştırırız", font=font("semi", 36), fill=PALE)
     # göz: kırpma (ilk 0.25 sn kapak iner-kalkar) + nefes
     blink = 1 - abs(math.sin(min(t, 0.25) / 0.25 * math.pi)) * 0.6 if t < 0.25 else 1
     mk = logo.eye_mark(int(150 * (1 + 0.03 * math.sin(t * 2 * math.pi / 1.2))))
@@ -317,10 +367,10 @@ def timeline(words, parts, total):
     if pi is not None:
         j = pi
         while j < len(words) and not words[j]["w"].endswith("."): j += 1
-        t["absences"] = words[j + 1]["t"] - 0.1 if j + 1 < len(words) and not words[j + 1]["w"].lower().startswith("beni") else None
+        t["absences"] = words[j + 1]["t"] - 0.1 if j + 1 < len(words) and not words[j + 1]["w"].lower().startswith(("beni", "bizi")) else None
     else:
         t["absences"] = None
-    i = find("beni"); t["risk"] = words[i]["t"] - 0.16 if i is not None else None
+    i = find("bizi") or find("beni"); t["risk"] = words[i]["t"] - 0.16 if i is not None else None
     # soru: "düşündüren" cümlesi bittikten sonraki kelime
     if i is not None:
         j = i
@@ -343,7 +393,7 @@ def render(m, bl, pm, er, out_mp4, absences=None):
     tl = timeline(words, parts, total)
     hook = parts[0].rstrip(".")
     risk_short = (bl.get("risk_short") or short_words(bl.get("risk"), 12))
-    question = (bl.get("question") or "Sen ne diyorsun?")
+    question = (bl.get("question") or "Siz ne diyorsunuz?")
     fsub = font("semi", 56)
     # sahne sırası
     scene_hook.m = m

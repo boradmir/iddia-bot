@@ -29,9 +29,9 @@ Arama disiplini: en fazla 4-5 arama; her aramanın sonucunu okuyup değerlendirm
 bir haftadan eskiyse güvenini düşür.
 
 Yorum (comment) nasıl olmalı:
-- Ses: ölçülü, deneyimli bir analist. Köşe yazısı ciddiyeti; sohbet havası değil. "Ben", "bana kalırsa", "açıkçası", "işin tuhafı"
-  gibi samimi kalıpları yazı başına en fazla BİR kez kullan; gerekmiyorsa hiç kullanma. "Biz" ya da kişisiz anlatım tercih et
-  ("Beklenti şu:", "Asıl soru şu:"). Ünlem yok, abartı yok, argo yok.
+- Ses: ölçülü, deneyimli bir analist EKİBİ. Her zaman "biz" ağzı: "bizce", "beklentimiz", "bizi düşündüren", "biz o kadar emin değiliz".
+  ASLA "ben", "bana kalırsa", "bence", "beni" kullanma (seslendirmede de bu metinler okunuyor). Köşe yazısı ciddiyeti; sohbet
+  havası değil. "Açıkçası", "işin tuhafı" gibi kalıplar yazı başına en fazla bir kez. Ünlem yok, abartı yok, argo yok.
 - Kalıp açılış kullanma ("Maçın anahtarı…", "Bu maçta…" ile başlama); her yazı farklı bir yerden girsin — bir oyuncudan, bir sayıdan,
   son maçtaki bir andan, bir çelişkiden.
 - Somut ol: isimler, sayılar, son maçlardan anlar. Klişe yok ("iki takım da kazanmak isteyecek" yazma), boş genelleme yok.
@@ -44,6 +44,8 @@ hook: gönderinin ilk satırı ve kartın tezi; yazının en çarpıcı tespiti,
 card_text: kartta görünecek kısa gövde, 3-4 cümle, en fazla 80 kelime; comment'in özü, hook'u tekrar etmez.
 question: okura tek soru (en fazla 90 karakter), yoruma davet; oran/bahis yok.
 risk_short: belirsizliğin konuşma dilinde kısa hali, en fazla 12 kelime, 2-3 parça virgülle (seslendirme metni için).
+reels_script: seslendirme metni (24-28 kelime, biz ağzı, konuşma dili). Bu metin sesli okunacak: yazdıktan sonra sesli okur gibi kontrol et,
+devrik ve uzun cümle olmasın, her cümle en fazla 10 kelime, yabancı adlar Türkçe okunuşa uygun yazılsın (Leão → Leao gerekmez, olduğu gibi).
 risk: tek cümle, ölçülü ("En büyük soru işareti…", "Sonucu en çok şu belirsizleştiriyor:…"); "en büyük belirsizlik" kalıbını cümle içinde tekrarlama. absences: haberlerde geçen her eksik/şüpheli/dönen oyuncu için
 takımdaki yeri (as/rotasyon/yedek), son maçlardaki durumu ve bu maça somut etkisi (yerine kim oynar, hangi bölge zayıflar);
 emin olmadığın yere 'bilinmiyor' yaz, uydurma. lineup_note: muhtemel 11 / diziliş, 1-2 cümle; bilgi yoksa boş.
@@ -59,6 +61,7 @@ BLIND_SCHEMA = {
         "card_text": {"type": "string", "description": "Kartta görünecek kısa gövde: 3-4 cümle, EN FAZLA 80 kelime, yazının özü; hook'u tekrar etme; kusursuz Türkçe"},
         "question": {"type": "string", "description": "Okura tek soru, en fazla 90 karakter, yoruma davet eder (örn. 'Barış Alper'siz sol kanat yeter mi?'); oran/bahis yok"},
         "risk_short": {"type": "string", "description": "Belirsizliğin konuşma dilinde kısa hali: en fazla 12 kelime, virgülle ayrılmış 2-3 parça (örn. 'Abdülkerim yok, savunma rotasyonlu, Konya ilk yarım saat basar'); seslendirme için"},
+        "reels_script": {"type": "string", "description": "SESLENDİRME METNİ, 24-28 kelime, konuşma dili, biz ağzı, kısa cümleler, kusursuz Türkçe. Sıra zorunlu: (1) kanca, en fazla 8 kelime, bir sayı veya isim içersin; (2) ikinci cümle olarak SADECE 'PİYASA.' yaz (sayıları biz ekleyeceğiz; sen piyasa yüzdesini bilmiyorsun, uydurma); (3) en fazla iki eksik oyuncu, 'X cezalı, Y şüpheli.' biçiminde (yoksa atla); (4) 'Bizi düşündüren: ...' en fazla 12 kelime; (5) okura tek soru; (6) 'Yoruma yazın.' Oran, bahis, kupon, 'banko', 'kesin' yok. Sayılar rakamla (yüzde 62)."},
         "comment": {"type": "string", "description": "ZORUNLU, asla boş bırakma: 4-6 cümle, ölçülü bir analist sesiyle kusursuz Türkçe maç önü yazısı; samimi kalıp en fazla bir kez; kalıp açılış yok; somut isim/sayı/an; görüş + dayanağı. Haber bulunamadıysa da yaz."},
         "risk": {"type": "string", "description": "Tek cümle, ölçülü: bu maçta sonucu en çok belirsizleştiren şey"},
         "confidence": {"type": "string", "enum": ["düşük", "orta", "yüksek"]},
@@ -72,7 +75,7 @@ BLIND_SCHEMA = {
                          "required": ["team", "player", "status", "role", "recent", "impact"], "additionalProperties": False}},
         "lineup_note": {"type": "string", "description": "Muhtemel 11 / diziliş / kadro notu, 1-2 cümle; bilgi yoksa boş"},
     },
-    "required": ["p_home", "p_draw", "p_away", "p_over25", "p_btts", "facts", "hook", "card_text", "question", "risk_short", "comment", "risk", "confidence", "absences", "lineup_note"],
+    "required": ["p_home", "p_draw", "p_away", "p_over25", "p_btts", "facts", "hook", "card_text", "question", "risk_short", "reels_script", "comment", "risk", "confidence", "absences", "lineup_note"],
     "additionalProperties": False,
 }
 OBJECT_SCHEMA = {
@@ -119,7 +122,7 @@ def _run(client, messages, schema, usage):
     """Web araması pause_turn verebilir; en fazla 3 kez devam eder. Metin bloğundaki JSON'u döner; kullanım usage'a eklenir."""
     for _ in range(3):
         resp = client.beta.messages.create(
-            model=MODEL, max_tokens=4000,
+            model=MODEL, max_tokens=9000,
             betas=["server-side-fallback-2026-07-01"], fallbacks="default",
             # Önbellek: pause_turn devamları ve 2. aşama, önceki çağrının tam ön ekini paylaşır → okuma ucuz.
             # (2. aşama ilk kez görülen 1. aşama sonuçlarını önce yazar; kazanç devam turlarında.)
@@ -135,7 +138,15 @@ def _run(client, messages, schema, usage):
         if resp.stop_reason == "refusal":
             raise RuntimeError("Claude yanıt vermedi (refusal)")
         text = next((b.text for b in resp.content if b.type == "text"), None)
-        return json.loads(text) if text else None
+        if not text:
+            print(f"Claude: metin yok (stop={resp.stop_reason}, bloklar={[b.type for b in resp.content]})")
+            return None
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError as e:
+            print(f"Claude: JSON çözülemedi (stop={resp.stop_reason}, {len(text)} karakter): {e}")
+            return None
+    print("Claude: 3 devam turundan sonra da bitmedi (pause_turn)")
     return None
 
 
@@ -144,6 +155,7 @@ POLISH_SYSTEM = """Sen titiz bir Türkçe redaktörsün. Verilen metnin ANLAMINI
 - Noktalı virgülleri azalt (metin başına en fazla bir tane); gereksiz iki nokta ve üç noktayı kaldır; cümleyi tam bitir.
 - 25 kelimeden uzun cümleleri ikiye böl. Devrik cümleleri kurallı dizilişe çevir (özne … yüklem sonda).
 - Yazım: özel adlara gelen ekler kesme işaretiyle; "de/da" ve "ki" ayrımı doğru; büyük/küçük harf doğru.
+- Birinci tekil şahıs ifadelerini "biz" ağzına çevir ("bence"→"bizce", "beni düşündüren"→"bizi düşündüren", "ben ... değilim"→"biz ... değiliz").
 - Üslup aynı kalsın (ölçülü analist). Kelime eklemeden, kısaltmadan; sadece düzelt. Sonuç tek parça metin."""
 POLISH_SCHEMA = {"type": "object", "properties": {"text": {"type": "string"}}, "required": ["text"], "additionalProperties": False}
 
@@ -153,7 +165,8 @@ def needs_polish(text):
     if not text:
         return False
     sents = [s for s in re.split(r"(?<=[.!?])\s+", text.strip()) if s]
-    return (text.count(";") > 1 or "…" in text or "..." in text or any(len(s.split()) > 28 for s in sents))
+    first_person = re.search(r"\b(ben|bana|bence|beni|benim)\b", text, flags=re.I) is not None
+    return (text.count(";") > 1 or "…" in text or "..." in text or any(len(s.split()) > 28 for s in sents) or first_person)
 
 
 def polish(text, usage):
@@ -185,7 +198,7 @@ def analyze(home, away, league, start_iso, market_probs=None):
     usage = Usage()
     blind = _run(client, messages, BLIND_SCHEMA, usage)
     if blind:
-        for key in ("comment", "risk", "hook", "card_text", "lineup_note"):
+        for key in ("comment", "risk", "hook", "card_text", "lineup_note", "reels_script", "question", "risk_short"):
             if needs_polish(blind.get(key)):
                 blind[key] = polish(blind[key], usage); blind.setdefault("polished", []).append(key)
     out = {"model": MODEL, "blind": blind, "objection": None}
@@ -266,7 +279,7 @@ KADRO_DIR = "records/kadro"
 NOTE_SYSTEM = """Sen yılların futbol analistisin. Sabah bu maç için bir maç önü yazısı yazdın; şimdi kulüpler ilk 11'leri açıkladı.
 Görev: sabahki yazını hatırlayarak 2-3 cümlelik bir KADRO NOTU yaz: sürpriz var mı, beklediğin eksikler doğrulandı mı,
 sabahki beklenti duruyor mu yoksa değişti mi. Sabahki yazıya atıf yap ("Sabah ... demiştik"), tekrar anlatma.
-Ses: ölçülü, köşe yazısı ciddiyeti; "biz" ya da kişisiz anlatım; samimi kalıp ("bana kalırsa", "açıkçası") en fazla bir kez; ünlem yok.
+Ses: ölçülü, köşe yazısı ciddiyeti; HER ZAMAN "biz" ağzı ("beklentimiz", "bizce"); asla "ben/bana kalırsa/bence"; ünlem yok.
 Türkçe kusursuz: kesme işareti (Osimhen'in), her cümle tek fikir ve en fazla 25 kelime, üç nokta yok. Yazdıktan sonra bir kez daha oku.
 Oran, bahis, piyasa, tavsiye yazma; sadece maç. Olasılıklar: kadroyu gördükten sonraki güncel tahminin; toplam 1.0."""
 NOTE_SCHEMA = {
