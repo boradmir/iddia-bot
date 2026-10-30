@@ -388,10 +388,9 @@ def cover_image(img, m, th):
     bütün öğeler bu kuşakta."""
     d = ImageDraw.Draw(img)
     d.text((M_L, 340), tr_upper(COVER_LABEL), font=font("displaysemi", 34), fill=YELLOW)
-    mk = logo.eye_mark(120)
-    img.paste(mk, ((W - mk.width) // 2, 1210), mk)
-    d.text((W / 2, 1350), "ANALİZ VE ÖTESİ", font=font("display", 48), fill=WHITE, anchor="ma")
-    d.text((W / 2, 1408), HANDLE, font=font("semi", 30), fill=PALE, anchor="ma")
+    lk = logo.kit_lockup(250)
+    img.paste(lk, ((W - lk.width) // 2, 1190), lk)
+    d.text((W / 2, 1462), HANDLE, font=font("semi", 30), fill=PALE, anchor="ma")
     return img
 
 
@@ -516,14 +515,14 @@ def scene_question(img, d, t, question, th):
     logo_y = cta_y + 180
     if logo_y + 290 > 1540:
         note_issue("soru sahnesi alt blok dipnota taşıyor")
-    # göz: kırpma (ilk 0.25 sn kapak iner-kalkar) + nefes
-    blink = 1 - abs(math.sin(min(t, 0.25) / 0.25 * math.pi)) * 0.6 if t < 0.25 else 1
-    mk = logo.eye_mark(int(150 * (1 + 0.03 * math.sin(t * 2 * math.pi / 1.2))))
-    if blink < 1:
-        mk = mk.resize((mk.width, max(1, int(mk.height * blink))), Image.LANCZOS)
-    img.paste(mk, ((W - mk.width) // 2, logo_y + (150 - mk.height) // 2), mk)
-    d.text((W / 2, logo_y + 180), "ANALİZ VE ÖTESİ", font=font("display", 56), fill=WHITE, anchor="ma")
-    d.text((W / 2, logo_y + 250), HANDLE, font=font("semi", 32), fill=PALE, anchor="ma")
+    # marka: kit dikey logosu (göz + ANALİZ VE ÖTESİ), belirerek gelir, hafif nefes
+    k_in = ease_out_cubic(clamp(t / 0.35))
+    hgt = int(290 * (1 + 0.02 * math.sin(t * 2 * math.pi / 1.6)))
+    lk = logo.kit_lockup(hgt)
+    if k_in < 1:
+        lk = lk.copy(); lk.putalpha(lk.split()[3].point(lambda p: int(p * k_in)))
+    img.paste(lk, ((W - lk.width) // 2, logo_y + (290 - lk.height) // 2), lk)
+    d.text((W / 2, logo_y + 318), HANDLE, font=font("semi", 32), fill=tuple(int(c * k_in) for c in PALE), anchor="ma")
     d.text((M_L, 1580), DISCLAIMER, font=font("body", 26), fill=(170, 190, 180))
 
 

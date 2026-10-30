@@ -96,35 +96,48 @@ def a_mark(d, cx, cy, s, dot=WHITE, line=(255, 255, 255), beyond=YELLOW, dark_bg
     d.ellipse((beyond_pt[0] - rb * 1.6, beyond_pt[1] - rb * 1.6, beyond_pt[0] + rb * 1.6, beyond_pt[1] + rb * 1.6), outline=beyond, width=max(2, lw // 2))
 
 
-KIT_SYMBOL = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "brand", "v3", "symbol-on-green.png")
-_KIT = None
+KIT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "brand", "v3")
+_KIT = {}
+
+
+def kit_image(name="symbol-on-green"):
+    """Kit PNG'si (yeşil zeminli) → şeffaf RGBA, içeriğin sınır kutusuna kırpılmış. name: symbol-on-green | stacked-color | horizontal-color.
+    Zemin yeşili şeffaflaştırılır; sarı göz bebeği ve kemik rengi korunur; gri-yeşil yazı alfa ile korunur. Bir kez hesaplanır."""
+    if name in _KIT:
+        return _KIT[name]
+    src = Image.open(os.path.join(KIT_DIR, f"{name}.png")).convert("RGBA")
+    w, h = src.size
+    sp = src.load()
+    bg = sp[w // 2, 12][:3]   # zemin yeşili
+    fg = (243, 239, 228)
+    dmax = max(1, sum(abs(p - q) for p, q in zip(fg, bg)))
+    out = Image.new("RGBA", (w, h), (0, 0, 0, 0)); op = out.load()
+    for y in range(h):
+        for x in range(w):
+            r, g, b_, a0 = sp[x, y]
+            if a0 < 128:          # dosyanın kendi şeffaf köşeleri
+                continue
+            d = abs(r - bg[0]) + abs(g - bg[1]) + abs(b_ - bg[2])
+            if d < 12:
+                continue
+            if r > 170 and g > 130 and b_ < 130 and (r - b_) > 80:   # sarı göz bebeği: olduğu gibi
+                op[x, y] = (r, g, b_, 255); continue
+            al = min(1.0, d / dmax)
+            rr = max(0, min(255, int(bg[0] + (r - bg[0]) / al))); gg = max(0, min(255, int(bg[1] + (g - bg[1]) / al))); bb = max(0, min(255, int(bg[2] + (b_ - bg[2]) / al)))
+            op[x, y] = (rr, gg, bb, int(255 * al))
+    _KIT[name] = out.crop(out.getbbox())
+    return _KIT[name]
 
 
 def kit_symbol():
-    """Kit işareti (1600 px, yeşil zeminli PNG) → şeffaf RGBA, işaretin sınır kutusuna kırpılmış. Bir kez hesaplanır."""
-    global _KIT
-    if _KIT is not None:
-        return _KIT
-    im = Image.open(KIT_SYMBOL).convert("RGB")
-    w, h = im.size
-    bg = im.getpixel((w // 2, 12))   # zemin yeşili (üst kenar ortası, yuvarlak köşelerden uzak)
-    px = im.load()
-    out = Image.new("RGBA", (w, h), (0, 0, 0, 0)); op = out.load()
-    # alfa: zemin renginden uzaklık (kemik rengi ~ en uzak); kenar yumuşaklığı korunur, renk zeminden arındırılır
-    fg = (243, 239, 228)
-    dmax = max(1, sum(abs(a - b) for a, b in zip(fg, bg)))
-    for y in range(h):
-        for x in range(w):
-            r, g, b = px[x, y]
-            d = abs(r - bg[0]) + abs(g - bg[1]) + abs(b - bg[2])
-            if d < 12:
-                continue
-            a = min(1.0, d / dmax)
-            # zemini çıkar: renk = bg + (piksel - bg) / a
-            rr = max(0, min(255, int(bg[0] + (r - bg[0]) / a))); gg = max(0, min(255, int(bg[1] + (g - bg[1]) / a))); bb = max(0, min(255, int(bg[2] + (b - bg[2]) / a)))
-            op[x, y] = (rr, gg, bb, int(255 * a))
-    _KIT = out.crop(out.getbbox())
-    return _KIT
+    return kit_image("symbol-on-green")
+
+
+def kit_lockup(h_px, name="stacked-color"):
+    """Kit'in dikey (göz + ANALİZ VE ÖTESİ) ya da yatay logosu, verilen yükseklikte, şeffaf."""
+    k = kit_image(name)
+    w = max(1, int(round(k.width * h_px / k.height)))
+    return k.resize((w, max(1, int(h_px))), Image.LANCZOS)
 
 
 def eye_mark(h_px, fg=(243, 239, 228), acc=(255, 207, 77)):
