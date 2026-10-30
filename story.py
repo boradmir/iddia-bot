@@ -122,7 +122,7 @@ def story_card(m, rosters, note, pm, out_path, er=None):
         if pm.get("AU25"):
             small += [("3+ gol", pm["AU25"].get("Üst")), ("2 veya az gol", pm["AU25"].get("Alt"))]
         if pm.get("KG"):
-            small += [("Karşılıklı gol var", pm["KG"].get("Var")), ("Karşılıklı gol yok", pm["KG"].get("Yok"))]
+            small += [("Karşılıklı gol", pm["KG"].get("Var"))]
         small = [(l, p) for l, p in small if p is not None]
         if small:
             sw = (SW - 120 - 12 * (len(small) - 1)) / len(small)

@@ -47,6 +47,22 @@ def fetch(save_path="data/bulten.json"):
     return json.loads(raw)
 
 
+def sport_key_for(lc, name):
+    """LID eşleşmesi; yoksa lig ADINA göre yedek (UEFA kupaları yeni bir kodla gelirse kaçmasın)."""
+    if lc in LEAGUES:
+        return LEAGUES[lc]
+    nm = (name or "").lower()
+    if any(x in nm for x in ("kadın", "u19", "u21", "u23", "genç", "women", "gençlik", "futsal")):
+        return None
+    if "şampiyonlar ligi" in nm or "champions league" in nm:
+        return "soccer_uefa_champs_league"
+    if "uefa avrupa ligi" in nm or "europa league" in nm:
+        return "soccer_uefa_europa_league"
+    if "konferans ligi" in nm or "conference league" in nm:
+        return "soccer_uefa_europa_conference_league"
+    return None
+
+
 def parse(data, only_target_leagues=True):
     """Bülten JSON'unu sade maç listesine çevirir."""
     sg = data["sg"]
@@ -55,7 +71,7 @@ def parse(data, only_target_leagues=True):
     for e in sg["EA"]:
         if e.get("TYPE") != 1 or "HN" not in e:
             continue  # futbol değil veya uzun vadeli bahis
-        if only_target_leagues and e.get("LC") not in LEAGUES:
+        if only_target_leagues and not sport_key_for(e.get("LC"), league_names.get(e.get("LC"))):
             continue
         markets = {}
         for m in e.get("MA", []):
@@ -71,7 +87,7 @@ def parse(data, only_target_leagues=True):
             "code": e["C"], "home": e["HN"], "away": e["AN"],
             "start": datetime.fromtimestamp(e["ESD"] / 1000, tz=timezone.utc),
             "league_id": e.get("LC"), "league": league_names.get(e.get("LC"), str(e.get("LC"))),
-            "sport_key": LEAGUES.get(e.get("LC")), "mbs": e.get("EMBS"), "markets": markets,
+            "sport_key": sport_key_for(e.get("LC"), league_names.get(e.get("LC"))), "mbs": e.get("EMBS"), "markets": markets,
         })
     return matches
 
@@ -83,7 +99,7 @@ def raw_markets(data, only_target_leagues=True):
     for e in data["sg"]["EA"]:
         if e.get("TYPE") != 1 or "HN" not in e:
             continue
-        if only_target_leagues and e.get("LC") not in LEAGUES:
+        if only_target_leagues and not sport_key_for(e.get("LC"), league_names.get(e.get("LC"))):
             continue
         for m in e.get("MA", []):
             oca = [[o["N"], o["O"]] for o in m.get("OCA", []) if o.get("O", 0) > 1]

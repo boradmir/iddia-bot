@@ -103,6 +103,43 @@ def git_publish(msg, dry):
 
 
 CLAUDE_LOCK = threading.Lock()
+GIT_LOCK = threading.Lock()   # arka plan story akışı ile ana döngü aynı anda git çalıştırmasın
+
+
+def story_async(m, rec, events_for_sport, aliases, dry):
+    """Kadro açıklandı → (büyük kulüp + sabah yorumu varsa) kadro notu → story kartı → yayın → Instagram story."""
+    def run():
+        try:
+            import clubs, story, instagram
+            if clubs.tier(m) > clubs.ANALYZE_MAX_TIER or not claude_check.find_prev(m["code"]):
+                return
+            if claude_check.kadro_before(m["code"]):
+                return
+            pm = None
+            for mm, ev, sc in match.match_all([m], events_for_sport or [], aliases):
+                if ev and odds.pinnacle_h2h(ev):
+                    pm = prob.market_probs(odds.pinnacle_h2h(ev), odds.pinnacle_totals(ev))
+            with CLAUDE_LOCK:
+                log(f"Kadro notu başlıyor: {m['home']}-{m['away']}")
+                row = claude_check.lineup_note_and_store(m, rec["rosters"], pm)
+            if not row:
+                log(f"Kadro notu yapılmadı (sınır/tekrar/boş): {m['home']}-{m['away']}"); return
+            log(f"Kadro notu: {m['home']}-{m['away']} ${row.get('cost_usd')}")
+            day = m["start"].astimezone(timezone(timedelta(hours=3))).strftime("%Y-%m-%d")
+            os.makedirs(f"docs/social/{day}", exist_ok=True)
+            path = f"docs/social/{day}/story_{m['code']}.jpg"
+            story.story_card(m, rec["rosters"], row["kadro"]["note"], pm, path, er=rec)
+            with GIT_LOCK:
+                rebuild_page()
+                git_publish(f"story {m['home']}-{m['away']}", dry)
+            if dry or not os.environ.get("IG_TOKEN"):
+                return
+            url = f"{instagram.PAGES}/social/{day}/story_{m['code']}.jpg"
+            pid = instagram.post_story_for(m, url)
+            log(f"Instagram story: {m['home']}-{m['away']} → {pid}" if pid else f"Story gönderilmedi (sınır/tekrar): {m['home']}-{m['away']}")
+        except Exception as e:
+            log(f"Story akışı hatası {m['home']}-{m['away']}: {type(e).__name__}: {e}")
+    threading.Thread(target=run, daemon=True).start()
 
 
 def claude_async(m, probs, force=False):
@@ -217,6 +254,8 @@ def main():
                     espn_ids[m["code"]] = rec["event_id"]
                     if rec["lineup"]:
                         espn_done.add(m["code"]); log(f"Kadro açıklandı: {m['home']}-{m['away']}")
+                        ev_s = pin_events.get(m["sport_key"], (None, []))[1]
+                        story_async(m, rec, ev_s, aliases, dry)
             except Exception as e:
                 log(f"ESPN hatası: {e}")
 

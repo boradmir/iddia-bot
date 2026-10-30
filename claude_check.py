@@ -208,6 +208,116 @@ def analyze_and_store(m, market_probs, force=False):
     return row
 
 
+# ---------- Kadro notu: kadrolar açıklanınca sabahki yorumu hatırlayarak 2-3 cümlelik güncelleme (web araması yok, ucuz)
+KADRO_DIR = "records/kadro"
+NOTE_SYSTEM = """Sen yılların futbol analistisin. Sabah bu maç için bir maç önü yazısı yazdın; şimdi kulüpler ilk 11'leri açıkladı.
+Görev: sabahki yazını hatırlayarak 2-3 cümlelik bir KADRO NOTU yaz: sürpriz var mı, beklediğin eksikler doğrulandı mı,
+sabahki beklenti duruyor mu yoksa değişti mi. Sabahki yazıya atıf yap ("Sabah ... demiştik"), tekrar anlatma.
+Ses: ölçülü, köşe yazısı ciddiyeti; "biz" ya da kişisiz anlatım; samimi kalıp ("bana kalırsa", "açıkçası") en fazla bir kez; ünlem yok.
+Türkçe kusursuz: kesme işareti (Osimhen'in), her cümle tek fikir ve en fazla 25 kelime, üç nokta yok. Yazdıktan sonra bir kez daha oku.
+Oran, bahis, piyasa, tavsiye yazma; sadece maç. Olasılıklar: kadroyu gördükten sonraki güncel tahminin; toplam 1.0."""
+NOTE_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "note": {"type": "string", "description": "ZORUNLU: 2-3 cümle kadro notu, kusursuz Türkçe, sabahki yazıya atıfla"},
+        "changed": {"type": "boolean", "description": "Kadro sabahki beklentiyi anlamlı biçimde değiştirdi mi"},
+        "p_home": {"type": "number"}, "p_draw": {"type": "number"}, "p_away": {"type": "number"},
+    },
+    "required": ["note", "changed", "p_home", "p_draw", "p_away"],
+    "additionalProperties": False,
+}
+
+
+def _lineup_text(rosters):
+    import html as _h
+    out = []
+    for team, r in (rosters or {}).items():
+        xi = ", ".join(f"{_h.unescape(p.get('player') or '')} ({p.get('pos') or '?'})" for p in (r.get("starters") or [])[:11])
+        out.append(f"{team} ({r.get('formation') or 'diziliş ?'}): {xi}")
+    return "\n".join(out)
+
+
+def find_prev(code):
+    """Bu maç için daha önce yazılmış (kör) analiz kaydı; yoksa None."""
+    import glob
+    best = None
+    for p in sorted(glob.glob(f"{OUT_DIR}/*.jsonl")):
+        with open(p, encoding="utf-8") as f:
+            for line in f:
+                if line.strip():
+                    r = json.loads(line)
+                    if r.get("code") == code and r.get("blind"):
+                        best = r
+    return best
+
+
+def load_kadro(day=None):
+    day = day or datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    path = f"{KADRO_DIR}/{day}.jsonl"
+    if not os.path.exists(path):
+        return []
+    with open(path, encoding="utf-8") as f:
+        return [json.loads(l) for l in f if l.strip()]
+
+
+def kadro_before(code):
+    import glob
+    for p in glob.glob(f"{KADRO_DIR}/*.jsonl"):
+        with open(p, encoding="utf-8") as f:
+            if any(l.strip() and json.loads(l).get("code") == code for l in f):
+                return True
+    return False
+
+
+def lineup_note(m, prev, rosters, market_probs=None):
+    client = _client()
+    bl = prev.get("blind") or {}
+    tr = timezone(timedelta(hours=3))
+    start = datetime.fromisoformat(prev["start"]).astimezone(tr) if prev.get("start") else m["start"].astimezone(tr)
+    absences = "; ".join(f"{a.get('player')} ({a.get('team')}, {a.get('status')})" for a in bl.get("absences", [])[:10]) or "yok"
+    q = (f"Maç: {m['home']} - {m['away']} ({m.get('league', '')}), {start:%d.%m.%Y %H:%M}.\n\n"
+         f"SABAHKİ YAZIN:\n{bl.get('comment', '')}\n\nSabahki risk notun: {bl.get('risk', '')}\n"
+         f"Sabah beklediğin eksikler: {absences}\nSabahki kadro notun: {bl.get('lineup_note', '') or 'yok'}\n"
+         f"Sabahki tahminin: ev %{bl.get('p_home', 0) * 100:.0f}, beraberlik %{bl.get('p_draw', 0) * 100:.0f}, deplasman %{bl.get('p_away', 0) * 100:.0f}\n\n"
+         f"AÇIKLANAN İLK 11'LER:\n{_lineup_text(rosters)}\n\nKadro notunu yaz.")
+    usage = Usage()
+    resp = client.beta.messages.create(
+        model=MODEL, max_tokens=4000, betas=["server-side-fallback-2026-07-01"], fallbacks="default",
+        system=NOTE_SYSTEM, messages=[{"role": "user", "content": q}],
+        output_config={"format": {"type": "json_schema", "schema": NOTE_SCHEMA}},
+    )
+    usage.add(resp.usage)
+    text = next((b.text for b in resp.content if b.type == "text"), None)
+    if not text:
+        print(f"Kadro notu: metin yok (stop={resp.stop_reason}, bloklar={[b.type for b in resp.content]})")
+    res = json.loads(text) if text else None
+    return {"model": MODEL, "kadro": res, "usage": usage.dict(), "cost_usd": usage.cost()}
+
+
+def lineup_note_and_store(m, rosters, market_probs=None):
+    """Kadro notu: günlük sınır (MAX_PER_DAY), tekrar kontrolü, sabah analizi şartı. records/kadro/GÜN.jsonl'a yazar."""
+    if not config.ANTHROPIC_API_KEY:
+        return None
+    prev = find_prev(m["code"])
+    if not prev or kadro_before(m["code"]):
+        return None
+    day = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    if len(load_kadro(day)) >= MAX_PER_DAY:
+        return None
+    res = lineup_note(m, prev, rosters, market_probs)
+    if not (res.get("kadro") or {}).get("note"):
+        print(f"Kadro notu boş döndü ({m['home']}-{m['away']}); maliyet ${res.get('cost_usd', 0)}")
+        return None
+    row = {"t": datetime.now(timezone.utc).isoformat(timespec="seconds"), "code": m["code"], "home": m["home"], "away": m["away"],
+           "league": m.get("league"), "sport": m.get("sport_key"), "start": m["start"].isoformat(),
+           "market": {k: {kk: round(vv, 4) for kk, vv in v.items()} for k, v in (market_probs or {}).items() if not k.startswith("_")},
+           "rosters": rosters, **res}
+    os.makedirs(KADRO_DIR, exist_ok=True)
+    with open(f"{KADRO_DIR}/{day}.jsonl", "a", encoding="utf-8") as f:
+        f.write(json.dumps(row, ensure_ascii=False) + "\n")
+    return row
+
+
 if __name__ == "__main__":
     home, away, league, start = sys.argv[1:5]
     probs = {"MS": {"1": 0.45, "X": 0.27, "2": 0.28}, "AU25": {"Alt": 0.48, "Üst": 0.52}, "KG": {"Var": 0.55, "Yok": 0.45}}

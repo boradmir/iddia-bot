@@ -554,6 +554,19 @@ def espn_block(code, home=None, away=None):
     return f'<div class="abs espn">{html_}</div>' if html_ else ""
 
 
+_KADRO = None
+
+
+def kadro_rows():
+    """records/kadro/*.jsonl → {code: son kayıt} (bir kez okunur)."""
+    global _KADRO
+    if _KADRO is None:
+        _KADRO = {}
+        for r in read_jsonl("records/kadro/*.jsonl"):
+            _KADRO[r.get("code")] = r
+    return _KADRO
+
+
 def claude_box(cr):
     if not cr:
         return ""
@@ -563,6 +576,11 @@ def claude_box(cr):
                '<span class="tag miss">⚠ itiraz var</span>' if ob.get("verdict") == "warn" else "")
     html_ = (f'<div class="claudebox"><b>Yapay zekâ ne diyor?</b> {verdict}<p>{esc(bl.get("comment", ""))}</p>'
              f'<p><b>Risk:</b> {esc(bl.get("risk", ""))} <span class="muted">(güven: {esc(bl.get("confidence", ""))})</span></p>')
+    kd = kadro_rows().get(cr.get("code"))
+    if kd and (kd.get("kadro") or {}).get("note"):
+        k = kd["kadro"]
+        html_ += (f'<p><b>Kadro açıklandıktan sonra:</b> {esc(k["note"])} <span class="muted">(güncel tahmin: ev %{k.get("p_home", 0) * 100:.0f} · '
+                  f'beraberlik %{k.get("p_draw", 0) * 100:.0f} · deplasman %{k.get("p_away", 0) * 100:.0f})</span></p>')
     if ob.get("verdict") == "warn":
         html_ += f'<p><b>İtiraz gerekçesi:</b> {esc(ob.get("reason", ""))}</p>'
     html_ += (f"<ul>{facts}</ul>" if facts else '<p class="muted">Somut haber bulunamadı.</p>') + "</div>"
@@ -844,8 +862,10 @@ def build():
                 imgs = [f"social/{day_name}/match_{m['code']}.jpg"]
                 if os.path.exists(f"{dd}/yorum_{m['code']}.jpg"):
                     imgs.append(f"social/{day_name}/yorum_{m['code']}.jpg")
+                if os.path.exists(f"{dd}/story_{m['code']}.jpg"):
+                    imgs.append(f"social/{day_name}/story_{m['code']}.jpg")
                 cap = ig.caption_for(m, claude_rows.get(m["code"]), probs_by_code.get(m["code"]))
-                tiles = "".join(f'<a class="tile" href="{u}" download><img src="{u}" alt="" loading="lazy"><span>{"1 · maç kartı" if i == 0 else "2 · yorum kartı"}</span></a>' for i, u in enumerate(imgs))
+                tiles = "".join(f'<a class="tile" href="{u}" download><img src="{u}" alt="" loading="lazy"><span>{"story · kadro" if "/story_" in u else ("1 · maç kartı" if i == 0 else "2 · yorum kartı")}</span></a>' for i, u in enumerate(imgs))
                 num = pno(f"{day_name}:{m['code']}", f"{m['home']} – {m['away']}")
                 posts += f"""<div class="post"><div class="post-h"><b>{('Paket #' + str(num)) if num else 'Paket'} · {esc(m['home'])} – {esc(m['away'])}</b><span class="when">{tr_time(m['start'], day=True)} · {esc(m['league'])}</span></div>
 <div class="tiles small">{tiles}</div>
