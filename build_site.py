@@ -106,6 +106,19 @@ def ago(minutes):
     return f"{minutes // 1440} gün önce"
 
 
+def countdown(t, now):
+    """'sonraki güncelleme' metni: birazdan / ~12 dk / ~2 sa 10 dk / Cum 19:20."""
+    s = (t - now).total_seconds()
+    if s <= 60:
+        return "birazdan"
+    m = int(s // 60)
+    if m < 60:
+        return f"~{m} dk"
+    if m < 24 * 60:
+        return f"~{m // 60} sa {m % 60} dk"
+    return t.astimezone(TR).strftime("%d.%m %H:%M")
+
+
 def esc(s):
     return html.escape(str(s))
 
@@ -704,8 +717,19 @@ def build():
     verdict = (f'<em>{len(cards)} fırsat</em> var.' if cards else 'Şu an oynanacak<br><em>fırsat yok.</em>')
     live = nes_age is not None and nes_age <= 45
     pin_old = pin_age is not None and pin_age > 10
-    pills = (f'<li><span class="pulse{"" if live else " off"}"></span>Nesine <b>{ago(nes_age)}</b> kontrol edildi</li>'
-             f'<li>Dünya piyasası <b>{ago(pin_age)}</b>{" · gözcü açılınca tazelenir" if pin_old else ""}</li>')
+    # sonraki güncelleme zamanları: Nesine = bekçi 20 dk'da bir (gözcü açıkken 10 dk); piyasa = gözcünün planı, kapalıysa sıradaki maça 100 dk kala
+    nes_next = (datetime.fromisoformat(t_nes) + timedelta(minutes=10 if watch.get("active") else 20)) if t_nes else None
+    if watch.get("active") and watch.get("next_pinnacle"):
+        pin_next = datetime.fromisoformat(watch["next_pinnacle"])
+    else:
+        nxt_m = min((m["start"] for m in nm if m["start"] > now), default=None)
+        pin_next = (nxt_m - timedelta(minutes=100)) if nxt_m else None
+    def nxt_html(t):
+        if not t:
+            return ""
+        return f' · sonraki <b class="nxt" data-next="{t.isoformat()}">{countdown(t, now)}</b>'
+    pills = (f'<li><span class="pulse{"" if live else " off"}"></span>Nesine <b class="ago" data-ts="{t_nes or ""}">{ago(nes_age)}</b> kontrol edildi{nxt_html(nes_next)}</li>'
+             f'<li>Dünya piyasası <b class="ago" data-ts="{t_pin or ""}">{ago(pin_age)}</b>{nxt_html(pin_next)}</li>')
     if watch.get("active"):
         pills += f'<li>Gözcü açık · <b>{esc(watch.get("note", ""))}</b></li>'
     if SHADOW:
@@ -938,6 +962,14 @@ def build():
 <br>Kaynak kod: <a href="https://github.com/boradmir/iddia-bot">github.com/boradmir/iddia-bot</a></footer>
 </div>
 <script>
+(function(){{
+  function ago(ms){{var m=Math.floor(ms/60000); if(m<1) return "az önce"; if(m<60) return m+" dk önce"; if(m<2880) return Math.floor(m/60)+" saat önce"; return Math.floor(m/1440)+" gün önce";}}
+  function left(ms){{var m=Math.floor(ms/60000); if(ms<=60000) return "birazdan"; if(m<60) return "~"+m+" dk"; if(m<1440) return "~"+Math.floor(m/60)+" sa "+(m%60)+" dk"; var d=new Date(Date.now()+ms); return d.toLocaleString("tr-TR",{{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}});}}
+  function tick(){{var now=Date.now();
+    document.querySelectorAll("b.ago[data-ts]").forEach(function(e){{var t=Date.parse(e.dataset.ts); if(!isNaN(t)) e.textContent=ago(now-t);}});
+    document.querySelectorAll("b.nxt[data-next]").forEach(function(e){{var t=Date.parse(e.dataset.next); if(!isNaN(t)) e.textContent=left(t-now);}});}}
+  tick(); setInterval(tick, 30000);
+}})();
 (function(){{
   var tabs=document.querySelectorAll('#tabs a[data-tab]'),panels=document.querySelectorAll('.panel');
   function show(id){{

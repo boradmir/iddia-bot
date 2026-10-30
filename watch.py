@@ -183,6 +183,7 @@ def main():
         window = [m for m in live if (m["start"] - now) <= timedelta(minutes=WINDOW_MIN)]
         sports = [s for s in LEAGUE_PRIORITY if any(m["sport_key"] == s for m in window)]
         polled_any = False
+        next_poll = {}   # lig → bir sonraki Pinnacle sorgusunun zamanı (sayfada "sonraki güncelleme" için)
         for s in sports:
             if dry or budget < 2:
                 break
@@ -190,6 +191,7 @@ def main():
             n_left = sum(1 for m in window if m["sport_key"] == s)
             mins_left = max(5, min((m["start"] - now).total_seconds() / 60 for m in window if m["sport_key"] == s))
             interval = max(MIN_POLL_SEC, (mins_left * 60) / max(1, budget / (2 * len(sports))))
+            next_poll[s] = last_poll.get(s, 0) + interval
             if time.time() - last_poll.get(s, 0) < interval:
                 continue
             try:
@@ -265,7 +267,8 @@ def main():
 
         # 4) Durum + sayfa + yayın
         note = f"{len(live)} maç izleniyor, {len(window)} tanesi pencerede; bugün kalan Pinnacle bütçesi {budget} istek"
-        save_json(WSTATUS, {"active": True, "note": note, "updated": ts, "alerts_today": len(alerted)})
+        nxt = datetime.fromtimestamp(max(time.time() + NESINE_SEC, min(next_poll.values())), tz=timezone.utc).isoformat(timespec="seconds") if next_poll else None
+        save_json(WSTATUS, {"active": True, "note": note, "updated": ts, "alerts_today": len(alerted), "next_pinnacle": nxt})
         # yayın: uyarı varsa hemen, yoksa 10 dk'da bir (her push bir Pages derlemesi; saatte 10 derleme sınırı)
         if new_alerts or time.time() - last_publish > 600:
             rebuild_page()
