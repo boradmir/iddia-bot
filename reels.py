@@ -170,7 +170,8 @@ VIDEO_BG = os.environ.get("REELS_VIDEO_BG", "1") == "1"
 # analiz dünyası klipleri (Seedance 2.5): sahne → tercih sırası
 SCENE_CLIPS = {"hook": ["chalk_arrow", "spotlight_board", "chalk_pitch"], "teams": ["table_pitch", "magnet_board"],
                "market": ["magnet_board", "chalk_pitch", "tactics_sheet"], "absences": ["pen_paper", "string_board", "analyst_desk"],
-               "risk": ["chalk_erase", "whistle_desk", "rain_window"], "question": ["chalk_dust", "analyst_desk", "chalk_arrow"]}
+               "risk": ["chalk_erase", "whistle_desk", "rain_window"], "question": ["chalk_dust", "analyst_desk", "chalk_arrow"],
+               "form": ["table_pitch", "string_board", "magnet_board"]}
 _TINT = None
 
 
@@ -362,6 +363,42 @@ def scene_absences(img, d, t, absences, th):
         d.text((M_L, 480), "Bilinen eksik yok.", font=font("body", 48), fill=WHITE)
 
 
+def scene_form(img, d, t, m, er, th):
+    """Rakip/form: iki takımın son 5 maçı (G/B/M kareleri) ve en golcü oyuncu; soldan sağa belirir."""
+    last5 = (er or {}).get("last5") or {}; leaders = (er or {}).get("leaders") or {}
+    d.text((M_L, 400), tr_upper("Son 5 maç"), font=font("displaysemi", 36), fill=YELLOW)
+    y = 470
+    for i, team in enumerate((m["home"], m["away"])):
+        k = ease_out_cubic(clamp((t - i * 0.25) / 0.35))
+        if k <= 0:
+            continue
+        d.text((M_L, y), tr_upper(team), font=font("display", 56), fill=tuple(int(c * k) for c in WHITE))
+        games = None
+        for tn, g in last5.items():
+            if social.match.similarity(team, tn) >= 0.6:
+                games = g; break
+        if games:
+            x = M_L
+            for j, g in enumerate(games[:5]):
+                kk = ease_out_cubic(clamp((t - i * 0.25 - 0.1 - j * 0.07) / 0.25))
+                if kk <= 0: break
+                sym = {"W": "G", "D": "B", "L": "M"}.get(g.get("result"), "?")
+                col = {"W": (62, 227, 140), "D": (154, 167, 160), "L": (240, 138, 75)}.get(g.get("result"), (154, 167, 160))
+                s = int(72 * kk)
+                d.rounded_rectangle((x + 36 - s / 2, y + 110 - s / 2, x + 36 + s / 2, y + 110 + s / 2), radius=14, fill=col)
+                if kk > 0.6:
+                    d.text((x + 36, y + 110), sym, font=font("display", 44), fill=th["bg"], anchor="mm")
+                x += 86
+        top = None
+        for tn, ls in leaders.items():
+            if social.match.similarity(team, tn) >= 0.6 and ls:
+                top = sorted(ls, key=lambda r_: (-r_.get("goals", 0), -r_.get("shots", 0)))[0]; break
+        if top and top.get("goals"):
+            d.text((M_L + 470, y + 92), f"{top['player']}", font=font("semi", 32), fill=tuple(int(c * k) for c in WHITE))
+            d.text((M_L + 470, y + 130), f"{top['goals']} gol · sezon", font=font("body", 26), fill=tuple(int(c * k) for c in PALE))
+        y += 300
+
+
 def scene_risk(img, d, t, risk, th):
     k = ease_out_cubic(clamp(t / 0.16))
     y0 = 420 + 140 * (1 - k)
@@ -422,6 +459,36 @@ def timeline(words, parts, total):
     return t
 
 
+def sentence_times(words, parts):
+    """Her cümlenin (parts) başlangıç zamanı: kelime sayılarına göre kelime zamanlarından."""
+    times = []; idx = 0
+    for p in parts:
+        n = len(p.split())
+        times.append(words[min(idx, len(words) - 1)]["t"] if words else 0.0)
+        idx += n
+    return times
+
+
+def timeline_sentences(words, parts, total, has_absences, has_form):
+    """Yapay zekâ metni cümle sırasıyla gelir: açılış, PİYASA, eksikler(opsiyonel), rakip/form(opsiyonel), bizi düşündüren, soru, kapanış.
+    Sahneler cümle başlangıçlarına kilitlenir; eksik cümle yoksa sahne atlanır."""
+    st = sentence_times(words, parts)
+    order = [("hook", 0.0)]
+    k = 1
+    def nxt(name, cond=True):
+        nonlocal k
+        if cond and k < len(parts):
+            order.append((name, max(0.0, st[k] - 0.12))); k += 1
+    nxt("market")
+    nxt("absences", has_absences)
+    nxt("form", has_form)
+    nxt("risk")
+    # kalan cümleler (soru + kapanış) tek sahne: soru
+    if k < len(parts):
+        order.append(("question", max(0.0, st[k] - 0.12)))
+    return order
+
+
 def render(m, bl, pm, er, out_mp4, absences=None):
     th = social.theme(m.get("sport_key"))
     absences = absences if absences is not None else [a for a in (bl.get("absences") or []) if a.get("player")][:4]
@@ -431,17 +498,33 @@ def render(m, bl, pm, er, out_mp4, absences=None):
     words = tts(text, voice)
     vdur = (words[-1]["t"] + words[-1]["d"]) if words else 11.0
     total = max(11.0, vdur + 0.9)
-    tl = timeline(words, parts, total)
+    ai_script = bool((bl.get("reels_script") or "").strip())
+    last5 = (er or {}).get("last5") or {}
+    has_form = bool(last5) and any(last5.get(t) for t in last5)
+    # metinde eksik cümlesi var mı? (3. cümle piyasa cümlesinden sonra ve 'düşündür' içermiyorsa)
+    has_abs_sentence = len(parts) >= 6 and "düşündür" not in parts[2].lower() and "?" not in parts[2]
+    has_form_sentence = len(parts) >= 7 and "düşündür" not in parts[3].lower() and "?" not in parts[3]
+    if ai_script:
+        tl = None
+        order = timeline_sentences(words, parts, total, has_abs_sentence, has_form_sentence and has_form)
+    else:
+        tl = timeline(words, parts, total)
     hook = parts[0].rstrip(".")
     risk_short = (bl.get("risk_short") or short_words(bl.get("risk"), 12))
     question = (bl.get("question") or "Siz ne diyorsunuz?")
+    if ai_script:
+        # metindeki 'bizi düşündür' cümlesi varsa ekranda o görünsün (sesle aynı)
+        for p in parts:
+            if "düşündür" in p.lower() and len(p.split()) <= 22:
+                risk_short = p.rstrip(".") ; break
     fsub = font("semi", 56)
     # sahne sırası
     scene_hook.m = m
-    order = [("hook", tl["hook"]), ("market", tl["market"])] + ([("teams", tl["teams"])] if tl.get("teams") else [])
-    if tl.get("absences"): order.append(("absences", tl["absences"]))
-    if tl.get("risk"): order.append(("risk", tl["risk"]))
-    order.append(("question", tl["question"]))
+    if tl is not None:
+        order = [("hook", tl["hook"]), ("market", tl["market"])] + ([("teams", tl["teams"])] if tl.get("teams") else [])
+        if tl.get("absences"): order.append(("absences", tl["absences"]))
+        if tl.get("risk"): order.append(("risk", tl["risk"]))
+        order.append(("question", tl["question"]))
     order = sorted(order, key=lambda x: x[1])
     n = int(total * FPS)
     frames_dir = os.path.join(tmp, "f"); os.makedirs(frames_dir)
@@ -454,6 +537,7 @@ def render(m, bl, pm, er, out_mp4, absences=None):
         elif name == "teams": scene_teams(img, d, t_s, m, th)
         elif name == "market": scene_market(img, d, t_s, m, pm, er)
         elif name == "absences": scene_absences(img, d, t_s, absences, th)
+        elif name == "form": scene_form(img, d, t_s, m, er, th)
         elif name == "risk": scene_risk(img, d, t_s, risk_short, th)
         elif name == "question": scene_question(img, d, t_s, question, th)
         return img
