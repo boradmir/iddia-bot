@@ -165,7 +165,7 @@ def vignette():
     return _VIG
 
 
-BG_DIR = os.environ.get("REELS_BG_DIR", "assets/bg_v2")
+BG_DIR = os.environ.get("REELS_BG_DIR", "assets/bg_lib")   # repo içindeki sıkıştırılmış kütüphane (ham klipler: assets/bg_v2, gitignore)
 VIDEO_BG = os.environ.get("REELS_VIDEO_BG", "1") == "1"
 # analiz dünyası klipleri (Seedance 2.5): sahne → tercih sırası
 SCENE_CLIPS = {"hook": ["chalk_arrow", "spotlight_board", "chalk_pitch"], "teams": ["table_pitch", "magnet_board"],

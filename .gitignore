@@ -15,3 +15,6 @@ backtest.py
 backtest_model.py
 test_settle.py
 .claude/
+assets/bg_v2/
+assets/bg/
+assets/bg_stadyum/
