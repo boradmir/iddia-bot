@@ -133,6 +133,41 @@ def _run(client, messages, schema, usage):
     return None
 
 
+# ---------- Redaktör geçişi: noktalama / cümle uzunluğu / devrik cümle kontrolü (ucuz, web araması yok)
+POLISH_SYSTEM = """Sen titiz bir Türkçe redaktörsün. Verilen metnin ANLAMINI, bilgisini ve isimlerini değiştirmeden sadece dilini düzelt:
+- Noktalı virgülleri azalt (metin başına en fazla bir tane); gereksiz iki nokta ve üç noktayı kaldır; cümleyi tam bitir.
+- 25 kelimeden uzun cümleleri ikiye böl. Devrik cümleleri kurallı dizilişe çevir (özne … yüklem sonda).
+- Yazım: özel adlara gelen ekler kesme işaretiyle; "de/da" ve "ki" ayrımı doğru; büyük/küçük harf doğru.
+- Üslup aynı kalsın (ölçülü analist). Kelime eklemeden, kısaltmadan; sadece düzelt. Sonuç tek parça metin."""
+POLISH_SCHEMA = {"type": "object", "properties": {"text": {"type": "string"}}, "required": ["text"], "additionalProperties": False}
+
+
+def needs_polish(text):
+    import re
+    if not text:
+        return False
+    sents = [s for s in re.split(r"(?<=[.!?])\s+", text.strip()) if s]
+    return (text.count(";") > 1 or "…" in text or "..." in text or any(len(s.split()) > 28 for s in sents))
+
+
+def polish(text, usage):
+    """Metni redaktörden geçirir; başarısızsa olduğu gibi döner."""
+    try:
+        client = _client()
+        resp = client.beta.messages.create(
+            model=MODEL, max_tokens=8000, betas=["server-side-fallback-2026-07-01"], fallbacks="default",
+            system=POLISH_SYSTEM, messages=[{"role": "user", "content": text}],
+            output_config={"format": {"type": "json_schema", "schema": POLISH_SCHEMA}},
+        )
+        usage.add(resp.usage)
+        t = next((b.text for b in resp.content if b.type == "text"), None)
+        out = json.loads(t)["text"].strip() if t else ""
+        return out or text
+    except Exception as e:
+        print(f"redaktör hatası: {e}")
+        return text
+
+
 def analyze(home, away, league, start_iso, market_probs=None):
     """Tek maç analizi. market_probs = {'MS': {'1','X','2'}, 'AU25': {...}, 'KG': {...}} (yalnızca 2. aşamada gösterilir)."""
     client = _client()
@@ -143,6 +178,10 @@ def analyze(home, away, league, start_iso, market_probs=None):
     messages = [{"role": "user", "content": q}]
     usage = Usage()
     blind = _run(client, messages, BLIND_SCHEMA, usage)
+    if blind:
+        for key in ("comment", "risk", "hook", "lineup_note"):
+            if needs_polish(blind.get(key)):
+                blind[key] = polish(blind[key], usage); blind.setdefault("polished", []).append(key)
     out = {"model": MODEL, "blind": blind, "objection": None}
     if blind and market_probs and "MS" in market_probs:
         mp = market_probs
@@ -299,6 +338,8 @@ def lineup_note(m, prev, rosters, market_probs=None):
     if not text:
         print(f"Kadro notu: metin yok (stop={resp.stop_reason}, bloklar={[b.type for b in resp.content]})")
     res = json.loads(text) if text else None
+    if res and needs_polish(res.get("note")):
+        res["note"] = polish(res["note"], usage); res["polished"] = True
     return {"model": MODEL, "kadro": res, "usage": usage.dict(), "cost_usd": usage.cost()}
 
 
