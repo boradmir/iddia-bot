@@ -294,6 +294,34 @@ def word_img(word, f, fill):
     return _WCACHE[key]
 
 
+ISSUES = []   # render sırasında yakalanan taşmalar (yayın öncesi denetim okur)
+
+
+def note_issue(msg):
+    if msg not in ISSUES:
+        ISSUES.append(msg)
+
+
+def fit_font(text, kind, sizes, max_w, max_lines):
+    """Metni en çok max_lines satıra sığdıran en büyük yazı boyu; sığmazsa en küçüğü (ve taşma notu)."""
+    for size in sizes:
+        f = font(kind, size)
+        if len(wrap(text, f, max_w)) <= max_lines:
+            return f, size
+    note_issue(f"yazı sığmadı ({kind}): {text[:40]}…")
+    return font(kind, sizes[-1]), sizes[-1]
+
+
+def fit_width(text, kind, sizes, max_w):
+    """Tek satırı genişliğe sığdıran en büyük yazı boyu."""
+    for size in sizes:
+        f = font(kind, size)
+        if f.getlength(text) <= max_w:
+            return f
+    note_issue(f"tek satır sığmadı ({kind}): {text[:40]}")
+    return font(kind, sizes[-1])
+
+
 def draw_words(img, text, f, x0, y0, max_w, t_since, fill=WHITE, accent_words=(), stagger=0.06, dur=0.24, line_h=None):
     """Kelime kelime giriş: her kelime 24 px yukarı kayarak ve belirerek gelir."""
     line_h = line_h or int(f.size * 1.12)
@@ -355,9 +383,11 @@ def subtitle(img, d, words, t, f):
 
 # ----------------------------------------------------------------- sahneler
 def scene_hook(img, d, t, hook, th):
-    f = font("display", 96)
+    f, size = fit_font(tr_upper(hook), "display", (96, 86, 76, 68, 60), W - M_L - M_R, 4)
     acc = set(w.strip(".,").lower() for w in hook.split()[-3:])   # son üç kelime vurgu
-    y_end = draw_words(img, tr_upper(hook), f, M_L, 420, W - M_L - M_R, 9, fill=WHITE, accent_words=set(tr_upper(w) .lower() for w in acc), stagger=0, dur=0.01)
+    y_end = draw_words(img, tr_upper(hook), f, M_L, 420, W - M_L - M_R, 9, fill=WHITE, accent_words=set(tr_upper(w) .lower() for w in acc), stagger=0, dur=0.01, line_h=int(size * 1.12))
+    if y_end + 190 > SUB_Y - 30:
+        note_issue("kanca sahnesi altyazı bandına taşıyor")
     if t > 0.8 and th is not None:
         k = ease_out_cubic(clamp((t - 0.8) / 0.3))
         m_ = scene_hook.m; start = m_["start"].astimezone(TR)
@@ -367,7 +397,7 @@ def scene_hook(img, d, t, hook, th):
 
 
 def scene_teams(img, d, t, m, th):
-    f = font("display", 150)
+    f = fit_width(tr_upper(max((m["home"], m["away"]), key=len)), "display", (150, 130, 112, 96, 84), W - M_L - M_R)
     k1 = ease_out_cubic(clamp(t / 0.26)); k2 = ease_out_cubic(clamp((t - 0.08) / 0.26))
     d.text((M_L - 80 * (1 - k1), 520), tr_upper(m["home"]), font=f, fill=tuple(int(c * k1) for c in WHITE))
     d.text((M_L - 80 * (1 - k2), 690), tr_upper(m["away"]), font=f, fill=tuple(int(c * k2) for c in YELLOW))
@@ -386,7 +416,7 @@ def scene_market(img, d, t, m, pm, er):
         val = ms[key] * 100 * kc
         fnum = font("display", 140)
         d.text((W - M_R, y - 10), f"%{val:.0f}", font=fnum, fill=WHITE, anchor="ra")
-        d.text((M_L, y + 60), tr_upper(lab), font=font("displaysemi", 40), fill=PALE)
+        d.text((M_L, y + 60), tr_upper(lab), font=fit_width(tr_upper(lab), "displaysemi", (40, 36, 32, 28), W - M_L - M_R - 300), fill=PALE)
         bw = (W - M_L - M_R) * ms[key] * kb
         d.rounded_rectangle((M_L, y + 160, W - M_R, y + 184), radius=12, fill=GREEN3)
         if bw > 0:
@@ -407,7 +437,8 @@ def scene_absences(img, d, t, absences, th):
     for i, a in enumerate(absences[:4]):
         k = ease_out_cubic(clamp((t - i * 0.09) / 0.26))
         x = M_L + 40 * (1 - k)
-        s = f"{a['player']} · {a['status']}"
+        name = a['player'] if len(f"{a['player']} · {a['status']}") <= 30 else a['player'].split()[-1]
+        s = f"{name} · {a['status']}"
         w = social.status_pill(d, x, y, s, a.get("status"))
         y += 70
     if not absences:
@@ -455,7 +486,8 @@ def scene_risk(img, d, t, risk, th):
     y0 = 420 + 140 * (1 - k)
     d.rounded_rectangle((M_L, y0, W - M_R, y0 + 560), radius=28, fill=CREAM)
     d.text((M_L + 32, y0 + 28), "EN BÜYÜK BELİRSİZLİK", font=font("displaysemi", 34), fill=(107, 77, 0))
-    draw_words(img, risk, font("body", 56), M_L + 32, y0 + 96, W - M_L - M_R - 64, max(0, t - 0.16), fill=th["bg"], stagger=0.05, dur=0.22, line_h=66)
+    f, size = fit_font(risk, "body", (56, 50, 44, 40), W - M_L - M_R - 64, 6)
+    draw_words(img, risk, f, M_L + 32, y0 + 96, W - M_L - M_R - 64, max(0, t - 0.16), fill=th["bg"], stagger=0.05, dur=0.22, line_h=int(size * 1.18))
 
 
 def scene_question(img, d, t, question, th):
@@ -469,6 +501,8 @@ def scene_question(img, d, t, question, th):
     cta_y = max(820, y_end + 40)
     d.text((M_L, cta_y), "Yoruma yazın · Maçtan sonra karşılaştırırız", font=font("semi", 36), fill=PALE)
     logo_y = cta_y + 180
+    if logo_y + 290 > 1540:
+        note_issue("soru sahnesi alt blok dipnota taşıyor")
     # göz: kırpma (ilk 0.25 sn kapak iner-kalkar) + nefes
     blink = 1 - abs(math.sin(min(t, 0.25) / 0.25 * math.pi)) * 0.6 if t < 0.25 else 1
     mk = logo.eye_mark(int(150 * (1 + 0.03 * math.sin(t * 2 * math.pi / 1.2))))
@@ -553,7 +587,10 @@ def render(m, bl, pm, er, out_mp4, absences=None):
     text, parts = build_script(m, bl, pm, absences)
     tmp = tempfile.mkdtemp(prefix="reels_")
     voice = os.path.join(tmp, "voice.mp3")
+    ISSUES.clear()
     words = tts(text, voice, bl.get("pronounce"))
+    if len(words) != len(text.split()):
+        note_issue(f"altyazı eşleşmesi: ses {len(words)} kelime, metin {len(text.split())} kelime")
     vdur = (words[-1]["t"] + words[-1]["d"]) if words else 11.0
     total = max(11.0, vdur + 0.9)
     ai_script = bool((bl.get("reels_script") or "").strip())
@@ -691,7 +728,50 @@ def render(m, bl, pm, er, out_mp4, absences=None):
             cover = Image.alpha_composite(base, cover).convert("RGB")
         cover.save(cover_path, quality=92)
     shutil.rmtree(tmp, ignore_errors=True)
-    return {"mp4": out_mp4, "cover": cover_path, "script": text, "seconds": round(total, 1), "words": len(words)}
+    return {"mp4": out_mp4, "cover": cover_path, "script": text, "seconds": round(total, 1), "words": len(words), "issues": list(ISSUES),
+            "voice_mp3": voice}
+
+
+def check_output(res, parts=None):
+    """Yayın öncesi denetim: metin, ses, görüntü. Sorun listesi döner (boşsa yayınlanabilir)."""
+    probs = list(res.get("issues") or [])
+    text = res.get("script") or ""
+    n = len(text.split())
+    if re.search(r"P[İI]YASA", text): probs.append("metin: PİYASA yer tutucusu kaldı")
+    if not (18 <= n <= 70): probs.append(f"metin: kelime sayısı {n}")
+    if re.search(r"\b(ben|bana|bence|beni|benim)\b", text, re.I): probs.append("metin: birinci tekil şahıs")
+    for b in BANNED:
+        if re.search(rf"\b{b}", text, re.I): probs.append(f"metin: yasak kelime '{b}'")
+    if "yüzde" not in text.lower(): probs.append("metin: piyasa cümlesi yok")
+    if "?" not in text: probs.append("metin: soru yok")
+    if re.search(r"\d+[.,]\d+", text): probs.append("metin: oran benzeri sayı")
+    if "!" in text: probs.append("metin: ünlem")
+    # video
+    try:
+        info = json.loads(subprocess.run(["ffprobe", "-v", "error", "-print_format", "json", "-show_streams", "-show_format", res["mp4"]],
+                                         capture_output=True, text=True).stdout)
+        v = next((s for s in info["streams"] if s["codec_type"] == "video"), None)
+        a = next((s for s in info["streams"] if s["codec_type"] == "audio"), None)
+        dur = float(info["format"]["duration"])
+        if not v or int(v["width"]) != W or int(v["height"]) != H: probs.append("video: çözünürlük 1080x1920 değil")
+        if not a: probs.append("video: ses izi yok")
+        if not (12 <= dur <= 90): probs.append(f"video: süre {dur:.1f} sn")
+        if abs(dur - res.get("seconds", dur)) > 1.5: probs.append("video: süre beklenenden farklı")
+        if os.path.getsize(res["mp4"]) > 95 * 1024 * 1024: probs.append("video: dosya 95 MB'ı aşıyor")
+    except Exception as e:
+        probs.append(f"video: ffprobe okunamadı ({e})")
+    # ses: seviye ve uzun sessizlik
+    try:
+        out = subprocess.run(["ffmpeg", "-i", res["mp4"], "-af", "volumedetect,silencedetect=n=-35dB:d=2.5", "-f", "null", "-"],
+                             capture_output=True, text=True).stderr
+        mv = re.search(r"mean_volume:\s*(-?[\d.]+)", out)
+        if not mv or not (-28 <= float(mv.group(1)) <= -8): probs.append(f"ses: ortalama seviye {mv and mv.group(1)} dB")
+        sil = [float(x) for x in re.findall(r"silence_duration:\s*([\d.]+)", out)]
+        inner = [s for s in sil[:-1]] if sil else []   # sondaki sessizlik normal (kapanış)
+        if any(s > 3.0 for s in inner): probs.append(f"ses: içeride {max(inner):.1f} sn sessizlik")
+    except Exception as e:
+        probs.append(f"ses: ölçülemedi ({e})")
+    return probs
 
 
 if __name__ == "__main__":

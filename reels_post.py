@@ -73,6 +73,14 @@ def main():
     log(f"Reels üretildi: {out} ({r['seconds']} sn, {r['words']} kelime, {os.path.getsize(out) // 1024} KB)")
     cap = instagram.reels_caption(m, bl, pm)
     open(f"{out_dir}/caption_{m['code']}.txt", "w", encoding="utf-8").write(cap)
+    # yayın öncesi denetim: metin, ses, görüntü; tek sorun bile varsa yayınlanmaz
+    problems = reels.check_output(r)
+    if "PİYASA" in cap or "PIYASA" in cap:
+        problems.append("açıklama: PİYASA yer tutucusu")
+    open(f"{out_dir}/check_{m['code']}.txt", "w", encoding="utf-8").write("\n".join(problems) or "TEMİZ")
+    if problems:
+        log("YAYIN DURDURULDU, denetim sorunları: " + " | ".join(problems)); return
+    log("Denetim temiz (metin, ses, görüntü)")
     if DRY:
         log("Kuru mod; yayınlanmadı."); print(cap); return
     # 3) saati bekle
