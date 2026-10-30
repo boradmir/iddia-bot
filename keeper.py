@@ -110,6 +110,13 @@ def maybe_morning_claude(s, now):
         ms = [m for m in nesine.parse(nesine.fetch(save_path=None)) if m["start"].astimezone(tr).date() == now.astimezone(tr).date() and m["start"] > now]
         # yalnız büyük kulüplü maçlar (clubs.py kademe 0-1); yoksa o gün sabah analizi yapılmaz
         ms = [m for m in ms if clubs.tier(m) <= clubs.ANALYZE_MAX_TIER]
+        # Instagram'a zaten gitmiş maç için analiz yapma (gönderi değiştirilemez, boşa harcama olur)
+        try:
+            import instagram
+            posted = {s["code"] for s in instagram.load_log()}
+            ms = [m for m in ms if m["code"] not in posted]
+        except Exception as e:
+            log(f"instagram günlüğü okunamadı: {e}")
         if not ms:
             log("Sabah analizi: bugün büyük kulüp maçı yok, analiz yapılmadı"); return
         # sıra: büyük kulüp kademesi (clubs.py) → lig sırası → başlangıç saati
