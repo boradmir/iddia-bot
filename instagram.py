@@ -15,7 +15,7 @@ Kullanım: python instagram.py [--dry]
 """
 import json, os, sys, time, urllib.error, urllib.parse, urllib.request
 from datetime import datetime, timezone, timedelta
-import config  # .env yükler (yerelde); Actions'ta secrets zaten ortamda
+import config, clubs  # .env yükler (yerelde); Actions'ta secrets zaten ortamda
 
 TOKEN_ENV = os.environ.get("IG_TOKEN", "")
 # Belirteç türüne göre uç nokta: "IGAA…" = Instagram login (graph.instagram.com), "EAA…" = Unified/Facebook login (graph.facebook.com)
@@ -186,10 +186,10 @@ def main():
             print(f"atlandı (hesapta zaten var): {m['home']}-{m['away']}"); continue
         pm = prob.market_probs(odds.pinnacle_h2h(ev), odds.pinnacle_totals(ev)) if ev and odds.pinnacle_h2h(ev) else None
         has_comment = os.path.exists(f"{day_dir}/yorum_{m['code']}.jpg")
-        cands.append((0 if has_comment else 1, m["start"], m, pm, has_comment))
-    cands.sort(key=lambda x: (x[0], x[1]))
+        cands.append(((0 if has_comment else 1, clubs.tier(m), m["start"]), m, pm, has_comment))
+    cands.sort(key=lambda x: x[0])  # yorumu olan → büyük kulüp → erken başlayan
     budget = len(cands) if only is not None else MAX_PER_DAY - len(sent_today)
-    for _, _, m, pm, has_comment in cands[:budget]:
+    for _, m, pm, has_comment in cands[:budget]:
         urls = [f"{PAGES}/social/{today}/match_{m['code']}.jpg"] + ([f"{PAGES}/social/{today}/yorum_{m['code']}.jpg"] if has_comment else [])
         cap = caption_for(m, ai.get(m["code"]), pm)
         if dry:

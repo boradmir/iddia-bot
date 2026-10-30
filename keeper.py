@@ -9,7 +9,7 @@ Kullanım: python keeper.py [--max-minutes 340] [--no-chain]
 """
 import json, os, subprocess, sys, time
 from datetime import datetime, timezone, timedelta
-import nesine, espn, claude_check, build_site, odds, prob, match
+import nesine, espn, claude_check, build_site, odds, prob, match, clubs
 
 RECORD_MIN = 20
 STATUS = "records/status.json"
@@ -92,6 +92,7 @@ def maybe_results(s, now):
             break
 
 
+IG_POST_UTC = (5, 30)   # 08:30 Türkiye saati
 PRIORITY = ["soccer_turkey_super_league", "soccer_epl", "soccer_uefa_champs_league", "soccer_spain_la_liga", "soccer_italy_serie_a",
             "soccer_germany_bundesliga", "soccer_france_ligue_one", "soccer_uefa_europa_league", "soccer_uefa_europa_conference_league", "soccer_uefa_nations_league"]
 
@@ -107,7 +108,8 @@ def maybe_morning_claude(s, now):
         from datetime import timezone as _tz, timedelta as _td
         tr = _tz(_td(hours=3))
         ms = [m for m in nesine.parse(nesine.fetch(save_path=None)) if m["start"].astimezone(tr).date() == now.astimezone(tr).date() and m["start"] > now]
-        ms.sort(key=lambda m: (PRIORITY.index(m["sport_key"]) if m["sport_key"] in PRIORITY else 99, m["start"]))
+        # sıra: büyük kulüp kademesi (clubs.py) → lig sırası → başlangıç saati
+        ms.sort(key=lambda m: (clubs.tier(m), PRIORITY.index(m["sport_key"]) if m["sport_key"] in PRIORITY else 99, m["start"]))
         # en son Pinnacle kaydından piyasa ihtimali (varsa) — itiraz aşaması için
         events = build_site.pinnacle_events(build_site.read_jsonl("records/pinnacle/*.jsonl"))
         aliases = json.load(open("aliases.json", encoding="utf-8")) if os.path.exists("aliases.json") else {}
@@ -214,13 +216,14 @@ def main():
         maybe_watch(s, now)
         maybe_espn(now)
         maybe_morning_claude(load_status(), now)
-        if now.minute < 20:  # saatte bir: paylaşım kartları (yerel, ücretsiz) + Instagram gönderimi (secret varsa)
+        if now.minute < 20:  # saatte bir: paylaşım kartları (yerel, ücretsiz)
             r = sh([sys.executable, "social.py"], capture_output=True, text=True); log((r.stdout or r.stderr).strip()[:200])
-            # otomatik gönderim (secret varsa): günde bir kez, 08:30 TSİ'den sonraki ilk tur (05:30 UTC)
-            s2 = load_status()
-            if os.environ.get("IG_TOKEN") and (now.hour, now.minute) >= (5, 30) and s2.get("ig_day") != now.strftime("%Y-%m-%d"):
-                r = sh([sys.executable, "instagram.py"], capture_output=True, text=True); log("instagram: " + (r.stdout or r.stderr).strip()[:300])
-                s2["ig_day"] = now.strftime("%Y-%m-%d"); save_status(s2)
+        # Instagram gönderimi (secret varsa): günde bir kez, 08:30 TSİ (05:30 UTC); döngü bu saate denk gelecek şekilde bekler
+        s2 = load_status()
+        if os.environ.get("IG_TOKEN") and (now.hour, now.minute) >= IG_POST_UTC and s2.get("ig_day") != now.strftime("%Y-%m-%d"):
+            sh([sys.executable, "social.py"], capture_output=True, text=True)  # kartlar taze olsun
+            r = sh([sys.executable, "instagram.py"], capture_output=True, text=True); log("instagram: " + (r.stdout or r.stderr).strip()[:300])
+            s2["ig_day"] = now.strftime("%Y-%m-%d"); save_status(s2)
         publish(f"espn/kart {now:%H:%M}")
         # yeni kod geldiyse bu çalışma eski kodla devam etmesin (kayıt alındı, şimdi çıkılabilir)
         pull()
@@ -229,7 +232,13 @@ def main():
             break
         if time.time() + RECORD_MIN * 60 > deadline:
             break
-        time.sleep(RECORD_MIN * 60)
+        wait = RECORD_MIN * 60
+        # 08:30 TSİ gönderimi tam zamanında olsun: bir sonraki tur o saati atlayacaksa, o saate kadar bekle
+        nxt = datetime.now(timezone.utc).replace(hour=IG_POST_UTC[0], minute=IG_POST_UTC[1], second=10, microsecond=0)
+        left = (nxt - datetime.now(timezone.utc)).total_seconds()
+        if 0 < left < wait:
+            wait = left
+        time.sleep(wait)
     if chain:
         dispatch("keeper.yml")
     log("Bekçi bitti.")
