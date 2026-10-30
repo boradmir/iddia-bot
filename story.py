@@ -127,15 +127,14 @@ def score_card(m, live, kind, out_path, er=None):
     hc1, hc2, _ = team_style(m["home"], er); ac1, ac2, _ = team_style(m["away"], er)
     st = live.get("stats") or {}
     rows = [k for k in ("Topla oynama", "Şut", "İsabetli şut", "Korner", "Faul") if k in (st.get("home") or {}) or k in (st.get("away") or {})]
-    # olaylar: goller + kırmızı kartlar her zaman; değişiklikler taraf başına en fazla 6 olay kalacak şekilde (en erken olanlar)
+    # olaylar: goller + kırmızı kartlar + değişiklikler, sınırsız; taraf başına 6'dan çoksa o taraf iki sütuna geçer
     def _min(g):
         return int("".join(ch for ch in (g.get("minute") or "0").split("+")[0] if ch.isdigit()) or 0)
-    evs = []
-    for side in ("home", "away"):
-        core = [g for g in live.get("goals", []) + live.get("cards", []) if (g.get("side") or "home") == side]
-        subs = sorted([g for g in live.get("subs", []) if (g.get("side") or "home") == side], key=_min)
-        evs += core + subs[:max(0, 6 - len(core))]
-    n_ev = max(len([g for g in evs if (g.get("side") or "home") == "home"]), len([g for g in evs if g.get("side") == "away"]))
+    evs = sorted(live.get("goals", []) + live.get("cards", []) + live.get("subs", []), key=_min)
+    by_side = {sd: [g for g in evs if (g.get("side") or "home") == sd] for sd in ("home", "away")}
+    two_col = {sd: len(v) > 6 for sd, v in by_side.items()}
+    rows_side = {sd: ((len(v) + 1) // 2 if two_col[sd] else len(v)) for sd, v in by_side.items()}
+    n_ev = max(rows_side.values())
     f2 = font("body", 22); dl = wrap(DISCLAIMER, f2, SW - 120)
     yb = SH - SAFE_BOTTOM - 30 * len(dl)
     avail = yb - 40 - SAFE_TOP
@@ -181,28 +180,47 @@ def score_card(m, live, kind, out_path, er=None):
     fg_ = font("semi", 30); fm = font("display", 28)
     cols = {"home": 60, "away": 60 + half + 20}
     ys = {"home": y, "away": y}
-    events = sorted(evs, key=lambda g: int("".join(ch for ch in g.get("minute", "0") if ch.isdigit()) or 0))
-    fs_ = font("semi", 24)
+    events = evs
+    fs_ = font("semi", 24); fc = font("semi", 24); fmc = font("display", 24)
     _BALL = icons.ball(30); _SUB = icons.sub(30); _RED = icons.red_card(34)
-    for g in events:
-        side = g.get("side") or "home"
-        x = cols[side]; yy = ys[side]
-        if g.get("kind") == "red":
-            img.paste(_RED, (int(x) - 2, int(yy) + 2), _RED)
-            d.text((x + 38, yy + 19), short_name(g.get("player") or "", fg_, half - 110), font=fg_, fill=WHITE, anchor="lm")
-        elif g.get("kind") == "sub":
-            # değişiklik: yeşil ok giren, kırmızı ok çıkan
-            img.paste(_SUB, (int(x) - 2, int(yy) + 4), _SUB)
-            p_in = short_name(g.get("player") or "", fs_, (half - 130) * 0.55)
-            p_out = short_name(g.get("out") or "", fs_, (half - 130) * 0.45)
-            d.text((x + 38, yy + 19), p_in, font=fs_, fill=WHITE, anchor="lm")
-            d.text((x + 38 + fs_.getlength(p_in) + 10, yy + 19), f"← {p_out}", font=fs_, fill=PALE, anchor="lm")
+    _BALLs = icons.ball(24); _SUBs = icons.sub(24); _REDs = icons.red_card(28)
+    for sd in ("home", "away"):
+        lst = by_side[sd]
+        if not two_col[sd]:
+            for g in lst:
+                x = cols[sd]; yy = ys[sd]
+                if g.get("kind") == "red":
+                    img.paste(_RED, (int(x) - 2, int(yy) + 2), _RED)
+                    d.text((x + 38, yy + 19), short_name(g.get("player") or "", fg_, half - 110), font=fg_, fill=WHITE, anchor="lm")
+                elif g.get("kind") == "sub":
+                    img.paste(_SUB, (int(x) - 2, int(yy) + 4), _SUB)
+                    p_in = short_name(g.get("player") or "", fs_, (half - 130) * 0.55)
+                    p_out = short_name(g.get("out") or "", fs_, (half - 130) * 0.45)
+                    d.text((x + 38, yy + 19), p_in, font=fs_, fill=WHITE, anchor="lm")
+                    d.text((x + 38 + fs_.getlength(p_in) + 10, yy + 19), f"← {p_out}", font=fs_, fill=PALE, anchor="lm")
+                else:
+                    img.paste(_BALL, (int(x) - 2, int(yy) + 4), _BALL)
+                    label = short_name(g.get("player") or "", fg_, half - 110) + (" (P)" if g.get("pen") else "") + (" (KK)" if g.get("own") else "")
+                    d.text((x + 38, yy + 19), label, font=fg_, fill=WHITE, anchor="lm")
+                d.text((x + half - 30, yy + 19), g.get("minute", ""), font=fm, fill=YELLOW, anchor="rm")
+                ys[sd] = yy + row_h
         else:
-            img.paste(_BALL, (int(x) - 2, int(yy) + 4), _BALL)
-            label = short_name(g.get("player") or "", fg_, half - 110) + (" (P)" if g.get("pen") else "") + (" (KK)" if g.get("own") else "")
-            d.text((x + 38, yy + 19), label, font=fg_, fill=WHITE, anchor="lm")
-        d.text((x + half - 30, yy + 19), g.get("minute", ""), font=fm, fill=YELLOW, anchor="rm")
-        ys[side] = yy + row_h
+            # iki sütun: sıkışık biçim (değişikliklerde yalnız giren oyuncu), soldan sağa doldurulur
+            cw_ = (half - 20) / 2
+            n_rows = rows_side[sd]
+            for i, g in enumerate(lst):
+                col, row = divmod(i, n_rows)
+                x = cols[sd] + col * (cw_ + 20); yy = ys[sd] + row * row_h
+                if g.get("kind") == "red":
+                    img.paste(_REDs, (int(x), int(yy) + 6), _REDs); label = short_name(g.get("player") or "", fc, cw_ - 92)
+                elif g.get("kind") == "sub":
+                    img.paste(_SUBs, (int(x), int(yy) + 8), _SUBs); label = short_name(g.get("player") or "", fc, cw_ - 92)
+                else:
+                    img.paste(_BALLs, (int(x), int(yy) + 8), _BALLs)
+                    label = short_name(g.get("player") or "", fc, cw_ - 92) + (" (P)" if g.get("pen") else "") + (" (KK)" if g.get("own") else "")
+                d.text((x + 32, yy + 19), label, font=fc, fill=WHITE if g.get("kind") != "sub" else PALE, anchor="lm")
+                d.text((x + cw_ - 4, yy + 19), g.get("minute", ""), font=fmc, fill=YELLOW, anchor="rm")
+            ys[sd] = ys[sd] + n_rows * row_h
     y = max(ys.values()) + (30 if events else 0)
     if not events:
         text(d, (SW / 2, y + 10), "Gol yok", font("body", 28), PALE, anchor="ma"); y += 70
