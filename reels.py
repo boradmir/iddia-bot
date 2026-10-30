@@ -382,6 +382,18 @@ def subtitle(img, d, words, t, f):
 
 
 # ----------------------------------------------------------------- sahneler
+def cover_image(img, m, th):
+    """Kapak: kanca sahnesinin tam hâli + üstte etiket, altta göz işareti ve marka. Profil ızgarası ortadan kırpar (1:1 → y 420-1500);
+    bütün öğeler bu kuşakta."""
+    d = ImageDraw.Draw(img)
+    d.text((M_L, 340), tr_upper("Maç öncesi analiz"), font=font("displaysemi", 34), fill=YELLOW)
+    mk = logo.eye_mark(120)
+    img.paste(mk, ((W - mk.width) // 2, 1210), mk)
+    d.text((W / 2, 1350), "ANALİZ VE ÖTESİ", font=font("display", 48), fill=WHITE, anchor="ma")
+    d.text((W / 2, 1408), HANDLE, font=font("semi", 30), fill=PALE, anchor="ma")
+    return img
+
+
 def scene_hook(img, d, t, hook, th):
     f, size = fit_font(tr_upper(hook), "display", (96, 86, 76, 68, 60), W - M_L - M_R, 4)
     acc = set(w.strip(".,").lower() for w in hook.split()[-3:])   # son üç kelime vurgu
@@ -658,7 +670,7 @@ def render(m, bl, pm, er, out_mp4, absences=None):
         if name != "question":
             subtitle(img, d, words, t, fsub)
         if fi == 0:
-            cover = img.copy()
+            cover = cover_image(draw_scene("hook", 9.0), m, th)
         if use_video:
             img.save(os.path.join(frames_dir, f"f{fi:04d}.png"))
         else:

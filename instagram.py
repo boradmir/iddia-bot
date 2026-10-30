@@ -116,12 +116,16 @@ def publish_story(image_url):
     return _post(f"{USER_ID}/media_publish", {"creation_id": c["id"]})["id"]
 
 
-def publish_reels_file(path, caption, thumb_offset_ms=0, share_to_feed=True, publish=True):
+def publish_reels_file(path, caption, thumb_offset_ms=0, share_to_feed=True, publish=True, cover_url=None):
     """Reels: videoyu doğrudan yükler (resumable upload; barındırma gerekmez), işlenmesini bekler, yayınlar.
     publish=False: yalnız kapsayıcı + yükleme + hazır olma testi (yayınlamaz)."""
     size = os.path.getsize(path)
-    c = _post(f"{USER_ID}/media", {"media_type": "REELS", "upload_type": "resumable", "caption": caption,
-                                   "share_to_feed": "true" if share_to_feed else "false", "thumb_offset": str(thumb_offset_ms)})
+    params = {"media_type": "REELS", "upload_type": "resumable", "caption": caption, "share_to_feed": "true" if share_to_feed else "false"}
+    if cover_url:
+        params["cover_url"] = cover_url
+    else:
+        params["thumb_offset"] = str(thumb_offset_ms)
+    c = _post(f"{USER_ID}/media", params)
     cid = c["id"]
     up_url = c.get("uri") or f"https://rupload.facebook.com/ig-api-upload/v21.0/{cid}"
     with open(path, "rb") as f:

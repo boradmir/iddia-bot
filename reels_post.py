@@ -53,6 +53,27 @@ def market_probs(m):
     return None
 
 
+def publish_cover(cover_path, m, day):
+    """Kapağı docs/social/<gün>/ altına koyup iter; raw adresi yayına girince döner. Olmazsa None (Instagram ilk kareyi kullanır)."""
+    if not cover_path or not os.path.exists(cover_path):
+        return None
+    try:
+        import shutil
+        rel = f"docs/social/{day}/reels_{m['code']}_kapak.jpg"
+        os.makedirs(os.path.dirname(rel), exist_ok=True); shutil.copyfile(cover_path, rel)
+        git_pull()
+        subprocess.run(["git", "add", rel], capture_output=True)
+        subprocess.run(["git", "commit", "-q", "-m", f"reels kapağı: {m['home']}-{m['away']}"], capture_output=True)
+        subprocess.run(["git", "push", "-q"], capture_output=True)
+        url = f"{instagram.RAW}/social/{day}/reels_{m['code']}_kapak.jpg"
+        if instagram.wait_public(url, timeout=240, size=os.path.getsize(rel)):
+            log(f"Kapak yayında: {url}"); return url
+        log("Kapak raw adreste görünmedi; ilk kare kullanılacak")
+    except Exception as e:
+        log(f"Kapak yüklenemedi ({e}); ilk kare kullanılacak")
+    return None
+
+
 def main():
     git_pull()
     m = todays_match()
@@ -93,7 +114,8 @@ def main():
     # 4) yayınla
     if any(s.get("type") == "reels" and s.get("code") == m["code"] for s in instagram.load_log()):
         log("Bu maçın reels'i zaten yayınlanmış; çıkılıyor"); return
-    pid = instagram.publish_reels_file(out, cap)
+    cover_url = publish_cover(r.get("cover"), m, day)
+    pid = instagram.publish_reels_file(out, cap, cover_url=cover_url)
     instagram.log_post(m, "reels", pid)
     log(f"YAYINLANDI: {pid}")
     git_pull()
