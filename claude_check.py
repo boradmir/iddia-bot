@@ -160,6 +160,17 @@ def load_today(day=None):
         return [json.loads(l) for l in f if l.strip()]
 
 
+def analyzed_before(code):
+    """Bu maç herhangi bir gün analiz edilmiş mi? (records/claude/*.jsonl)"""
+    import glob
+    for p in glob.glob(f"{OUT_DIR}/*.jsonl"):
+        with open(p, encoding="utf-8") as f:
+            for line in f:
+                if line.strip() and json.loads(line).get("code") == code:
+                    return True
+    return False
+
+
 def analyze_and_store(m, market_probs, force=False):
     """watch.py için: günlük sınır ve tekrar kontrolü ile analiz eder, records/claude/GÜN.jsonl'a yazar.
     force=True (fırsat uyarısı çıkan maç): günlük sınırı aşsa da analiz edilir."""
@@ -167,8 +178,12 @@ def analyze_and_store(m, market_probs, force=False):
         return None
     day = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     today = load_today(day)
-    if any(r["code"] == m["code"] for r in today):
-        return None
+    if any(r["code"] == m["code"] for r in today) or analyzed_before(m["code"]):
+        return None   # bir maç bir kez analiz edilir (gün fark etmez)
+    if not force:
+        import clubs
+        if clubs.tier(m) > clubs.ANALYZE_MAX_TIER:
+            return None   # fırsat uyarısı yoksa yalnız büyük kulüp maçları
     if force:
         if sum(1 for r in today if r.get("forced")) >= MAX_FORCE_PER_DAY:
             return None
