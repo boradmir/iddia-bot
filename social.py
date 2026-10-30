@@ -390,12 +390,17 @@ def comment_card(m, ai, out_path):
         d.text((60, y), ln, font=f, fill=INK); y += 46
     y += 18
     if bl.get("risk"):
-        d.rounded_rectangle((60, y, W - 60, y + 118), radius=18, fill=(255, 243, 204))
+        # kutu metne göre büyür (en çok 5 satır; daha uzunsa son satır üç noktayla biter), metin kesilmez
+        rl = wrap(bl["risk"], font("body", 24), W - 170)
+        if len(rl) > 5:
+            rl = rl[:5]; rl[-1] = rl[-1].rstrip(".,; ") + "…"
+        box_h = 50 + 30 * len(rl) + 10
+        d.rounded_rectangle((60, y, W - 60, y + box_h), radius=18, fill=(255, 243, 204))
         text(d, (84, y + 16), "EN BÜYÜK BELİRSİZLİK", font("displaysemi", 24), (107, 77, 0))
         yy = y + 50
-        for ln in wrap(bl["risk"], font("body", 24), W - 170)[:2]:
+        for ln in rl:
             d.text((84, yy), ln, font=font("body", 24), fill=INK2); yy += 30
-        y += 134
+        y += box_h + 16
     facts = bl.get("facts") or []
     if facts and y < H - 200:
         text(d, (60, y), "KAYNAKLI HABERLER", font("displaysemi", 24), MUTED); y += 34
