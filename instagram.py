@@ -116,6 +116,49 @@ def publish_story(image_url):
     return _post(f"{USER_ID}/media_publish", {"creation_id": c["id"]})["id"]
 
 
+def publish_reels_file(path, caption, thumb_offset_ms=0, share_to_feed=True, publish=True):
+    """Reels: videoyu doğrudan yükler (resumable upload; barındırma gerekmez), işlenmesini bekler, yayınlar.
+    publish=False: yalnız kapsayıcı + yükleme + hazır olma testi (yayınlamaz)."""
+    size = os.path.getsize(path)
+    c = _post(f"{USER_ID}/media", {"media_type": "REELS", "upload_type": "resumable", "caption": caption,
+                                   "share_to_feed": "true" if share_to_feed else "false", "thumb_offset": str(thumb_offset_ms)})
+    cid = c["id"]
+    up_url = c.get("uri") or f"https://rupload.facebook.com/ig-api-upload/v21.0/{cid}"
+    with open(path, "rb") as f:
+        data = f.read()
+    req = urllib.request.Request(up_url, data=data, method="POST",
+                                 headers={"Authorization": f"OAuth {TOKEN}", "offset": "0", "file_size": str(size),
+                                          "Content-Type": "application/octet-stream", "User-Agent": "iddia-bot"})
+    try:
+        with urllib.request.urlopen(req, timeout=600) as r:
+            up = json.loads(r.read())
+    except urllib.error.HTTPError as e:
+        raise RuntimeError(f"video yüklenemedi {e.code}: {e.read().decode('utf-8', 'replace')[:300]}") from None
+    if not up.get("success", True):
+        raise RuntimeError(f"video yüklenemedi: {up}")
+    if not wait_ready(cid, tries=90):   # video işleme 1-5 dk sürebilir
+        st = _get(cid, {"fields": "status_code,status"})
+        raise RuntimeError(f"reels hazırlanamadı: {st}")
+    if not publish:
+        return cid
+    return _post(f"{USER_ID}/media_publish", {"creation_id": cid})["id"]
+
+
+def reels_caption(m, bl, pm=None):
+    """Reels açıklaması: kısa. İlk satır arama için; soru; dipnot; hashtag."""
+    hook = (bl.get("hook") or "").strip()
+    q = (bl.get("question") or "").strip() or "Siz ne düşünüyorsunuz?"
+    parts = [f"{m['home']} – {m['away']} maç öncesi analiz" + (f": {hook}" if hook else ""),
+             f"{q} Yoruma yazın. Maç sonu karşılaştırmak için kaydedin.", NOTE, hashtags_for(m)]
+    return "\n\n".join(parts)[:2190]
+
+
+def log_post(m, kind, pid):
+    with open(LOG, "a", encoding="utf-8") as f:
+        f.write(json.dumps({"day": str(datetime.now(TR).date()), "type": kind, "code": m["code"], "home": m["home"], "away": m["away"],
+                            "post_id": pid, "t": datetime.now(timezone.utc).isoformat(timespec="seconds")}, ensure_ascii=False) + "\n")
+
+
 def wait_public(url, timeout=480, size=None):
     """GitHub Pages görseli yayınlayana kadar bekle (en fazla timeout sn). size verilirse dosya boyutu eşleşene kadar
     (aynı adreste eski bir sürüm varsa yenisi gelsin diye)."""
@@ -220,7 +263,7 @@ def main():
     dry = "--dry" in sys.argv or not (TOKEN and USER_ID)
     today = datetime.now(TR).date()
     sent = load_log()
-    sent_today = [s for s in sent if s["day"] == str(today) and not str(s.get("type", "")).startswith("story")]
+    sent_today = [s for s in sent if s["day"] == str(today) and not str(s.get("type", "")).startswith(("story", "reels"))]
     # --only Konyaspor,Nice : sadece bu ev sahiplerini gönder (günlük sınır ve günlük yok sayılır; elle yeniden yükleme için)
     only = [s.strip().lower() for s in sys.argv[sys.argv.index("--only") + 1].split(",")] if "--only" in sys.argv else None
     if only is None and len(sent_today) >= MAX_PER_DAY:
@@ -234,7 +277,7 @@ def main():
     ai = {r["code"]: r for r in build_site.read_jsonl("records/claude/*.jsonl") if r.get("blind")}
     pin = build_site.pinnacle_events(build_site.read_jsonl("records/pinnacle/*.jsonl"))
     aliases = json.load(open("aliases.json", encoding="utf-8")) if os.path.exists("aliases.json") else {}
-    done = {s["code"] for s in sent if not str(s.get("type", "")).startswith("story")}
+    done = {s["code"] for s in sent if not str(s.get("type", "")).startswith(("story", "reels"))}
     caps = existing_captions() if (TOKEN and USER_ID) else []  # kuru modda da hesaptaki gönderilere bak
     # öncelik: yorumu olan (iki kartlı) maçlar, sonra en yakın başlangıç
     cands = []
