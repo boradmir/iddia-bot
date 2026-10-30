@@ -169,7 +169,7 @@ def main():
     pin = build_site.pinnacle_events(build_site.read_jsonl("records/pinnacle/*.jsonl"))
     aliases = json.load(open("aliases.json", encoding="utf-8")) if os.path.exists("aliases.json") else {}
     done = {s["code"] for s in sent}
-    caps = [] if dry else existing_captions()
+    caps = existing_captions() if (TOKEN and USER_ID) else []  # kuru modda da hesaptaki gönderilere bak
     # öncelik: yorumu olan (iki kartlı) maçlar, sonra en yakın başlangıç
     cands = []
     for m, ev, score in match.match_all(nm, pin, aliases):
