@@ -126,7 +126,7 @@ def eye_mark(h_px, fg=(243, 239, 228), acc=(255, 207, 77)):
     for ex, ey in (P(128, 132), P(48, 132)):
         d.ellipse((ex - lw / 2, ey - lw / 2, ex + lw / 2, ey + lw / 2), fill=fg)
     # göz bebeği
-    px, py = P(128, 132); pr = 12 * scale
+    px, py = P(128, 132); pr = 14 * scale
     d.ellipse((px - pr, py - pr, px + pr, py + pr), fill=acc)
     return img.resize((W // S, H // S), Image.LANCZOS)
 

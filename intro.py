@@ -13,8 +13,8 @@ OUT = "docs/social/intro"
 
 def card1():
     img = pitch_background(); d = ImageDraw.Draw(img)
-    mk = logo.mark_image(360)
-    img.paste(mk, (int(W / 2 - mk.width / 3), 120), mk)  # A'nın ekseni (işaretin 1/3'ü; sağdaki nokta hariç) ortada
+    mk = logo.mark_image(300)
+    img.paste(mk, (int(W / 2 - mk.width / 2), 150), mk)  # göz işareti tam ortada
     d.text((W / 2, 720), "ANALİZ", font=font("display", 150), fill=WHITE, anchor="mm")
     d.text((W / 2, 830), "V E   Ö T E S İ", font=ImageFont.truetype("assets/fonts/BarlowCondensed-SemiBold.ttf", 78), fill=YELLOW, anchor="mm")
     d.text((W / 2, 960), "Skordan öncesini okuruz.", font=font("semi", 40), fill=WHITE, anchor="mm")
