@@ -37,6 +37,19 @@ def short_words(text, n):
     return cut.strip(" ,;")
 
 
+def tr_gen(name):
+    """Türkçe ilgi eki: Fenerbahçe'nin, Göztepe'nin, Galatasaray'ın, Konyaspor'un, Beşiktaş'ın, PSG'nin."""
+    base = name.strip()
+    last_vowel = next((ch for ch in reversed(base.lower()) if ch in "aeıioöuü"), "e")
+    suffix = {"a": "ın", "ı": "ın", "e": "in", "i": "in", "o": "un", "u": "un", "ö": "ün", "ü": "ün"}[last_vowel]
+    ends_vowel = base[-1].lower() in "aeıioöuü"
+    if base.isupper() and len(base) <= 4:   # kısaltma (PSG) harf okunuşuna göre: PSG → PSG'nin
+        suffix = "nin"
+    elif ends_vowel:
+        suffix = "n" + suffix
+    return f"{base}'{suffix}"
+
+
 def build_script(m, bl, pm, absences):
     """Seslendirme metni (28-36 kelime) ve sahne çapaları (kelime indeksleri)."""
     ms = pm["MS"] if pm and "MS" in pm else None
@@ -44,7 +57,7 @@ def build_script(m, bl, pm, absences):
     # yapay zekânın yazdığı seslendirme metni varsa ve ölçüye uyuyorsa onu kullan
     rs = (bl.get("reels_script") or "").strip()
     if rs and ms:
-        market = f"Piyasaya göre {m['home']} yüzde {ms['1']*100:.0f}, {m['away']} yüzde {ms['2']*100:.0f}."
+        market = f"Piyasaya göre {tr_gen(m['home'])} kazanma ihtimali yüzde {ms['1']*100:.0f}, {tr_gen(m['away'])} yüzde {ms['2']*100:.0f}."
         rs = re.sub(r"P[İI]YASA\.?", market, rs, count=1) if "PİYASA" in rs or "PIYASA" in rs else re.sub(r"Piyasaya göre[^.]*\.", market, rs, count=1)
     if rs and 18 <= len(rs.split()) <= 64 and not re.search(r"\b(ben|bana|bence|beni)\b", rs, re.I):
         sents = [s.strip() for s in re.split(r"(?<=[.!?])\s+", rs) if s.strip()]
@@ -64,7 +77,7 @@ def build_script(m, bl, pm, absences):
             other = ("1", m["home"]) if fav_side == "2" else ("2", m["away"])
             parts.append(f"{other[1]} için yüzde {ms[other[0]]*100:.0f}.")
         else:
-            parts.append(f"Piyasaya göre {m['home']} yüzde {ms['1']*100:.0f}, {m['away']} yüzde {ms['2']*100:.0f}.")
+            parts.append(f"Piyasaya göre {tr_gen(m['home'])} kazanma ihtimali yüzde {ms['1']*100:.0f}, {tr_gen(m['away'])} yüzde {ms['2']*100:.0f}.")
     if absences:
         parts.append(", ".join(f"{a['player'].split()[-1]} {a['status']}" for a in absences[:2]) + ".")
     risk_short = (bl.get("risk_short") or short_words(bl.get("risk"), 12)).rstrip(".")
@@ -326,7 +339,7 @@ def scene_teams(img, d, t, m, th):
 
 def scene_market(img, d, t, m, pm, er):
     ms = pm["MS"]; hc, _, _ = team_style(m["home"], er); ac, _, _ = team_style(m["away"], er)
-    d.text((M_L, 400), tr_upper("Dünya bu maça ne diyor?"), font=font("displaysemi", 36), fill=YELLOW)
+    d.text((M_L, 400), tr_upper("Dünya bu maça ne diyor? · kazanma ihtimali"), font=font("displaysemi", 34), fill=YELLOW)
     best = max(ms, key=ms.get)
     rows = (("1", m["home"], hc), ("X", "Beraberlik", GREEN3), ("2", m["away"], ac))
     y = 480
