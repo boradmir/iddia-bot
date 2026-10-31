@@ -144,7 +144,7 @@ def ads_index():
 def collect_media(now):
     rows = [json.loads(l) for l in open(LOG, encoding="utf-8") if l.strip()] if os.path.exists(LOG) else []
     ai = ai_index(); ads = ads_index()
-    out, errs = [], []
+    out, errs, notes = [], [], []
     for row in rows:
         pid = row.get("post_id")
         if not pid:
@@ -156,7 +156,13 @@ def collect_media(now):
             continue
         met, err = media_insights(pid, METRICS[k])
         if err and not met:
-            errs.append(f"{pid} ({k}): {err[:120]}"); continue
+            if "Not enough viewers" in err:
+                notes.append(f"{row.get('home')}-{row.get('away')} {k}: henüz yeterli izleyici yok, sonra ölçülür")
+            elif "does not exist" in err:
+                notes.append(f"{row.get('home')}-{row.get('away')} {k}: süresi dolmuş (silinmiş)")
+            else:
+                errs.append(f"{pid} ({k}): {err[:120]}")
+            continue
         rec = {"day": now.astimezone(TR).date().isoformat(), "t": now.isoformat(timespec="seconds"), "post_id": pid,
                "code": row.get("code"), "age_h": round(age_h, 1)}
         rec.update(tags_for(row, ai)); rec.update(met)
@@ -172,7 +178,7 @@ def collect_media(now):
             rec["int_rate"] = round((rec.get("total_interactions") or 0) / rec["reach"], 4)
             rec["save_rate"] = round((rec.get("saved") or 0) / rec["reach"], 4)
         out.append(rec)
-    return out, errs
+    return out, errs, notes
 
 
 def collect_account(now):
@@ -202,11 +208,12 @@ def daily():
     if not (TOKEN and USER_ID):
         print("IG_TOKEN/IG_USER_ID yok"); return
     now = datetime.now(timezone.utc)
-    media, errs = collect_media(now)
+    media, errs, notes = collect_media(now)
     acct, err = collect_account(now)
     append(f"{OUT}/media_{now.astimezone(TR):%Y-%m}.jsonl", media)
     append(f"{OUT}/account.jsonl", [acct])
-    print(f"insights: {len(media)} medya satırı, takipçi={acct.get('followers')}" + (f"; hatalar: {' | '.join(errs)}" if errs else "") + (f"; hesap hatası: {err}" if err else ""))
+    print(f"insights: {len(media)} medya satırı, takipçi={acct.get('followers')}" + (f"; hatalar: {' | '.join(errs)}" if errs else "") + (f"; hesap hatası: {err}" if err else "")
+          + (f"; notlar: {' | '.join(notes)}" if notes else ""))
 
 
 # ---------------- haftalık rapor ----------------
