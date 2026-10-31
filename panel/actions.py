@@ -189,6 +189,20 @@ def run(body):
             err = commit_push(["records/insights/ads.jsonl"], f"panel: reklam kaydı {rec['home']}-{rec['away']} {rec['budget_tl']:.0f} TL")
             alog(a, f"{rec} {err or 'ok'}")
             return {"ok": False, "error": err} if err else {"ok": True, "msg": "Reklam kaydedildi"}
+        # ---- Puan durumu
+        if a == "standings_preview":
+            return _job("Puan durumu kartları (önizleme)", lambda log: _standings_preview(log))
+        if a == "standings_skip":
+            import standings
+            with GIT_LOCK:
+                pull()
+            ctrl = control.load(); wk = standings.week_key()
+            ctrl.setdefault("standings", {})[wk] = {"skip": bool(body.get("skip"))}
+            control.save(ctrl)
+            err = commit_push(["records/control.json"], f"panel: puan durumu {'atlandı' if body.get('skip') else 'açıldı'} {wk}")
+            alog(a, f"{wk} skip={body.get('skip')} {err or 'ok'}")
+            return {"ok": False, "error": err} if err else {"ok": True, "msg": "Bu hafta atlanacak" if body.get("skip") else "Bu hafta gönderilecek"}
+
         # ---- Gelen kutusu
         from panel import inbox
         if a == "inbox_seen":
@@ -216,3 +230,13 @@ def _after_job(jid, paths, msg):
         p = paths() if callable(paths) else paths
         err = commit_push(p, msg)
         alog("after_job", f"{msg}: {err or 'ok'}")
+
+
+def _standings_preview(log):
+    """Kartları yerelde üretir (docs/social/puan/<hafta>); repoya itmez, bekçi pazartesi kendi üretir."""
+    import standings
+    wk, paths, data = standings.build()
+    for p in paths:
+        log(p)
+    log(standings.caption(wk, data))
+    return wk

@@ -130,7 +130,23 @@ def today():
     except Exception:
         watch = {}
     return {"day": ds, "paused_until": plan["paused_until"], "max_per_day": instagram.MAX_PER_DAY, "sent_count": len(plan["sent_today"]),
-            "matches": out, "watch": watch, "errors": errors}
+            "matches": out, "watch": watch, "errors": errors, "standings": standings_state(ctrl, log)}
+
+
+def standings_state(ctrl, log):
+    """Haftalık puan durumu karuseli: bu haftanın kartları (varsa), yayın durumu, panel kararı."""
+    import standings
+    week = standings.week_key()
+    cards = sorted(glob.glob(f"docs/social/puan/{week}/*.jpg"))
+    posted = next((x for x in log if x.get("type") == "standings" and x.get("week") == week), None)
+    skip = bool(((ctrl.get("standings") or {}).get(week) or {}).get("skip"))
+    nxt = datetime.now(TR)
+    days = (0 - nxt.weekday()) % 7
+    nxt = (nxt + timedelta(days=days)).replace(hour=12, minute=0, second=0, microsecond=0)
+    if nxt < datetime.now(TR):
+        nxt += timedelta(days=7)
+    return {"week": week, "cards": [f"/img/{p.replace(os.sep, '/')}" for p in cards], "posted": posted and posted.get("post_id"),
+            "url": permalink(posted.get("post_id")) if posted else None, "skip": skip, "next": nxt.strftime("%d.%m %H:%M")}
 
 
 # ---------------- Sistem ----------------

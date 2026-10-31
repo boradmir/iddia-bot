@@ -39,7 +39,13 @@ function renderToday(T) {
       : `<button class="act warn" title="Gece yarısına kadar karusel, reels ve story gönderilmez" onclick="act({action:'pause',until:'today'})">Bugün durdur</button>`}
     <button class="act" title="instagram.py'yi bu bilgisayarda hemen çalıştırır; saati gelmiş gönderi varsa gider" onclick="act({action:'instagram_now'})">Instagram'ı şimdi çalıştır</button></span>
     ${T.errors.length ? `<div class="err">${esc(T.errors.join(' · '))}</div>` : ''}</div>`;
-  $('#matches').innerHTML = T.matches.length ? T.matches.map(m => {
+  const st = T.standings || {};
+  const stBox = `<div class="card"><b>Haftalık puan durumu</b> <span class="meta">(beş lig, tek karusel; her pazartesi 12:00, sıradaki ${esc(st.next || '')})</span>
+    · ${st.posted ? `<span class="state yayinda">bu hafta yayında</span>${st.url ? ` · <a href="${st.url}" target="_blank">aç</a>` : ''}` : st.skip ? '<span class="state atlandi">bu hafta atlanacak</span>' : '<span class="state planli">bu hafta gönderilecek</span>'}
+    <span class="btns" style="float:right;max-width:none"><button class="act" title="Kartları şimdi yerelde üretir, aşağıda önizlersin; yayın yine pazartesi bekçide" onclick="act({action:'standings_preview'},()=>setTimeout(refresh,8000))">Önizleme üret</button>
+    <button class="act ${st.skip ? '' : 'warn'}" onclick="act({action:'standings_skip',skip:${!st.skip}})">${st.skip ? 'Atlamayı geri al' : 'Bu hafta atla'}</button></span>
+    ${st.cards && st.cards.length ? `<div class="thumbs" style="margin-top:8px">${st.cards.map(u => `<img src="${u}" onclick="zoom('${u}')">`).join('')}</div>` : ''}</div>`;
+  $('#matches').innerHTML = stBox + (T.matches.length ? T.matches.map(m => {
     const c = m.cards, p = m.post, s = m.stories;
     const thumbs = ['match', 'yorum', 'story', 'devre', 'ft'].filter(k => c[k]).map(k => `<img src="${c[k]}" title="${k}" onclick="zoom('${c[k]}')">`).join('');
     const reels = m.reels ? `<div class="meta">Reels: ${esc(RS[m.reels.status] || m.reels.status)} ${esc(m.reels.at || '')}${m.reels.url ? ` · <a href="${m.reels.url}" target="_blank">aç</a>` : ''}</div>` : '';
@@ -54,7 +60,7 @@ function renderToday(T) {
         <button class="act ${p.skip ? '' : 'warn'}" onclick="act({action:'skip',code:${m.code},skip:${!p.skip}})">${p.skip ? 'Atlamayı geri al' : 'Atla'}</button>` : ''}
         <button class="act ${s.skip ? '' : 'warn'}" onclick="act({action:'story_skip',code:${m.code},skip:${!s.skip}})">${s.skip ? "Story'leri aç" : "Story'leri atla"}</button>
       </div></div>`;
-  }).join('') : '<div class="card meta">Bugün listelenecek maç yok</div>';
+  }).join('') : '<div class="card meta">Bugün listelenecek maç yok</div>');
 }
 
 // ---------------- İçerik ----------------

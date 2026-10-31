@@ -6,7 +6,7 @@ Panel yalnız bu bilgisayarda çalışır, şifre yoktur, dışarıya port açma
 Açılışta ve dakikada bir repoyu çeker (bekçinin kayıtları güncel görünsün). Her sekmenin üstünde ne işe yaradığını anlatan bir kutu vardır.
 
 ## Sekmeler
-- **Bugün**: günün maçları, karusel ve story durumu, saat yaz / atla / story atla / bugün durdur, kart önizleme, "Instagram'ı şimdi çalıştır".
+- **Bugün**: günün maçları, karusel ve story durumu, saat yaz / atla / story atla / bugün durdur, kart önizleme, "Instagram'ı şimdi çalıştır"; üstte haftalık puan durumu karuseli kutusu (standings.py: beş lig, pazartesi 12:00 bekçi gönderir; önizleme üret, bu hafta atla).
 - **İçerik**: açıklama metni (caption_override) ve kart yazıları düzenleme, kartı yeniden üretme, yayına yazma (repoya it), analizi editör notuyla yeniden çalıştırma (ücretli; eski kayıt `superseded`).
 - **Reels**: maç seç → metin → ses (Ahu / erkek, dönüşümlü) → video → denetim → önizleme → saat → yayına al (GitHub Release + control.reels `ready`; bekçi yayınlar). Erkek ses adayları ElevenLabs paylaşılan kütüphanesinden dinlenip seçilir (`data/panel/voices.json`).
 - **İstatistik**: takipçi ve erişim grafikleri, gönderi tablosu, gönderi başına gün gün seri, story tablosu (ileri/geri/çıkış), gruplara göre ortalama, hesap gün gün tablosu, reklam kaydı formu (`records/insights/ads.jsonl`), haftalık iç rapor.

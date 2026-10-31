@@ -94,6 +94,7 @@ def maybe_results(s, now):
 
 
 IG_POST_UTC = (6, 50)   # 09:50 TSİ'den itibaren her turda instagram.py çağrılır; saati gelen gönderi gider (saatler instagram.post_slots)
+STANDINGS_NEXT_UTC = None
 REELS_NEXT_UTC = None    # panelden hazırlanan reels'in yayın saati (UTC saat, dakika), maybe_reels doldurur
 NEXT_SLOT_UTC = None     # instagram.py'nin bildirdiği bir sonraki yayın saati (UTC saat, dakika)
 PRIORITY = ["soccer_turkey_super_league", "soccer_epl", "soccer_uefa_champs_league", "soccer_spain_la_liga", "soccer_italy_serie_a",
@@ -222,6 +223,35 @@ def maybe_reels(s, now):
 
 
 
+STANDINGS_UTC = (9, 0)   # Pazartesi 12:00 TSİ: haftalık puan durumu karuseli (standings.py); kartlar bir tur önce üretilip Pages'e itilir
+
+
+def maybe_standings(s, now):
+    """Pazartesi: 08:30 UTC sonrası kartları üret (bu turun push'u Pages'e taşır), 09:00 UTC sonrası Instagram'a gönder.
+    control.json: standings[hafta].skip ya da paused_until varsa gönderilmez. Döner: beklenen yayın saati UTC ya da None."""
+    if now.weekday() != 0 or not os.environ.get("IG_TOKEN"):
+        return None
+    import standings
+    week = standings.week_key(now)
+    if s.get("standings_cards_week") != week and (now.hour, now.minute) >= (8, 30):
+        r = sh([sys.executable, "standings.py"], capture_output=True, text=True)
+        log("puan durumu kartları: " + (r.stdout or r.stderr).strip()[:200])
+        if r.returncode == 0:
+            s["standings_cards_week"] = week; save_status(s)
+        return STANDINGS_UTC
+    if s.get("standings_cards_week") == week and s.get("standings_post_week") != week:
+        if (now.hour, now.minute) < STANDINGS_UTC:
+            return STANDINGS_UTC
+        ctrl = control.load()
+        if control.is_paused(ctrl) or ((ctrl.get("standings") or {}).get(week) or {}).get("skip"):
+            log("puan durumu: panel kararıyla atlandı"); s["standings_post_week"] = week; save_status(s); return None
+        r = sh([sys.executable, "standings.py", "--post"], capture_output=True, text=True)
+        out = (r.stdout or r.stderr).strip(); log("puan durumu gönderimi: " + out[:200])
+        if "YAYINLANDI" in out or "zaten" in out:
+            s["standings_post_week"] = week; save_status(s)
+    return None
+
+
 def fix_watch_status():
     """Gözcü çalışmıyorken 'active: true' kalmışsa (yarım kalan çalışma) sıfırla; sayfa yanlış 'Gözcü açık' demesin."""
     p = "records/watch_status.json"
@@ -304,8 +334,8 @@ def main():
         record_once()
         s = load_status(); s["keeper_last"] = now.isoformat(timespec="seconds"); save_status(s)
         # Tur başına TEK push: her push bir Pages derlemesi tetikliyor (saatte 10 derleme sınırı var); ara adımlar hata verse de kayıt gider
-        global NEXT_SLOT_UTC, REELS_NEXT_UTC
-        NEXT_SLOT_UTC = None; REELS_NEXT_UTC = None
+        global NEXT_SLOT_UTC, REELS_NEXT_UTC, STANDINGS_NEXT_UTC
+        NEXT_SLOT_UTC = None; REELS_NEXT_UTC = None; STANDINGS_NEXT_UTC = None
         try:
             maybe_results(s, now)
             maybe_watch(s, now)
@@ -313,6 +343,7 @@ def main():
             maybe_morning_claude(load_status(), now)
             maybe_insights(load_status(), now)
             REELS_NEXT_UTC = maybe_reels(load_status(), now)
+            STANDINGS_NEXT_UTC = maybe_standings(load_status(), now)
             if now.minute < 20:  # saatte bir: paylaşım kartları (yerel, ücretsiz)
                 r = sh([sys.executable, "social.py"], capture_output=True, text=True); log((r.stdout or r.stderr).strip()[:200])
             # Instagram gönderimi (secret varsa): 09:50 TSİ'den sonra her turda; saati gelen gönderi gider, gelmeyen "planlı" diye bildirilir
@@ -334,7 +365,7 @@ def main():
             break
         wait = RECORD_MIN * 60
         # gönderi tam saatinde gitsin: bir sonraki yayın saati (ya da ilk kontrol saati) bu turun içindeyse o saate kadar bekle
-        for hm in (NEXT_SLOT_UTC, REELS_NEXT_UTC, IG_POST_UTC):
+        for hm in (NEXT_SLOT_UTC, REELS_NEXT_UTC, STANDINGS_NEXT_UTC, IG_POST_UTC):
             if hm:
                 nxt = datetime.now(timezone.utc).replace(hour=hm[0], minute=hm[1], second=10, microsecond=0)
                 left = (nxt - datetime.now(timezone.utc)).total_seconds()
