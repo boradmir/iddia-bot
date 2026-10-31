@@ -6,7 +6,7 @@ import build_site
 
 TR = timezone(timedelta(hours=3))
 KIND_TR = getattr(build_site, "KIND_TR", {"safest": "En güvenli", "balanced": "Dengeli", "least_loss": "En az kayıp", "value": "Değer"})
-PICK_SHORT = getattr(build_site, "PICK_SHORT", {})
+PICK_SHORT = {k: v.replace("2.5", "2,5").replace("Üst", "üst").replace("Alt", "alt") for k, v in getattr(build_site, "PICK_SHORT", {}).items()}
 
 
 def _read(pattern):
@@ -83,7 +83,12 @@ def accuracy():
     """Tahmin isabeti: yapay zekâ analizlerinin pazar başına favori seçimi (ve piyasanın favorisi) gerçek sonuçla kıyaslanır;
     bot kuponu bacakları ve gözcü uyarıları seçim bazında sayılır. 'Tuttu/Toplam' biçiminde."""
     rows = _read("records/claude/*.jsonl")
-    settled = [r for r in rows if isinstance(r.get("result"), dict) and r.get("blind") and not r.get("superseded")]
+    latest = {}
+    for r in rows:
+        if isinstance(r.get("result"), dict) and r.get("blind") and not r.get("superseded"):
+            if r["code"] not in latest or (r.get("t") or "") > (latest[r["code"]].get("t") or ""):
+                latest[r["code"]] = r   # aynı maç iki kez analiz edildiyse en yenisi sayılır
+    settled = list(latest.values())
     per_market = {}      # (kaynak, pazar) → [tuttu, toplam]
     per_pick = {}        # (kaynak, pazar, seçim) → [tuttu, toplam]
     matches = []
