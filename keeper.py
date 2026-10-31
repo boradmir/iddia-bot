@@ -10,7 +10,7 @@ Kullanım: python keeper.py [--max-minutes 340] [--no-chain]
 import re
 import json, os, subprocess, sys, time
 from datetime import datetime, timezone, timedelta
-import nesine, espn, claude_check, build_site, odds, prob, match, clubs
+import nesine, espn, claude_check, build_site, odds, prob, match, clubs, control
 
 RECORD_MIN = 20
 STATUS = "records/status.json"
@@ -94,6 +94,7 @@ def maybe_results(s, now):
 
 
 IG_POST_UTC = (6, 50)   # 09:50 TSİ'den itibaren her turda instagram.py çağrılır; saati gelen gönderi gider (saatler instagram.post_slots)
+REELS_NEXT_UTC = None    # panelden hazırlanan reels'in yayın saati (UTC saat, dakika), maybe_reels doldurur
 NEXT_SLOT_UTC = None     # instagram.py'nin bildirdiği bir sonraki yayın saati (UTC saat, dakika)
 PRIORITY = ["soccer_turkey_super_league", "soccer_epl", "soccer_uefa_champs_league", "soccer_spain_la_liga", "soccer_italy_serie_a",
             "soccer_germany_bundesliga", "soccer_france_ligue_one", "soccer_uefa_europa_league", "soccer_uefa_europa_conference_league", "soccer_uefa_nations_league"]
@@ -169,6 +170,56 @@ def maybe_insights(s, now):
         r = sh([sys.executable, "insights.py", "--report"], capture_output=True, text=True)
         log("insights rapor: " + (r.stdout or r.stderr).strip()[:200])
         s["insights_report_week"] = week; save_status(s)
+
+
+def reels_due(rc, now):
+    """Panelden hazırlanan reels (status 'ready' + asset) yayın saati geldi mi?
+    Döner: (şimdi yayınla?, bekleniyorsa yayın saati UTC (h, m))."""
+    if rc.get("status") != "ready" or not rc.get("asset"):
+        return False, None
+    hm = control.parse_hm(rc.get("at") or "")
+    if not hm:
+        return True, None
+    at = now.astimezone(control.TR).replace(hour=hm[0], minute=hm[1], second=0, microsecond=0)
+    if now >= at:
+        return True, None
+    u = at.astimezone(timezone.utc)
+    return False, (u.hour, u.minute)
+
+
+def maybe_reels(s, now):
+    """control.reels[bugün] hazırsa ve saati geldiyse: GitHub Release'ten mp4 + açıklamayı indir, Instagram'a yükle, günlüğe yaz.
+    Böylece reels yayını için kullanıcının bilgisayarının açık olması gerekmez. Döner: bekleyen yayın saati UTC ya da None."""
+    if not (os.environ.get("IG_TOKEN") and os.environ.get("IG_USER_ID")):
+        return None
+    import instagram
+    ctrl = control.load()
+    day = now.astimezone(control.TR).strftime("%Y-%m-%d")
+    rc = control.reels(ctrl, day)
+    due, nxt = reels_due(rc, now)
+    if not due:
+        return nxt
+    if any(x.get("type") == "reels" and x.get("code") == rc.get("code") for x in instagram.load_log()):
+        control.set_reels(ctrl, day, status="posted"); control.save(ctrl)
+        log("reels: bu maç zaten yayınlanmış, 'posted' işaretlendi"); return None
+    try:
+        tag, name = rc["asset"].split("/", 1)
+        cap_name = (rc.get("caption_asset") or "").split("/", 1)[-1] or f"caption_{rc['code']}.txt"
+        dl = "data/reels_in"; os.makedirs(dl, exist_ok=True)
+        r = sh(["gh", "release", "download", tag, "-R", REPO, "-p", name, "-p", cap_name, "-D", dl, "--clobber"], capture_output=True, text=True)
+        if r.returncode != 0:
+            raise RuntimeError(f"release indirilemedi: {r.stderr.strip()[:200]}")
+        cap = open(f"{dl}/{cap_name}", encoding="utf-8").read()
+        cover_url = f"{instagram.RAW}/{rc['cover']}" if rc.get("cover") else None
+        pid = instagram.publish_reels_file(f"{dl}/{name}", cap, cover_url=cover_url)
+        instagram.log_post({"code": rc["code"], "home": rc.get("home", ""), "away": rc.get("away", "")}, "reels", pid)
+        control.set_reels(ctrl, day, status="posted", post_id=pid, posted_at=now.isoformat(timespec="seconds")); control.save(ctrl)
+        log(f"reels YAYINLANDI (panel): {rc.get('home')}-{rc.get('away')} {pid}")
+    except Exception as e:
+        control.set_reels(ctrl, day, status="error", error=str(e)[:300]); control.save(ctrl)
+        log(f"reels yayın hatası: {e}")
+    return None
+
 
 
 def fix_watch_status():
@@ -253,17 +304,18 @@ def main():
         record_once()
         s = load_status(); s["keeper_last"] = now.isoformat(timespec="seconds"); save_status(s)
         # Tur başına TEK push: her push bir Pages derlemesi tetikliyor (saatte 10 derleme sınırı var); ara adımlar hata verse de kayıt gider
+        global NEXT_SLOT_UTC, REELS_NEXT_UTC
+        NEXT_SLOT_UTC = None; REELS_NEXT_UTC = None
         try:
             maybe_results(s, now)
             maybe_watch(s, now)
             maybe_espn(now)
             maybe_morning_claude(load_status(), now)
             maybe_insights(load_status(), now)
+            REELS_NEXT_UTC = maybe_reels(load_status(), now)
             if now.minute < 20:  # saatte bir: paylaşım kartları (yerel, ücretsiz)
                 r = sh([sys.executable, "social.py"], capture_output=True, text=True); log((r.stdout or r.stderr).strip()[:200])
             # Instagram gönderimi (secret varsa): 09:50 TSİ'den sonra her turda; saati gelen gönderi gider, gelmeyen "planlı" diye bildirilir
-            global NEXT_SLOT_UTC
-            NEXT_SLOT_UTC = None
             if os.environ.get("IG_TOKEN") and (now.hour, now.minute) >= IG_POST_UTC:
                 r = sh([sys.executable, "instagram.py"], capture_output=True, text=True); out = (r.stdout or r.stderr).strip()
                 log("instagram: " + out[:300])
@@ -282,7 +334,7 @@ def main():
             break
         wait = RECORD_MIN * 60
         # gönderi tam saatinde gitsin: bir sonraki yayın saati (ya da ilk kontrol saati) bu turun içindeyse o saate kadar bekle
-        for hm in (NEXT_SLOT_UTC, IG_POST_UTC):
+        for hm in (NEXT_SLOT_UTC, REELS_NEXT_UTC, IG_POST_UTC):
             if hm:
                 nxt = datetime.now(timezone.utc).replace(hour=hm[0], minute=hm[1], second=10, microsecond=0)
                 left = (nxt - datetime.now(timezone.utc)).total_seconds()
