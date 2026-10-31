@@ -153,6 +153,24 @@ def maybe_morning_claude(s, now):
         log(f"Sabah analizi hatası: {e}")
 
 
+INSIGHTS_UTC = (3, 0)   # 06:00 TSİ'den sonra günde bir: Instagram insights kaydı (insights.py); pazartesi ayrıca geçen haftanın iç raporu
+
+
+def maybe_insights(s, now):
+    if not (os.environ.get("IG_TOKEN") and os.environ.get("IG_USER_ID")) or (now.hour, now.minute) < INSIGHTS_UTC:
+        return
+    day = now.strftime("%Y-%m-%d")
+    if s.get("insights_day") != day:
+        r = sh([sys.executable, "insights.py"], capture_output=True, text=True)
+        log("insights: " + (r.stdout or r.stderr).strip()[:300])
+        s["insights_day"] = day; save_status(s)
+    week = f"{now.isocalendar()[0]}-W{now.isocalendar()[1]:02d}"
+    if now.weekday() == 0 and s.get("insights_report_week") != week:
+        r = sh([sys.executable, "insights.py", "--report"], capture_output=True, text=True)
+        log("insights rapor: " + (r.stdout or r.stderr).strip()[:200])
+        s["insights_report_week"] = week; save_status(s)
+
+
 def fix_watch_status():
     """Gözcü çalışmıyorken 'active: true' kalmışsa (yarım kalan çalışma) sıfırla; sayfa yanlış 'Gözcü açık' demesin."""
     p = "records/watch_status.json"
@@ -240,6 +258,7 @@ def main():
             maybe_watch(s, now)
             maybe_espn(now)
             maybe_morning_claude(load_status(), now)
+            maybe_insights(load_status(), now)
             if now.minute < 20:  # saatte bir: paylaşım kartları (yerel, ücretsiz)
                 r = sh([sys.executable, "social.py"], capture_output=True, text=True); log((r.stdout or r.stderr).strip()[:200])
             # Instagram gönderimi (secret varsa): 09:50 TSİ'den sonra her turda; saati gelen gönderi gider, gelmeyen "planlı" diye bildirilir
