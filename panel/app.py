@@ -19,9 +19,26 @@ MIME = {".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", 
         ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".mp4": "video/mp4", ".mp3": "audio/mpeg", ".json": "application/json"}
 
 
+from panel import cache
+
+
+def _register():
+    from panel import state, stats, kupon, inbox, events, reels_flow
+    cache.register("today", state.today, 20, prio=0)
+    cache.register("system", state.system, 60, prio=1)
+    cache.register("sync", state.sync, 60, prio=2)
+    cache.register("stats", stats.data, 120, prio=3)
+    cache.register("kupon", kupon.data, 300, prio=3)
+    cache.register("reels", reels_flow.status, 10, prio=4)
+    cache.register("inbox", inbox.data, 120, prio=6)
+    cache.register("events", lambda: events.data(3), 300, prio=9)
+    cache.start()
+
+
 def _state():
-    from panel import state
-    return {"ok": True, "now": datetime.now(TR).isoformat(timespec="seconds"), "today": state.today(), "system": state.system(), "jobs": jobs.list_jobs()}
+    cache.get("sync")
+    return {"ok": True, "now": datetime.now(TR).isoformat(timespec="seconds"), "today": cache.get("today"), "system": cache.get("system"),
+            "jobs": jobs.list_jobs(), "meta": {n: cache.meta(n) for n in ("sync", "today", "system", "stats", "kupon", "inbox", "events")}}
 
 
 def _action(body):
@@ -67,21 +84,21 @@ class H(BaseHTTPRequestHandler):
                 q = dict(x.split("=", 1) for x in u.query.split("&") if "=" in x)
                 return self._send(200, content.get(int(q.get("code", "0"))))
             if p == "/api/reels":
-                from panel import reels_flow
-                return self._send(200, {"ok": True, **reels_flow.status()})
-            if p == "/api/stats":
-                from panel import stats
-                return self._send(200, {"ok": True, **stats.data()})
-            if p == "/api/inbox":
-                from panel import inbox
-                return self._send(200, inbox.data())
-            if p == "/api/events":
-                from panel import events
+                return self._send(200, {"ok": True, **cache.refresh("reels", wait=True)})
+            if p in ("/api/stats", "/api/inbox", "/api/events", "/api/kupon"):
+                name = p.rsplit("/", 1)[1]
+                v = cache.get(name)
                 q = dict(x.split("=", 1) for x in u.query.split("&") if "=" in x)
-                return self._send(200, {"ok": True, **events.data(int(q.get("days", "3")), q.get("level") or None)})
-            if p == "/api/kupon":
-                from panel import kupon
-                return self._send(200, {"ok": True, **kupon.data()})
+                if q.get("refresh"):
+                    v = cache.refresh(name, wait=True)
+                if name == "events" and isinstance(v, dict) and v.get("events") is not None:
+                    lvl = q.get("level") or None; days = int(q.get("days", "3"))
+                    from panel import events
+                    if days != 3:
+                        v = events.data(days)
+                    if lvl:
+                        v = {**v, "events": [e for e in v["events"] if e["level"] == lvl]}
+                return self._send(200, {"ok": True, **v, "meta": cache.meta(name)} if isinstance(v, dict) else {"ok": False})
             if p.startswith("/api/log/"):
                 from panel import state
                 return self._send(200, state.run_log(p.rsplit("/", 1)[1]))
@@ -101,6 +118,7 @@ class H(BaseHTTPRequestHandler):
 
 
 def serve(port=8765, open_browser=True):
+    _register()
     srv = ThreadingHTTPServer(("127.0.0.1", port), H)
     url = f"http://127.0.0.1:{port}/"
     print(f"Panel: {url}  (kapatmak için Ctrl+C)", flush=True)
@@ -114,9 +132,11 @@ def serve(port=8765, open_browser=True):
 
 def check(port=8799):
     """Duman testi: sunucuyu ayrı iplikte başlat, /api/state ve / oku, kapat."""
+    _register()
     srv = ThreadingHTTPServer(("127.0.0.1", port), H)
     t = threading.Thread(target=srv.serve_forever, daemon=True); t.start()
     try:
+        cache.refresh("today", wait=True); cache.refresh("system", wait=True)
         with urllib.request.urlopen(f"http://127.0.0.1:{port}/api/state", timeout=60) as r:
             d = json.loads(r.read())
         assert d.get("ok"), d

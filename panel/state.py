@@ -39,20 +39,15 @@ def permalink(pid):
 # ---------------- Bugün ----------------
 
 def sync():
-    """Dakikada en çok bir kez: uzak kayıtları çek (bekçi 20 dk'da bir yazıyor). Hata panelde gösterilir, çökmez."""
-    def fn():
-        from panel import actions
-        with actions.GIT_LOCK:
-            ok, err = actions.pull()
-        return "" if ok else err
-    return cached("sync", 60, fn)
+    """Uzak kayıtları çek (bekçi 20 dk'da bir yazıyor). Önbellek yükleyicisi olarak dakikada bir çalışır."""
+    from panel import actions
+    with actions.GIT_LOCK:
+        ok, err = actions.pull()
+    return {"ok": ok, "error": err, "t": datetime.now(TR).strftime("%H:%M:%S")}
 
 
 def today():
     errors = []
-    err = sync()
-    if err:
-        errors.append(f"git pull: {err}")
     day = datetime.now(TR).date(); ds = str(day)
     ctrl = control.load()
     try:
@@ -60,7 +55,7 @@ def today():
     except Exception as e:
         errors.append(f"plan: {e}"); plan = {"paused_until": None, "sent_today": [], "picked": [], "skipped": [], "waiting": []}
     try:
-        rows = build_site.read_jsonl("records/nesine/*.jsonl"); _, last = build_site.recent_snapshot(rows)
+        rows = build_site.recent_nesine_rows(); _, last = build_site.recent_snapshot(rows)
         ms = [m for m in build_site.nesine_matches(last) if m["start"].astimezone(TR).date() == day]
     except Exception as e:
         errors.append(f"bülten: {e}"); ms = []

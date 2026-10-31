@@ -106,6 +106,8 @@ def run(body):
             control.save(ctrl)
             err = commit_push(["records/control.json"], f"panel: {msg}")
             alog(a, msg + (" | " + err if err else ""))
+            from panel import cache
+            cache.refresh("today")
             return {"ok": False, "msg": msg, "error": err} if err else {"ok": True, "msg": msg}
         if a == "workflow":
             name = body.get("name")

@@ -29,7 +29,7 @@ def current_record(code):
 def match_for(code, row=None):
     """Nesine son kayıtta maç; yoksa kayıt satırından türetilir."""
     try:
-        rows = build_site.read_jsonl("records/nesine/*.jsonl"); _, last = build_site.recent_snapshot(rows)
+        rows = build_site.recent_nesine_rows(); _, last = build_site.recent_snapshot(rows)
         for m in build_site.nesine_matches(last):
             if m["code"] == code:
                 return m

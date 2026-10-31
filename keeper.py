@@ -279,8 +279,23 @@ def maybe_story_fallback(s, now):
     files = glob.glob(f"docs/social/{day}/story_*.jpg") + glob.glob(f"docs/social/{day}/devre_*.jpg") + glob.glob(f"docs/social/{day}/ft_*.jpg")
     if not files:
         return
-    pull()   # gözcü az önce yayınlayıp günlüğü ittiyse görelim (çift gönderi olmasın)
+    # gözcü az önce yayınlayıp günlüğü ittiyse görelim (çift gönderi olmasın): rebase yapmadan uzak günlüğü oku
+    # (tur ortasında records/ değişmiş olduğundan pull --rebase 'unstaged changes' ile reddediyordu)
     log_rows = instagram.load_log()
+    try:
+        sh(["git", "fetch", "-q", "origin", "master"], capture_output=True)
+        r = sh(["git", "show", "origin/master:records/instagram.jsonl"], capture_output=True, text=True, encoding="utf-8")
+        if r.returncode == 0:
+            seen = {(x.get("type"), x.get("code")) for x in log_rows}
+            for l in r.stdout.splitlines():
+                try:
+                    x = json.loads(l)
+                except ValueError:
+                    continue
+                if (x.get("type"), x.get("code")) not in seen:
+                    log_rows.append(x)
+    except Exception as e:
+        log(f"story yedeği: uzak günlük okunamadı ({e})")
     ctrl = control.load()
     if control.is_paused(ctrl):
         return

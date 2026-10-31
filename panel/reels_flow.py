@@ -92,7 +92,7 @@ def today_key():
 def candidates(day=None):
     """Bugün analizli (yorumu olan) maçlar, büyük kulüp önce; reels için seçilebilirler."""
     day = day or today_key()
-    rows = build_site.read_jsonl("records/nesine/*.jsonl"); _, last = build_site.recent_snapshot(rows)
+    rows = build_site.recent_nesine_rows(); _, last = build_site.recent_snapshot(rows)
     ai = {r["code"]: r for r in build_site.read_jsonl(f"records/claude/{day}.jsonl") if r.get("blind") and (r["blind"].get("comment"))}
     out = []
     for m in build_site.nesine_matches(last):

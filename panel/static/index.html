@@ -1,59 +1,28 @@
 <!doctype html>
-<html lang="tr"><head><meta charset="utf-8"><title>Analiz ve Ötesi · Panel</title>
+<html lang="tr"><head><meta charset="utf-8"><title>Panel · analizveotesi</title>
 <meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/static/style.css"></head>
 <body>
-<header><img src="/img/assets/brand/v3/symbol-on-green.png" alt="" onerror="this.style.display='none'"><h1>Panel</h1>
-  <nav>
-    <button data-tab="bugun" class="on" title="Günün maçları, karusel ve story durumu; saat, atla, durdur">Bugün</button>
-    <button data-tab="icerik" title="Bir gönderinin açıklama metnini ve kart yazılarını düzelt, kartı yeniden üret, analizi notla yeniden çalıştır">İçerik</button>
-    <button data-tab="reels" title="Günün reels'ini üret: metin, ses, video; önizle; saat ver; yayına al">Reels</button>
-    <button data-tab="istatistik" title="Instagram verileri: takipçi, erişim, gönderi tablosu, haftalık rapor, reklam kaydı">İstatistik</button>
-    <button data-tab="kupon" title="Kilitlenen kuponların puanı, gözcü uyarıları, kapanış CLV, skorlar">Kupon</button>
-    <button data-tab="gelen" title="Instagram yorumları, mesajlar (DM), etiketlenmeler; yanıt ver">Gelen kutusu <span id="inboxBadge" class="badge" style="display:none"></span></button>
-    <button data-tab="gunluk" title="Tüm olaylar ve hatalar tek zaman çizgisinde: yayınlar, analizler, panel eylemleri, GitHub çalışmaları ve log hataları">Günlük</button>
-    <button data-tab="sistem" title="GitHub çalışmaları ve logları, kota, harcama, belirteç, şimdi çalıştır düğmeleri">Sistem</button>
+<aside id="side">
+  <div class="brand"><img src="/img/assets/brand/v3/symbol-on-green.png" alt="" onerror="this.style.display='none'"><div><b>analizveotesi</b><span>yönetim paneli</span></div></div>
+  <nav id="nav">
+    <a data-page="genel" class="on">Genel bakış</a>
+    <a data-page="bugun">Bugün</a>
+    <a data-page="icerik">İçerik</a>
+    <a data-page="reels">Reels</a>
+    <a data-page="veri">Instagram verileri</a>
+    <a data-page="gelen">Gelen kutusu <span id="inboxBadge" class="badge" style="display:none"></span></a>
+    <a data-page="kupon">Kupon ve uyarılar</a>
+    <a data-page="gunluk">Günlük <span id="errBadge" class="badge" style="display:none"></span></a>
+    <a data-page="sistem">Sistem</a>
   </nav>
-  <span id="clock"></span><span id="conn" class="pill">bağlanıyor</span></header>
-<main>
-  <div>
-    <section id="tab-bugun" class="tab on">
-      <div class="help"><b>Bugün.</b> Bot her şeyi kendi yapar; burası müdahale yeri. <i>Saati yaz</i>: karusel o saatte gider (maçtan en az 1 saat önce).
-        <i>Atla</i>: bu maç paylaşılmaz. <i>Story'leri atla</i>: kadro / devre / maç sonu story'leri bu maç için gönderilmez. <i>Bugün durdur</i>: gece yarısına kadar hiçbir şey paylaşılmaz.
-        Kararlar repoya yazılır; bekçi 20 dakikada bir okur, bu yüzden değişiklik en geç 20 dakikada etki eder. Kart görseline tıklayınca büyür.</div>
-      <div id="pause"></div><div id="matches">Yükleniyor…</div></section>
-    <section id="tab-icerik" class="tab">
-      <div class="help"><b>İçerik.</b> Bir maç seç. <i>Açıklama</i> Instagram'da gönderinin altındaki metindir; düzenleyip kaydedersen senin yazdığın gider (otomatik metne dönmek için kutuyu boşalt).
-        <i>Kart yazıları</i> yorum kartındaki ve reels'teki cümlelerdir; kaydettikten sonra <i>Kartı yeniden üret</i> ile görseli yenile, önizle, <i>Yayına yaz</i> ile repoya it.
-        <i>Analizi yeniden çalıştır</i>: yapay zekâ maçı senin notunla baştan araştırır (ücretli; tahmini maliyet düğmede). Yayınlanmış gönderi değiştirilemez.</div>
-      <div id="content"></div></section>
-    <section id="tab-reels" class="tab">
-      <div class="help"><b>Reels.</b> Maçı seç, <i>Üret</i> de: metin, ses ve video sırayla üretilir, sen dinler ve izlersin. Beğenmediysen sesi (yeni tohumla) ya da videoyu yeniden üret.
-        <i>Yayına al</i>: video repoya yüklenir ve bekçi verdiğin saatte yayınlar; bilgisayarın açık olması gerekmez. Saat boşsa ilk turda gider. <i>İptal</i> yayını durdurur.
-        Ses: Ahu ve erkek ses dönüşümlü (çift gün Ahu, tek gün erkek); istediğinde değiştir. Erkek ses henüz seçilmediyse adayları dinleyip birini seç.</div>
-      <div id="reels">Yükleniyor…</div></section>
-    <section id="tab-istatistik" class="tab">
-      <div class="help"><b>İstatistik.</b> Bekçi her sabah Instagram verilerini çeker. <i>Erişim</i>: gönderiyi gören tekil hesap; <i>etkileşim oranı</i>: (beğeni+yorum+kaydet+paylaş)/erişim.
-        Reklam bastığın gönderiyi <i>Reklam kaydı</i>na yaz: rapor onu organik tablolardan ayırır. Haftalık rapor pazartesi sabahı yazılır. <i>Insights çek</i> veriyi şimdi günceller.</div>
-      <div id="stats">Yükleniyor…</div></section>
-    <section id="tab-kupon" class="tab">
-      <div class="help"><b>Kupon ve uyarılar.</b> Eski vitrin sayfasının içeriği. Kuponlar önerildikleri anda kilitlenir ve maçlar bitince puanlanır (1 birim oynanmış gibi).
-        Gözcü uyarıları: Nesine oranı dünya piyasasına göre yüksek görünen seçimler; <i>CLV</i> kapanış oranına göre fark (artıysa yöntem çalışıyor). Skorlar son iki gün.</div>
-      <div id="kupon">Yükleniyor…</div></section>
-    <section id="tab-gelen" class="tab">
-      <div class="help"><b>Gelen kutusu.</b> Son gönderilerin yorumları, gelen mesajlar (DM) ve etiketlendiğin gönderiler. <i>Yeni</i> işareti son "Gördüm"den sonra gelenlerdir.
-        Yorumlara ve mesajlara buradan yanıt verebilirsin (hesap adıyla gider). Veri 2 dakikada bir tazelenir.</div>
-      <div id="inbox">Yükleniyor…</div></section>
-    <section id="tab-gunluk" class="tab">
-      <div class="help"><b>Günlük.</b> Ne olup bittiğinin tek listesi: yayınlanan gönderi ve story'ler, yapay zekâ analizleri (maliyetiyle), kadro notları, panel eylemleri, reels durumu,
-        GitHub çalışmalarının sonucu ve loglarındaki hata satırları, gözcü uyarıları, reklam kayıtları. <i>Hata</i> kırmızı, <i>uyarı</i> sarı, <i>bilgi</i> gri. GitHub logları 5 dakikada bir taranır.</div>
-      <div id="events">Yükleniyor…</div></section>
-    <section id="tab-sistem" class="tab">
-      <div class="help"><b>Sistem.</b> <i>Bekçi</i> GitHub'da 20 dakikada bir kayıt alır, sabah analizi, kartlar, karusel, insights ve reels yayını onun işi. <i>Gözcü</i> maç günü oran takibi ve story'ler.
-        <i>Skorlar</i> sonuç ve puanlama. Bir çalışma çalışmıyorsa düğmeyle başlat; <i>log</i> son 200 satırı gösterir. <i>Yeniden it</i>: panelin yerel commit'leri GitHub'a gitmediyse tekrar dener.</div>
-      <div id="system">Yükleniyor…</div></section>
-  </div>
-  <aside id="jobs"></aside>
+  <div class="side-foot"><span id="clock">–</span><span id="conn" class="dot"></span></div>
+</aside>
+<main id="main">
+  <header id="top"><h1 id="title">Genel bakış</h1><button id="helpBtn" class="ghost" title="Bu sayfa ne işe yarar?">?</button><div id="topActions"></div></header>
+  <div id="help" class="help" style="display:none"></div>
+  <section id="page"></section>
 </main>
+<aside id="jobs"><h3>İşler</h3><div id="jobList" class="muted">İş yok</div></aside>
 <div id="toast"></div>
 <script src="/static/app.js"></script>
 </body></html>
