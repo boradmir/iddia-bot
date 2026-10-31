@@ -210,5 +210,18 @@ class ContentSaveTest(unittest.TestCase):
             os.chdir(cwd); tmp.cleanup()
 
 
+class StoryFallbackTest(unittest.TestCase):
+    def test_story_due_windows(self):
+        import keeper
+        start = datetime(2026, 10, 31, 16, 0, tzinfo=timezone.utc)   # 19:00 TSİ
+        self.assertTrue(keeper.story_due("story", start, start - timedelta(minutes=30)))
+        self.assertFalse(keeper.story_due("story", start, start + timedelta(minutes=30)))
+        self.assertTrue(keeper.story_due("devre", start, start + timedelta(minutes=50)))
+        self.assertFalse(keeper.story_due("devre", start, start + timedelta(minutes=10)))
+        self.assertTrue(keeper.story_due("ft", start, start + timedelta(minutes=120)))
+        self.assertFalse(keeper.story_due("ft", start, start + timedelta(minutes=300)))
+        self.assertFalse(keeper.story_due("x", start, start))
+
+
 if __name__ == "__main__":
     unittest.main()

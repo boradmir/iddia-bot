@@ -252,6 +252,70 @@ def maybe_standings(s, now):
     return None
 
 
+STORY_KINDS = {"story": "story", "devre": "story_ht", "ft": "story_ft"}   # dosya öneki → günlük türü
+
+
+def story_due(prefix, start, now):
+    """Yedek story için zaman penceresi: kadro maçtan 3 sa önce–başlangıç+20 dk; devre başlangıç+40 dk–+2 sa; maç sonu +95 dk–+4 sa."""
+    d = (now - start).total_seconds() / 60
+    if prefix == "story":
+        return -180 <= d <= 20
+    if prefix == "devre":
+        return 40 <= d <= 120
+    if prefix == "ft":
+        return 95 <= d <= 240
+    return False
+
+
+def maybe_story_fallback(s, now):
+    """Gözcü story kartını üretip repoya yazmış ama yayınlayamamışsa (çökme, zaman aşımı) bekçi yayınlar:
+    docs/social/<gün>/{story,devre,ft}_<kod>.jpg var, günlükte yok, dosya en az 4 dk önce commit edilmiş, zaman penceresi uygun.
+    Panel kararlarına (story skip, duraklatma) uyar. Kullanıcı sürekli başında olmadığı için otomasyonun yedeği."""
+    if not (os.environ.get("IG_TOKEN") and os.environ.get("IG_USER_ID")):
+        return
+    import glob, instagram
+    tr = control.TR
+    day = now.astimezone(tr).strftime("%Y-%m-%d")
+    files = glob.glob(f"docs/social/{day}/story_*.jpg") + glob.glob(f"docs/social/{day}/devre_*.jpg") + glob.glob(f"docs/social/{day}/ft_*.jpg")
+    if not files:
+        return
+    log_rows = instagram.load_log()
+    ctrl = control.load()
+    if control.is_paused(ctrl):
+        return
+    ms = None
+    for p in files:
+        name = os.path.basename(p)[:-4]
+        prefix, _, code_s = name.partition("_")
+        if prefix not in STORY_KINDS or not code_s.isdigit():
+            continue
+        code, kind = int(code_s), STORY_KINDS[prefix]
+        if any(x.get("type") == kind and x.get("code") == code for x in log_rows):
+            continue
+        if control.story_skip(ctrl, day, code):
+            continue
+        r = sh(["git", "log", "-1", "--format=%ct", "--", p], capture_output=True, text=True)
+        try:
+            committed = datetime.fromtimestamp(int(r.stdout.strip()), timezone.utc)
+        except ValueError:
+            continue   # henüz commit edilmemiş (gözcü bu turda yazıyor olabilir)
+        if (now - committed).total_seconds() < 240:
+            continue
+        if ms is None:
+            _t, last = build_site.recent_snapshot(build_site.read_jsonl("records/nesine/*.jsonl"))
+            ms = {m["code"]: m for m in build_site.nesine_matches(last)}
+        m = ms.get(code)
+        if not m or not story_due(prefix, m["start"], now):
+            continue
+        try:
+            url = f"{instagram.RAW}/social/{day}/{name}.jpg"
+            pid = instagram.post_story_for(m, url, kind=kind, size=os.path.getsize(p))
+            log(f"story yedeği ({prefix}) yayınlandı: {m['home']}-{m['away']} → {pid}" if pid else f"story yedeği ({prefix}) gönderilmedi (sınır/tekrar): {m['home']}-{m['away']}")
+            log_rows = instagram.load_log()
+        except Exception as e:
+            log(f"story yedeği hatası ({name}): {e}")
+
+
 def fix_watch_status():
     """Gözcü çalışmıyorken 'active: true' kalmışsa (yarım kalan çalışma) sıfırla; sayfa yanlış 'Gözcü açık' demesin."""
     p = "records/watch_status.json"
@@ -344,6 +408,7 @@ def main():
             maybe_insights(load_status(), now)
             REELS_NEXT_UTC = maybe_reels(load_status(), now)
             STANDINGS_NEXT_UTC = maybe_standings(load_status(), now)
+            maybe_story_fallback(load_status(), now)
             if now.minute < 20:  # saatte bir: paylaşım kartları (yerel, ücretsiz)
                 r = sh([sys.executable, "social.py"], capture_output=True, text=True); log((r.stdout or r.stderr).strip()[:200])
             # Instagram gönderimi (secret varsa): 09:50 TSİ'den sonra her turda; saati gelen gönderi gider, gelmeyen "planlı" diye bildirilir
