@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="tr"><head><meta charset="utf-8"><title>Analiz ve Ötesi · Panel</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/static/style.css"></head>
+<body>
+<header><img src="/img/assets/brand/v3/symbol-on-green.png" alt="" onerror="this.style.display='none'"><h1>Panel</h1>
+  <nav><button data-tab="bugun" class="on">Bugün</button><button data-tab="sistem">Sistem</button></nav>
+  <span id="clock"></span><span id="conn" class="pill">bağlanıyor</span></header>
+<main>
+  <div>
+    <section id="tab-bugun" class="tab on"><div id="pause"></div><div id="matches">Yükleniyor…</div></section>
+    <section id="tab-sistem" class="tab"><div id="system">Yükleniyor…</div></section>
+  </div>
+  <aside id="jobs"></aside>
+</main>
+<div id="toast"></div>
+<script src="/static/app.js"></script>
+</body></html>
