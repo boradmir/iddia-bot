@@ -75,6 +75,16 @@ NOTE_TR = {"Champions League": "Şampiyonlar Ligi", "Europa League": "Avrupa Lig
            "Relegation": "Küme düşme", "Relegation Playoff": "Küme düşme play-off", "Promotion": "Yükselme",
            "Europa Conference League": "Konferans Ligi", "Champions League qualifying": "ŞL eleme", "Europa League qualifying": "AL eleme",
            "Conference League qualifying": "KL eleme", "Europa Conference League qualifying": "KL eleme", "Relegation playoff": "Küme düşme play-off", "Relegated": "Küme düşme", "Promotion playoff": "Yükselme play-off"}
+# Bölge renkleri (ESPN renkleri yerine kendi paletimiz; krem zeminde okunaklı ve anlamlı)
+ZONE_COLORS = {"Şampiyonlar Ligi": (16, 56, 140), "ŞL eleme": (96, 140, 210), "Avrupa Ligi": (222, 110, 20), "AL eleme": (240, 170, 100),
+               "Konferans Ligi": (10, 130, 110), "KL eleme": (110, 190, 170), "Küme düşme": (200, 50, 45), "Küme düşme play-off": (235, 140, 135),
+               "Yükselme": (11, 107, 69), "Yükselme play-off": (120, 190, 150)}
+
+
+def zone_color(note, espn_color):
+    return ZONE_COLORS.get(NOTE_TR.get(note, note), _hex(espn_color, (150, 150, 150)))
+
+
 SHORT_TR = {"Besiktas": "Beşiktaş", "Fenerbahce": "Fenerbahçe", "Goztepe": "Göztepe", "Kasimpasa": "Kasımpaşa", "Istanbul BB": "Başakşehir",
             "Genclerbirli": "Gençlerbirliği", "Genclerbirligi": "Gençlerbirliği", "Eyupspor": "Eyüpspor", "Caykur Rizespor": "Rizespor", "Erzurum": "Erzurumspor",
             "Gaziantep": "Gaziantep FK", "Spurs": "Tottenham", "Nottm Forest": "Nott. Forest", "C Palace": "Crystal Palace", "Bayern Munich": "Bayern Münih",
@@ -184,7 +194,7 @@ def league_card(name, rows, prev_rows, path, monday_note):
         if p["light"] and i % 2 == 0:
             d.rectangle((56, y + 2, W - 56, y + row_h - 2), fill=(240, 236, 226))
         if r.get("note"):
-            col = _hex(r.get("note_color"), social.SIGNAL)
+            col = zone_color(r["note"], r.get("note_color"))
             d.rectangle((44, y + 6, 50, y + row_h - 6), fill=col)
             legend.setdefault(NOTE_TR.get(r["note"], r["note"]), col)
         social.text(d, (92, y + row_h // 2), str(r["rank"]), f_r, p["accent"] if r["rank"] <= 4 else p["muted"], anchor="rm")
