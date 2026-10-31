@@ -3,15 +3,17 @@ Adlar Nesine bülteninde geçtiği gibi (küçük harf karşılaştırma). tier(
 
 ANALYZE_MAX_TIER = 2   # sabah yapay zekâ analizi yalnız listeli kulüplerin (kademe 0-2) maçlarına; yoksa o gün analiz yok
 
-TIER0 = {"galatasaray", "fenerbahçe", "beşiktaş", "trabzonspor"}        # Türkiye'nin dört büyüğü: her zaman en önde
-TIER1 = {"real madrid", "barcelona", "man. city", "manchester city", "liverpool", "arsenal", "bayern münih", "bayern munih", "psg"}
+TIER0 = {"galatasaray", "fenerbahçe", "beşiktaş", "trabzonspor", "türkiye"}   # Türkiye'nin dört büyüğü + A millî takım: her zaman en önde
+TIER1 = {"real madrid", "barcelona", "man. city", "manchester city", "liverpool", "arsenal", "bayern münih", "bayern munih", "psg",
+         # büyük millî takımlar (Nesine adları)
+         "almanya", "fransa", "ispanya", "ingiltere", "italya", "portekiz", "hollanda", "brezilya", "arjantin", "belçika", "hırvatistan"}
 # not: Nesine'de "Paris" = Paris FC (PSG değil); PSG ayrı geçer
 TIER2 = {"atl madrid", "atletico madrid", "chelsea", "tottenham", "man. utd", "manchester utd", "man. united",
          "b. dortmund", "dortmund", "juventus", "inter", "ac milan", "milan", "napoli", "as roma", "roma", "b. leverkusen", "leverkusen"}
 
 
 def team_tier(name):
-    n = (name or "").strip().lower()
+    n = (name or "").strip().lower().replace("i\u0307", "i")   # Python 'İ'.lower() → 'i̇' (noktalı); sade i'ye çevir
     return 0 if n in TIER0 else 1 if n in TIER1 else 2 if n in TIER2 else 9
 
 

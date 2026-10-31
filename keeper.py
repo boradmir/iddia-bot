@@ -97,7 +97,7 @@ IG_POST_UTC = (6, 50)   # 09:50 TSİ'den itibaren her turda instagram.py çağr�
 STANDINGS_NEXT_UTC = None
 REELS_NEXT_UTC = None    # panelden hazırlanan reels'in yayın saati (UTC saat, dakika), maybe_reels doldurur
 NEXT_SLOT_UTC = None     # instagram.py'nin bildirdiği bir sonraki yayın saati (UTC saat, dakika)
-PRIORITY = ["soccer_turkey_super_league", "soccer_epl", "soccer_uefa_champs_league", "soccer_spain_la_liga", "soccer_italy_serie_a",
+PRIORITY = ["soccer_turkey_super_league", "soccer_uefa_nations_league", "soccer_international_friendlies", "soccer_fifa_world_cup_qualifiers_europe", "soccer_euro_qualifiers", "soccer_epl", "soccer_uefa_champs_league", "soccer_spain_la_liga", "soccer_italy_serie_a",
             "soccer_germany_bundesliga", "soccer_france_ligue_one", "soccer_uefa_europa_league", "soccer_uefa_europa_conference_league", "soccer_uefa_nations_league"]
 
 

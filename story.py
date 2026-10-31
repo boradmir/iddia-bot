@@ -122,7 +122,7 @@ def _num(v):
 
 def score_card(m, live, kind, out_path, er=None):
     """Devre arası (kind='ht') / maç sonu (kind='ft') story'si: skor, goller, kırmızı kartlar, oranlı istatistik çubukları. Yorum yok."""
-    th = social.theme(m.get("sport_key")); img = background(th); d = ImageDraw.Draw(img)
+    th = social.theme(m.get("sport_key"), m); img = background(th); d = ImageDraw.Draw(img)
     start = m["start"].astimezone(TR)
     hc1, hc2, _ = team_style(m["home"], er); ac1, ac2, _ = team_style(m["away"], er)
     st = live.get("stats") or {}
@@ -273,7 +273,7 @@ def score_card(m, live, kind, out_path, er=None):
 
 
 def story_card(m, rosters, note, pm, out_path, er=None):
-    th = social.theme(m.get("sport_key")); img = background(th); d = ImageDraw.Draw(img)
+    th = social.theme(m.get("sport_key"), m); img = background(th); d = ImageDraw.Draw(img)
     start = m["start"].astimezone(TR)
     y = SAFE_TOP
     # üst etiket + logo/handle

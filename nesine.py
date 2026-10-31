@@ -60,6 +60,15 @@ def sport_key_for(lc, name):
         return "soccer_uefa_europa_league"
     if "konferans ligi" in nm or "conference league" in nm:
         return "soccer_uefa_europa_conference_league"
+    # millî takımlar (A erkek): elemeler ve hazırlık maçları (Nesine bu ligleri yalnız millî arada listeler; kod yerine ad)
+    if "eleme" in nm and ("dünya kupası" in nm or "world cup" in nm):
+        return "soccer_fifa_world_cup_qualifiers_europe"
+    if "eleme" in nm and ("avrupa şampiyonası" in nm or "euro 20" in nm):
+        return "soccer_euro_qualifiers"
+    if "uluslar ligi" in nm or "nations league" in nm:
+        return "soccer_uefa_nations_league"
+    if "hazırlık" in nm and ("milli" in nm or "millî" in nm or "uluslararası" in nm or "ulusal" in nm or nm.strip() == "hazırlık maçları"):
+        return "soccer_international_friendlies"
     return None
 
 

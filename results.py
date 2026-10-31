@@ -11,7 +11,8 @@ from datetime import datetime, timezone, timedelta
 ESPN = {"soccer_turkey_super_league": "tur.1", "soccer_epl": "eng.1", "soccer_spain_la_liga": "esp.1",
         "soccer_italy_serie_a": "ita.1", "soccer_germany_bundesliga": "ger.1", "soccer_france_ligue_one": "fra.1",
         "soccer_uefa_champs_league": "uefa.champions", "soccer_uefa_europa_league": "uefa.europa",
-        "soccer_uefa_europa_conference_league": "uefa.europa.conf", "soccer_uefa_nations_league": "uefa.nations"}
+        "soccer_uefa_europa_conference_league": "uefa.europa.conf", "soccer_uefa_nations_league": "uefa.nations",
+        "soccer_international_friendlies": "fifa.friendly", "soccer_fifa_world_cup_qualifiers_europe": "fifa.worldq.uefa", "soccer_euro_qualifiers": "uefa.euroq"}
 OUT = "records/results"
 
 

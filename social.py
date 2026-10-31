@@ -81,11 +81,20 @@ THEMES = {
     "soccer_uefa_champs_league": {"bg": (8, 20, 54), "bg2": (16, 36, 92), "box": (30, 56, 118), "label": "Şampiyonlar Ligi", "motif": "stars"},
     "soccer_uefa_europa_league": {"bg": (34, 16, 6), "bg2": (72, 32, 10), "box": (118, 58, 18), "label": "Avrupa Ligi", "motif": "rings"},
     "soccer_uefa_europa_conference_league": {"bg": (6, 32, 36), "bg2": (10, 58, 64), "box": (18, 92, 100), "label": "Konferans Ligi", "motif": "hex"},
+    # millî maçlar: koyu kızıl zemin; Türkiye oynuyorsa hilal-yıldız deseni, diğer millî maçlarda yıldızlar
+    "soccer_uefa_nations_league": {"bg": (70, 10, 18), "bg2": (124, 20, 32), "box": (156, 36, 48), "label": "Millî maç · Uluslar Ligi", "motif": "stars"},
+    "soccer_international_friendlies": {"bg": (70, 10, 18), "bg2": (124, 20, 32), "box": (156, 36, 48), "label": "Millî maç · Hazırlık", "motif": "stars"},
+    "soccer_fifa_world_cup_qualifiers_europe": {"bg": (70, 10, 18), "bg2": (124, 20, 32), "box": (156, 36, 48), "label": "Millî maç · Dünya Kupası elemeleri", "motif": "stars"},
+    "soccer_euro_qualifiers": {"bg": (70, 10, 18), "bg2": (124, 20, 32), "box": (156, 36, 48), "label": "Millî maç · Avrupa Şampiyonası elemeleri", "motif": "stars"},
 }
+NATIONAL = {"soccer_uefa_nations_league", "soccer_international_friendlies", "soccer_fifa_world_cup_qualifiers_europe", "soccer_euro_qualifiers"}
 
 
-def theme(sport_key):
-    return THEMES.get(sport_key or "", THEMES["default"])
+def theme(sport_key, m=None):
+    th = THEMES.get(sport_key or "", THEMES["default"])
+    if sport_key in NATIONAL and m and any("türkiye" in (m.get(k) or "").lower().replace("i\u0307", "i") for k in ("home", "away")):
+        th = {**th, "motif": "crescent"}
+    return th
 
 
 def _star(od, cx, cy, r, fill):
@@ -117,6 +126,15 @@ def motif_overlay(w, h, th):
         for i in range(6):
             r = 120 + i * 110
             od.ellipse((cx - r, cy - r, cx + r, cy + r), outline=(255, 190, 120, 22), width=5)
+    elif kind == "crescent":
+        # büyük, soluk hilal (iki daire farkı) sağ üstte + beş köşeli yıldız; bayrak kopyası değil, ima
+        cx, cy, r = w * 0.74, h * 0.40, 300
+        hil = Image.new("L", (w, h), 0); hd = ImageDraw.Draw(hil)
+        hd.ellipse((cx - r, cy - r, cx + r, cy + r), fill=40)
+        hd.ellipse((cx - r + 95, cy - r + 10, cx + r + 75, cy + r - 10), fill=0)
+        ov.paste(Image.new("RGBA", (w, h), (255, 255, 255, 255)), (0, 0), hil)
+        _star(od, cx + 150, cy, 70, (255, 255, 255, 44))
+        od.line((0, mid, w, mid), fill=line, width=4)
     elif kind == "hex":
         R = 150
         for row in range(-1, int(h / (R * 1.5)) + 2):
@@ -253,7 +271,7 @@ def badge(img, d, cx, cy, r, name, er=None):
 
 # ----------------------------------------------------------------- kartlar
 def match_card(m, pm, ai, er, out_path):
-    th = theme(m.get("sport_key")); img = pitch_background(th); d = ImageDraw.Draw(img)
+    th = theme(m.get("sport_key"), m); img = pitch_background(th); d = ImageDraw.Draw(img)
     start = m["start"].astimezone(TR)
     d.rectangle((0, 0, W, 10), fill=YELLOW)
     topbar(d, f"Maç analizi · {start:%d.%m} · {m['league']}")
@@ -356,7 +374,7 @@ def comment_card(m, ai, out_path):
     if not bl.get("comment"):
         return False
     img = Image.new("RGB", (W, H), CREAM); d = ImageDraw.Draw(img)
-    th = theme(m.get("sport_key")); d.rectangle((0, 0, W, 230), fill=th["bg"])
+    th = theme(m.get("sport_key"), m); d.rectangle((0, 0, W, 230), fill=th["bg"])
     start = m["start"].astimezone(TR)
     mk = logo.mark_image(54); mk_x = int(W - 60 - font("semi", 26).getlength(HANDLE) - 14 - mk.width)
     label = tr_upper(f"Maç önü · Biz ne düşünüyoruz? · {tr_date(m['start'])} · {start:%H:%M}")

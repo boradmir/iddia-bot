@@ -631,7 +631,7 @@ def timeline_sentences(words, parts, total, has_absences, has_form):
 
 
 def render(m, bl, pm, er, out_mp4, absences=None):
-    th = social.theme(m.get("sport_key"))
+    th = social.theme(m.get("sport_key"), m)
     absences = absences if absences is not None else [a for a in (bl.get("absences") or []) if a.get("player")][:4]
     text, parts = build_script(m, bl, pm, absences)
     tmp = tempfile.mkdtemp(prefix="reels_")

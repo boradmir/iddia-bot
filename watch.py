@@ -24,7 +24,8 @@ MIN_POLL_SEC = 180        # Pinnacle için en sık aralık
 QUOTA_RESERVE = 20        # ay sonu için dokunulmaz kota
 LEAGUE_PRIORITY = ["soccer_turkey_super_league", "soccer_epl", "soccer_uefa_champs_league", "soccer_spain_la_liga",
                    "soccer_italy_serie_a", "soccer_germany_bundesliga", "soccer_france_ligue_one",
-                   "soccer_uefa_europa_league", "soccer_uefa_europa_conference_league", "soccer_uefa_nations_league"]
+                   "soccer_uefa_europa_league", "soccer_uefa_europa_conference_league", "soccer_uefa_nations_league",
+                   "soccer_international_friendlies", "soccer_fifa_world_cup_qualifiers_europe", "soccer_euro_qualifiers"]
 ALERT_DIR = "records/alerts"
 STATUS = "records/status.json"
 QUOTA = "records/quota.json"      # yalnızca gözcü yazar (Bekçi status.json'u ezebiliyor)

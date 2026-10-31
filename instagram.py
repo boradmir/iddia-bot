@@ -32,7 +32,9 @@ NOTE = "18+ · Burada kupon yok, okuma var. Karar sizin."
 LEAGUE_TAGS = {"soccer_turkey_super_league": "#SüperLig", "soccer_epl": "#PremierLeague", "soccer_spain_la_liga": "#LaLiga",
                "soccer_italy_serie_a": "#SerieA", "soccer_germany_bundesliga": "#Bundesliga", "soccer_france_ligue_one": "#Ligue1",
                "soccer_uefa_champs_league": "#ŞampiyonlarLigi", "soccer_uefa_europa_league": "#AvrupaLigi",
-               "soccer_uefa_europa_conference_league": "#KonferansLigi", "soccer_uefa_nations_league": "#UluslarLigi"}
+               "soccer_uefa_europa_conference_league": "#KonferansLigi", "soccer_uefa_nations_league": "#UluslarLigi #MilliTakım",
+               "soccer_international_friendlies": "#MilliTakım #HazırlıkMaçı", "soccer_fifa_world_cup_qualifiers_europe": "#DünyaKupası #MilliTakım",
+               "soccer_euro_qualifiers": "#EURO #MilliTakım"}
 BIG = {"Galatasaray", "Fenerbahçe", "Fenerbahce", "Beşiktaş", "Besiktas", "Trabzonspor", "Real Madrid", "Barcelona", "Man. City", "Man. Utd", "Liverpool",
        "Arsenal", "Chelsea", "Bayern Münih", "B. Dortmund", "Juventus", "Inter", "AC Milan", "PSG", "Atl Madrid", "Napoli", "Tottenham"}
 
@@ -335,7 +337,7 @@ def plan_today(today, ctrl=None, only=None, caps=None):
     day_dir = f"docs/social/{today}"
     if not os.path.isdir(day_dir):
         return out
-    rows = build_site.read_jsonl("records/nesine/*.jsonl"); t, last = build_site.recent_snapshot(rows)
+    rows = build_site.recent_nesine_rows(); t, last = build_site.recent_snapshot(rows)
     now = datetime.now(timezone.utc)
     nm = [m for m in build_site.nesine_matches(last) if m["start"].astimezone(TR).date() == today and m["start"] > now + timedelta(hours=1)]
     pin = build_site.pinnacle_events(build_site.read_jsonl("records/pinnacle/*.jsonl"))
