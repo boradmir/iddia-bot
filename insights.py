@@ -24,7 +24,7 @@ API = "https://graph.instagram.com/v21.0" if TOKEN.startswith("IG") else "https:
 LOG = "records/instagram.jsonl"
 OUT = "records/insights"
 TR = timezone(timedelta(hours=3))
-MEDIA_DAYS, STORY_DAYS = 14, 2
+MEDIA_DAYS, STORY_DAYS = 14, 1   # story 24 saat sonra silinir; sonrasında ölçüm sorgulanamaz
 METRICS = {
     "carousel": ["reach", "views", "likes", "comments", "shares", "saved", "total_interactions", "follows", "profile_visits"],
     "reels": ["views", "reach", "likes", "comments", "shares", "saved", "total_interactions", "ig_reels_avg_watch_time", "ig_reels_video_view_total_time"],
