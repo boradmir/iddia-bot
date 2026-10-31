@@ -40,6 +40,10 @@ Yorum (comment) nasıl olmalı:
   yabancı adlar orijinal yazımıyla; her cümle tek fikir ve en fazla 25 kelime; üç nokta ve uzun noktalı virgül zincirleri yok;
   devrik cümle nadiren. Yazdıktan sonra metni bir kez daha Türkçe açısından oku ve düzelt.
 - 4-6 cümle. Oran, Pinnacle, Nesine, "value", bahis tavsiyesi yazma; sadece maç.
+- Kadro: bu yazı maç sabahı yazılıyor; resmi ilk 11'ler maça yaklaşık bir saat kala açıklanır. Basındaki "muhtemel 11" haberlerini
+  kesin gibi yazma ("X'i seçti", "Y başlıyor", "Z kulübeye gidiyor" değil; "basına göre", "bekleniyor", "muhtemel 11'de" de).
+  Bu, comment, card_text, facts ve question için geçerli; soru açıklanmamış bir kadroyu varsaymasın ("Muriqi tercihi doğru mu" değil,
+  "Muriqi mi başlamalı, Lukaku mu").
 hook: gönderinin ilk satırı ve kartın tezi; yazının en çarpıcı tespiti, TAM ve kısa bir cümle (en fazla 110 karakter).
 card_text: kartta görünecek kısa gövde, 3-4 cümle, en fazla 80 kelime; comment'in özü, hook'u tekrar etmez.
 question: okura tek soru (en fazla 90 karakter), yoruma davet; oran/bahis yok.
@@ -202,6 +206,8 @@ Görev: metinleri BAĞLAMI BİLMEYEN bir okurun gözüyle oku ve şunları yakal
    Türk spikerin söylediği gibi Türkçe harflerle okunuşunu yaz (örn. Kuyt → Kayt, Skriniar → Şkriniar, Juan → Huan, Henrique → Enrike,
    Brown → Braun, Mourinho → Morinyo). Türkçe okunuşu zaten doğru olan adları (Oppong, Talisca, Ake) listeye alma. Kelime sayısı korunsun
    (tek kelimelik ad → tek kelime). Yabancı ad yoksa boş liste.
+8. Kadro: metinler resmi ilk 11 açıklanmadan yazıldı. İlk 11 iddiaları kesin dille olamaz ("seçti", "başlıyor", "kulübeye gidiyor",
+   "oynayacak"); "basına göre", "bekleniyor", "muhtemel 11'de" diline çevir. Soru (question) açıklanmamış kadroyu varsaymasın.
 Çıktı: aynı alan adlarıyla JSON; değiştirmediğin alanı aynen döndür. "notes" alanına yaptığın düzeltmeleri kısaca yaz (Türkçe)."""
 
 
