@@ -318,9 +318,9 @@ async function rOlustur(keep) {
   const ms = BOARD.matches.filter(m => !OL_FILTER || (m.home + ' ' + m.away + ' ' + m.league).toLowerCase().includes(OL_FILTER));
   const rows = ms.map(m => `<tr><td><b>${esc(m.home)} – ${esc(m.away)}</b><div class="small muted">${esc(m.start)} · ${esc(m.league)}${m.analysis ? ' · <span class="chip ok">analiz var</span>' : ''}</div>${m.hook ? `<div class="small muted">${esc(m.hook)}</div>` : ''}
       <div class="small"><a href="#" onclick="loadPlayers(${m.code});return false">Golcüler${m.players_odds.length ? ' (' + m.players_odds.length + ' oran)' : ''}</a></div><div id="pl${m.code}" style="display:none"></div></td>
-    <td>${pickCell(m, 'MS', '1', 'Ev')}${pickCell(m, 'MS', 'X', 'Beraberlik')}${pickCell(m, 'MS', '2', 'Deplasman')}</td>
-    <td>${pickCell(m, 'AU25', 'Alt', '2,5 alt')}${pickCell(m, 'AU25', 'Üst', '2,5 üst')}</td>
-    <td>${pickCell(m, 'KG', 'Var', 'KG var')}${pickCell(m, 'KG', 'Yok', 'KG yok')}</td></tr>`).join('');
+    <td class="odds">${pickCell(m, 'MS', '1', 'Ev')}${pickCell(m, 'MS', 'X', 'Beraberlik')}${pickCell(m, 'MS', '2', 'Deplasman')}</td>
+    <td class="odds">${pickCell(m, 'AU25', 'Alt', '2,5 alt')}${pickCell(m, 'AU25', 'Üst', '2,5 üst')}</td>
+    <td class="odds">${pickCell(m, 'KG', 'Var', 'KG var')}${pickCell(m, 'KG', 'Yok', 'KG yok')}</td></tr>`).join('');
   $('#page').innerHTML = `<div style="display:grid;grid-template-columns:1fr 300px;gap:14px"><div>
     <div class="card legend"><span class="src-ai">■ bizim yapay zekâ</span><span class="src-stat">■ istatistik modeli</span><span class="src-pin">■ piyasa (Pinnacle)</span><span class="muted">rakamlar: ihtimal % · bülten ${esc(BOARD.t)} · ${ms.length} maç</span></div>
     <div class="card"><table><tr><th>Maç</th><th>Maç sonucu (1 · X · 2)</th><th>2,5 gol (alt · üst)</th><th>Karşılıklı gol (var · yok)</th></tr>${rows || '<tr><td colspan="4" class="muted">maç yok</td></tr>'}</table></div>

@@ -64,3 +64,4 @@ video.prev{width:240px;border-radius:10px;border:1px solid var(--line)}
 .legend span{display:inline-block;margin-right:10px;font-size:12px}
 .cart{position:sticky;top:14px}
 .pl{display:grid;grid-template-columns:1fr auto auto auto auto;gap:6px;align-items:center;padding:4px 0;border-bottom:1px solid var(--line);font-size:13px}
+td.odds{white-space:nowrap}
