@@ -445,7 +445,7 @@ def injuries_card(items, day, out_path):
 # ----------------------------------------------------------------- ana akış
 def main():
     day = datetime.strptime(sys.argv[sys.argv.index("--date") + 1], "%Y-%m-%d").date() if "--date" in sys.argv else datetime.now(TR).date()
-    rows = build_site.read_jsonl("records/nesine/*.jsonl"); t, last = build_site.latest_snapshot(rows)
+    rows = build_site.read_jsonl("records/nesine/*.jsonl"); t, last = build_site.recent_snapshot(rows)
     nm = [m for m in build_site.nesine_matches(last) if m["start"].astimezone(TR).date() == day]
     ai = {r["code"]: r for r in build_site.read_jsonl("records/claude/*.jsonl") if r.get("blind")}
     es = espn.load_all()

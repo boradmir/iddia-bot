@@ -310,7 +310,7 @@ def main():
     day_dir = f"docs/social/{today}"
     if not os.path.isdir(day_dir):
         print("Bugün için kart yok"); return
-    rows = build_site.read_jsonl("records/nesine/*.jsonl"); t, last = build_site.latest_snapshot(rows)
+    rows = build_site.read_jsonl("records/nesine/*.jsonl"); t, last = build_site.recent_snapshot(rows)
     now = datetime.now(timezone.utc)
     nm = [m for m in build_site.nesine_matches(last) if m["start"].astimezone(TR).date() == today and m["start"] > now + timedelta(hours=1)]
     ai = {r["code"]: r for r in build_site.read_jsonl("records/claude/*.jsonl") if r.get("blind")}

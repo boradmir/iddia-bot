@@ -44,6 +44,20 @@ def latest_snapshot(rows):
     return t, [r for r in rows if r["t"] == t]
 
 
+def recent_snapshot(rows, hours=12):
+    """Son fotoğraf yerine: son `hours` saatte görülen her maçın EN SON kaydı. Nesine bir ligi geçici olarak bültenden çekerse
+    (oranlar kapanır, 31.10.2026'da Süper Lig 3 saat yoktu) maç listeden düşmez; başlangıç saati son görülen kayıttan gelir."""
+    if not rows:
+        return None, []
+    t_last = max(r["t"] for r in rows)
+    cut = (datetime.fromisoformat(t_last) - timedelta(hours=hours)).isoformat()
+    seen = {}
+    for r in rows:
+        if r["t"] >= cut and r["t"] > seen.get(r["code"], ""):
+            seen[r["code"]] = r["t"]
+    return t_last, [r for r in rows if seen.get(r["code"]) == r["t"]]
+
+
 def nesine_matches(rows):
     by = {}
     for r in rows:

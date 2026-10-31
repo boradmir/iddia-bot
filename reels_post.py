@@ -24,7 +24,7 @@ def git_pull():
 
 
 def todays_match():
-    rows = build_site.read_jsonl("records/nesine/*.jsonl"); t, last = build_site.latest_snapshot(rows)
+    rows = build_site.read_jsonl("records/nesine/*.jsonl"); t, last = build_site.recent_snapshot(rows)
     today = datetime.now(TR).date()
     for m in build_site.nesine_matches(last):
         if HOME.lower() in m["home"].lower() and m["start"].astimezone(TR).date() == today:

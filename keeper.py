@@ -110,6 +110,16 @@ def maybe_morning_claude(s, now):
         from datetime import timezone as _tz, timedelta as _td
         tr = _tz(_td(hours=3))
         ms = [m for m in nesine.parse(nesine.fetch(save_path=None)) if m["start"].astimezone(tr).date() == now.astimezone(tr).date() and m["start"] > now]
+        # canlı bültende o an olmayan ama son 12 saatte kayıtlarda görülen maçları da ekle (Nesine ligi geçici çekmiş olabilir)
+        try:
+            _t, _last = build_site.recent_snapshot(build_site.read_jsonl("records/nesine/*.jsonl"))
+            have = {m["code"] for m in ms}
+            extra = [m for m in build_site.nesine_matches(_last) if m["code"] not in have and m["start"].astimezone(tr).date() == now.astimezone(tr).date() and m["start"] > now]
+            if extra:
+                log("Sabah analizi: canlı bültende olmayan " + ", ".join(f"{m['home']}-{m['away']}" for m in extra) + " kayıtlardan eklendi")
+            ms += extra
+        except Exception as e:
+            log(f"Sabah analizi: kayıt birleştirme hatası {e}")
         # yalnız büyük kulüplü maçlar (clubs.py kademe 0-1); yoksa o gün sabah analizi yapılmaz
         ms = [m for m in ms if clubs.tier(m) <= clubs.ANALYZE_MAX_TIER]
         # Instagram'a zaten gitmiş maç için analiz yapma (gönderi değiştirilemez, boşa harcama olur)
