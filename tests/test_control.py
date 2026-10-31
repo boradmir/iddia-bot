@@ -179,5 +179,36 @@ class ActionsApplyTest(unittest.TestCase):
             actions.apply({}, {"action": "uçur"}, "2026-10-31")
 
 
+class StatsTest(unittest.TestCase):
+    def test_md_to_html(self):
+        from panel import stats
+        md = "# Başlık" + chr(10) + chr(10) + "| a | b |" + chr(10) + "|---|---|" + chr(10) + "| 1 | 2 |" + chr(10) + chr(10) + "- madde **kalın**" + chr(10)
+        h = stats.md_to_html(md)
+        self.assertIn("<h2>Başlık</h2>", h)
+        self.assertIn("<th>a</th>", h)
+        self.assertIn("<td>2</td>", h)
+        self.assertIn("<li>madde <b>kalın</b></li>", h)
+
+
+class ContentSaveTest(unittest.TestCase):
+    def test_save_fields_and_caption_override(self):
+        import glob, shutil
+        from panel import content
+        tmp = tempfile.TemporaryDirectory()
+        cwd = os.getcwd()
+        try:
+            os.chdir(tmp.name); os.makedirs("records/claude")
+            row = {"code": 9, "home": "A", "away": "B", "start": "2026-10-31T17:00:00+00:00", "blind": {"hook": "eski", "comment": "yazı"}}
+            open("records/claude/2026-10-31.jsonl", "w", encoding="utf-8").write(json.dumps(row) + chr(10))
+            ch = content.save(9, {"hook": "yeni kanca"}, "benim açıklamam")
+            self.assertEqual(sorted(ch), ["caption", "hook"])
+            p, i, r = content.current_record(9)
+            self.assertEqual(r["blind"]["hook"], "yeni kanca"); self.assertEqual(r["caption_override"], "benim açıklamam"); self.assertIn("edited_at", r)
+            content.save(9, None, "")
+            self.assertNotIn("caption_override", content.current_record(9)[2])
+        finally:
+            os.chdir(cwd); tmp.cleanup()
+
+
 if __name__ == "__main__":
     unittest.main()

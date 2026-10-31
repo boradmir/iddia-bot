@@ -189,6 +189,16 @@ def run(body):
             err = commit_push(["records/insights/ads.jsonl"], f"panel: reklam kaydı {rec['home']}-{rec['away']} {rec['budget_tl']:.0f} TL")
             alog(a, f"{rec} {err or 'ok'}")
             return {"ok": False, "error": err} if err else {"ok": True, "msg": "Reklam kaydedildi"}
+        # ---- Gelen kutusu
+        from panel import inbox
+        if a == "inbox_seen":
+            inbox.mark_seen(body.get("kind") or "comments"); return {"ok": True, "msg": "Görüldü işaretlendi"}
+        if a == "comment_reply":
+            r = inbox.reply_comment(body.get("comment_id"), (body.get("text") or "").strip())
+            alog(a, f"{body.get('comment_id')}: {r}"); return {"ok": True, "msg": "Yanıt gönderildi"}
+        if a == "dm_reply":
+            r = inbox.reply_message(body.get("conversation_id"), (body.get("text") or "").strip())
+            alog(a, f"{body.get('conversation_id')[:12]}: {r}"); return {"ok": True, "msg": "Mesaj gönderildi"}
         raise ValueError(f"bilinmeyen eylem: {a}")
     except Exception as e:
         alog(a, f"HATA {e}")

@@ -9,6 +9,8 @@
     <button data-tab="reels" title="Günün reels'ini üret: metin, ses, video; önizle; saat ver; yayına al">Reels</button>
     <button data-tab="istatistik" title="Instagram verileri: takipçi, erişim, gönderi tablosu, haftalık rapor, reklam kaydı">İstatistik</button>
     <button data-tab="kupon" title="Kilitlenen kuponların puanı, gözcü uyarıları, kapanış CLV, skorlar">Kupon</button>
+    <button data-tab="gelen" title="Instagram yorumları, mesajlar (DM), etiketlenmeler; yanıt ver">Gelen kutusu <span id="inboxBadge" class="badge" style="display:none"></span></button>
+    <button data-tab="gunluk" title="Tüm olaylar ve hatalar tek zaman çizgisinde: yayınlar, analizler, panel eylemleri, GitHub çalışmaları ve log hataları">Günlük</button>
     <button data-tab="sistem" title="GitHub çalışmaları ve logları, kota, harcama, belirteç, şimdi çalıştır düğmeleri">Sistem</button>
   </nav>
   <span id="clock"></span><span id="conn" class="pill">bağlanıyor</span></header>
@@ -37,6 +39,14 @@
       <div class="help"><b>Kupon ve uyarılar.</b> Eski vitrin sayfasının içeriği. Kuponlar önerildikleri anda kilitlenir ve maçlar bitince puanlanır (1 birim oynanmış gibi).
         Gözcü uyarıları: Nesine oranı dünya piyasasına göre yüksek görünen seçimler; <i>CLV</i> kapanış oranına göre fark (artıysa yöntem çalışıyor). Skorlar son iki gün.</div>
       <div id="kupon">Yükleniyor…</div></section>
+    <section id="tab-gelen" class="tab">
+      <div class="help"><b>Gelen kutusu.</b> Son gönderilerin yorumları, gelen mesajlar (DM) ve etiketlendiğin gönderiler. <i>Yeni</i> işareti son "Gördüm"den sonra gelenlerdir.
+        Yorumlara ve mesajlara buradan yanıt verebilirsin (hesap adıyla gider). Veri 2 dakikada bir tazelenir.</div>
+      <div id="inbox">Yükleniyor…</div></section>
+    <section id="tab-gunluk" class="tab">
+      <div class="help"><b>Günlük.</b> Ne olup bittiğinin tek listesi: yayınlanan gönderi ve story'ler, yapay zekâ analizleri (maliyetiyle), kadro notları, panel eylemleri, reels durumu,
+        GitHub çalışmalarının sonucu ve loglarındaki hata satırları, gözcü uyarıları, reklam kayıtları. <i>Hata</i> kırmızı, <i>uyarı</i> sarı, <i>bilgi</i> gri. GitHub logları 5 dakikada bir taranır.</div>
+      <div id="events">Yükleniyor…</div></section>
     <section id="tab-sistem" class="tab">
       <div class="help"><b>Sistem.</b> <i>Bekçi</i> GitHub'da 20 dakikada bir kayıt alır, sabah analizi, kartlar, karusel, insights ve reels yayını onun işi. <i>Gözcü</i> maç günü oran takibi ve story'ler.
         <i>Skorlar</i> sonuç ve puanlama. Bir çalışma çalışmıyorsa düğmeyle başlat; <i>log</i> son 200 satırı gösterir. <i>Yeniden it</i>: panelin yerel commit'leri GitHub'a gitmediyse tekrar dener.</div>

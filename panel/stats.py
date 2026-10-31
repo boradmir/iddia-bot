@@ -113,5 +113,58 @@ def add_ad(post_id, budget_tl, days, note=""):
     return rec
 
 
+def account_table(days=30):
+    """Günlük hesap ölçümleri tablosu (son kayıt o günün değeri)."""
+    rows = _rows("records/insights/account.jsonl")
+    by_day = {}
+    for r in rows:
+        by_day[r["day"]] = r
+    keys = ("followers", "follows", "media", "views_today", "profile_views_today", "accounts_engaged_today", "total_interactions_today", "website_clicks_today")
+    out = []
+    for d in sorted(by_day)[-days:]:
+        r = by_day[d]
+        out.append({"day": d, **{k: r.get(k) for k in keys}, "reach_day": (r.get("reach") or {}).get(d)})
+    return out[::-1]
+
+
+def series(post_id):
+    """Bir gönderinin gün gün ölçümleri (yaşa göre erişim/görüntü/beğeni/kaydet/paylaş)."""
+    rows = sorted([r for r in _rows("records/insights/media_*.jsonl") if r.get("post_id") == post_id], key=lambda r: r["t"])
+    keys = ("day", "age_h", "reach", "views", "likes", "comments", "saved", "shares", "total_interactions", "follows", "profile_visits", "replies", "int_rate")
+    return [{k: r.get(k) for k in keys} for r in rows]
+
+
+def stories():
+    rows = _rows("records/insights/media_*.jsonl")
+    latest = {}
+    for r in rows:
+        if r.get("kind") == "story" and (r["post_id"] not in latest or r["t"] > latest[r["post_id"]]["t"]):
+            latest[r["post_id"]] = r
+    out = []
+    for r in sorted(latest.values(), key=lambda r: r.get("posted_at") or "", reverse=True):
+        nav = r.get("nav") or {}
+        out.append({"post_id": r["post_id"], "type": {"story": "kadro", "story_ht": "devre", "story_ft": "maç sonu"}.get(r.get("type"), r.get("type")),
+                    "home": r.get("home"), "away": r.get("away"), "posted_at": r.get("posted_at"), "reach": r.get("reach"), "views": r.get("views"),
+                    "replies": r.get("replies"), "shares": r.get("shares"), "follows": r.get("follows"), "profile_visits": r.get("profile_visits"),
+                    "forward": (nav.get("tap_forward") or 0) + (nav.get("swipe_forward") or 0), "back": nav.get("tap_back", 0), "exit": nav.get("tap_exit", 0)})
+    return out
+
+
+def by_group():
+    """Tür / saat / gün / kademe ortalamaları (organik gönderiler, her gönderinin son ölçümü)."""
+    posts = [m for m in media() if m.get("kind") != "story" and not m.get("boosted")]
+    def grp(key, label):
+        g = {}
+        for m in posts:
+            g.setdefault(key(m), []).append(m)
+        return [{"grup": k, "n": len(v), "erisim": round(sum(x.get("reach") or 0 for x in v) / len(v)), "goruntu": round(sum(x.get("views") or 0 for x in v) / len(v)),
+                 "kaydet": round(sum(x.get("saved") or 0 for x in v) / len(v), 1), "etk": round(100 * sum(x.get("int_rate") or 0 for x in v) / len(v), 1)} for k, v in sorted(g.items(), key=lambda kv: str(kv[0]))]
+    return {"Tür": grp(lambda m: m.get("kind") or "karusel", "tür"), "Saat": grp(lambda m: f"{m.get('post_hour', 0):02d}:00", "saat"),
+            "Gün": grp(lambda m: m.get("weekday") or "?", "gün"), "Kademe": grp(lambda m: f"kademe {m.get('tier')}", "kademe"),
+            "Favori gücü": grp(lambda m: "favori ≥%65" if (m.get("fav_pct") or 0) >= 65 else "favori %50-64" if (m.get("fav_pct") or 0) >= 50 else "dengeli", "fav")}
+
+
 def data():
-    return {"account": account(), "media": media(), "ads": ads(), "report": latest_report()}
+    med = media()
+    return {"account": account(), "account_table": account_table(), "media": med, "stories": stories(), "groups": by_group(),
+            "series": {m["post_id"]: series(m["post_id"]) for m in med[:30]}, "ads": ads(), "report": latest_report()}

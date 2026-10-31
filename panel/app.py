@@ -72,6 +72,13 @@ class H(BaseHTTPRequestHandler):
             if p == "/api/stats":
                 from panel import stats
                 return self._send(200, {"ok": True, **stats.data()})
+            if p == "/api/inbox":
+                from panel import inbox
+                return self._send(200, inbox.data())
+            if p == "/api/events":
+                from panel import events
+                q = dict(x.split("=", 1) for x in u.query.split("&") if "=" in x)
+                return self._send(200, {"ok": True, **events.data(int(q.get("days", "3")), q.get("level") or None)})
             if p == "/api/kupon":
                 from panel import kupon
                 return self._send(200, {"ok": True, **kupon.data()})

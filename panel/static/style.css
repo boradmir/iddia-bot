@@ -40,3 +40,8 @@ video.prev{width:270px;border-radius:10px;border:1px solid var(--g3)}
 .report h2,.report h3,.report h4{color:var(--s);margin:12px 0 6px;font-size:15px}.report p{margin:4px 0}.report table{margin:6px 0}
 .tag{display:inline-block;border-radius:6px;padding:1px 6px;font-size:12px;background:var(--g3)}.tag.won{background:#1f6b45}.tag.lost{background:#6b2a26}
 @media(max-width:900px){main{grid-template-columns:1fr}.match{grid-template-columns:1fr}.btns{justify-content:flex-start;max-width:none}.grid2{grid-template-columns:1fr}}
+.badge{background:var(--red);color:#fff;border-radius:999px;padding:0 6px;font-size:11px;margin-left:4px}
+.ev{display:grid;grid-template-columns:90px 70px 130px 1fr;gap:8px;padding:4px 6px;border-bottom:1px solid var(--g3);font-size:13px}
+.ev.hata{background:#3a1a18}.ev.uyari{background:#3a3418}.ev .lv{font-weight:600}.ev.hata .lv{color:var(--red)}.ev.uyari .lv{color:var(--s)}.ev.bilgi .lv{color:var(--mute)}
+.msg{padding:4px 8px;border-radius:8px;margin:3px 0;max-width:80%;background:#0f3326}.msg.mine{background:#2b6b53;margin-left:auto}
+.cmt{border-left:3px solid #2b6b53;padding:4px 8px;margin:6px 0}.cmt.new{border-color:var(--s)}
