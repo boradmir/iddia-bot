@@ -117,8 +117,9 @@ async def _tts(text, out_mp3):
 
 ELEVEN_KEY = os.environ.get("ELEVENLABS_API_KEY", "")
 ELEVEN_VOICE = os.environ.get("ELEVENLABS_VOICE_ID", "")
-ELEVEN_MODEL = os.environ.get("ELEVENLABS_MODEL", "eleven_turbo_v2_5")   # Türkçe zorlanabilen model: yabancı adlar İngilizce moda kaymaz (31.10.2026 kullanıcı seçimi)
-ELEVEN_LANG = {"eleven_turbo_v2_5": "tr", "eleven_flash_v2_5": "tr", "eleven_v3": "tr"}   # multilingual_v2 language_code kabul etmez
+ELEVEN_MODEL = os.environ.get("ELEVENLABS_MODEL", "eleven_v4")
+# language_code "tr": yabancı adlar İngilizce moda kaymasın ("Dirk Kuyt" → "Keyt" okunuyordu; 31.10.2026 kullanıcı v4+tr'yi seçti). multilingual_v2 kabul etmez.
+ELEVEN_LANG = {"eleven_v4": "tr", "eleven_turbo_v2_5": "tr", "eleven_flash_v2_5": "tr", "eleven_v3": "tr"}
 
 
 def tts_eleven(text, out_mp3, voice_id=None, model=None):
