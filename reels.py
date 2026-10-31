@@ -405,9 +405,9 @@ def cover_image(img, m, th, er=None):
     try:
         import story
         y_c = getattr(scene_hook, "y_end", 830) + 195   # tarih satırının altı
-        hc, ac = story.crest_for(m["home"], er, 104), story.crest_for(m["away"], er, 104)
-        if hc and ac and y_c + 104 <= 1180:
-            img.paste(hc, (W // 2 - 104 - 16, y_c), hc); img.paste(ac, (W // 2 + 16, y_c), ac)
+        hc, ac = story.crest_for(m["home"], er, 112), story.crest_for(m["away"], er, 112)
+        if hc and ac and y_c + 112 <= 1180:   # metin sütunuyla sola hizalı: ev sahibi, konuk
+            img.paste(hc, (M_L, y_c), hc); img.paste(ac, (M_L + 112 + 24, y_c), ac)
         elif not (hc and ac):
             note_issue("kapak: kulüp arması bulunamadı (ESPN kaydı yok)")
     except Exception as e:
