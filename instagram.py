@@ -275,7 +275,10 @@ def day_plan(day):
 
 def post_slots(cands, today):
     """Her aday için yayın saati (TR). İlk: 12:00; maç 15:00'ten erkense 10:00; o gün reels 2 saat içindeyse 2 saat öne (en erken 09:00).
-    Sonrakiler: maçtan 3 saat önce, öncekinden en az 90 dk sonra, maçtan en geç 1 saat önce."""
+    Sonrakiler (31.10.2026 kuralı): maçtan 3,5 saat önce (hafta sonu 4 saat; gündüz kullanım daha yaygın), 15:30'dan erken ve
+    18:00'den geç olmasın; önceki karusel ve günün reels'inden en az 3 saat sonra (birbirlerinin erişimini düşürmesinler);
+    her durumda maçtan en geç 1 saat önce. Gerekçe: küçük hesapta erişim ilk 60-90 dk'daki kaydet/paylaş sinyaliyle açılıyor,
+    Türkiye'de akşam yoğunluğu 17:00'de başlıyor; 20:00-22:00 zirvesi maçın içinde kaldığı için ön analiz o saate bırakılmaz."""
     plan = day_plan(today)
     slots = []
     prev = None
@@ -291,7 +294,12 @@ def post_slots(cands, today):
                 if abs((r_at - t).total_seconds()) < 2 * 3600:
                     t = max(r_at - timedelta(hours=2), ko.replace(hour=9, minute=0, second=0, microsecond=0))
         else:
-            t = max(ko - timedelta(hours=3), prev + timedelta(minutes=90))
+            lead = timedelta(hours=4) if ko.weekday() >= 5 else timedelta(hours=3, minutes=30)
+            t = min(max(ko - lead, ko.replace(hour=15, minute=30, second=0, microsecond=0)), ko.replace(hour=18, minute=0, second=0, microsecond=0))
+            t = max(t, prev + timedelta(hours=3))
+            ra = plan.get("reels_at")
+            if ra:
+                rh, rm = map(int, ra.split(":")); t = max(t, ko.replace(hour=rh, minute=rm, second=0, microsecond=0) + timedelta(hours=3))
         t = min(t, ko - timedelta(hours=1))
         slots.append(t); prev = t
     return slots
