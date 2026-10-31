@@ -102,12 +102,14 @@ def run(body):
             with GIT_LOCK:
                 pull()
             ctrl = control.load()
+            if body.get("day"):
+                day = str(body["day"])[:10]   # ileri tarihli karar (Sıradaki içerikler)
             ctrl, msg = apply(ctrl, body, day)
             control.save(ctrl)
             err = commit_push(["records/control.json"], f"panel: {msg}")
             alog(a, msg + (" | " + err if err else ""))
             from panel import cache
-            cache.refresh("today")
+            cache.refresh("today"); cache.refresh("upcoming")
             return {"ok": False, "msg": msg, "error": err} if err else {"ok": True, "msg": msg}
         if a == "workflow":
             name = body.get("name")

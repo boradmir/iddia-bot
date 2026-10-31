@@ -144,6 +144,39 @@ def standings_state(ctrl, log):
             "url": permalink(posted.get("post_id")) if posted else None, "skip": skip, "next": nxt.strftime("%d.%m %H:%M")}
 
 
+# ---------------- Sıradaki içerikler ----------------
+
+def upcoming(days=2):
+    """Yarından itibaren 'days' gün: bekçinin sabah analizi seçimi (kademe → lig sırası → saat, günde en çok CLAUDE_MAX_PER_DAY),
+    karusel adayları (analiz edilenler, günde IG_MAX_PER_DAY), reels adayı (en öndeki), story'ler (kademe 0). Panel kararları (atla) uygulanır."""
+    import claude_check, keeper
+    ctrl = control.load()
+    rows = build_site.recent_nesine_rows(); _, last = build_site.recent_snapshot(rows)
+    ms = build_site.nesine_matches(last)
+    today = datetime.now(TR).date()
+    out = []
+    for i in range(1, days + 1):
+        day = today + timedelta(days=i); ds = str(day)
+        dm = [m for m in ms if m["start"].astimezone(TR).date() == day]
+        cand = [m for m in dm if clubs.tier(m) <= clubs.ANALYZE_MAX_TIER and not control.post(ctrl, ds, m["code"]).get("skip")]
+        cand.sort(key=lambda m: (clubs.tier(m), keeper.PRIORITY.index(m["sport_key"]) if m["sport_key"] in keeper.PRIORITY else 99, m["start"]))
+        n_an = claude_check.MAX_PER_DAY
+        analyzed = cand[:n_an]
+        posts = analyzed[:instagram.MAX_PER_DAY]
+        reels = next((m for m in analyzed), None)
+        items = []
+        for m in dm:
+            if clubs.tier(m) > clubs.ANALYZE_MAX_TIER:
+                continue
+            items.append({"code": m["code"], "home": m["home"], "away": m["away"], "league": m["league"], "kickoff": m["start"].astimezone(TR).strftime("%H:%M"),
+                          "tier": clubs.tier(m), "analysis": m in analyzed, "carousel": m in posts, "reels": m is reels, "stories": clubs.tier(m) == 0,
+                          "skip": bool(control.post(ctrl, ds, m["code"]).get("skip")), "story_skip": control.story_skip(ctrl, ds, m["code"])})
+        items.sort(key=lambda x: (not x["analysis"], x["tier"], x["kickoff"]))
+        out.append({"day": ds, "label": datetime(day.year, day.month, day.day).strftime("%d.%m") + " " + ["Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi", "Pazar"][day.weekday()],
+                    "items": items, "n_all": len(dm), "limits": {"analysis": n_an, "carousel": instagram.MAX_PER_DAY}})
+    return {"days": out, "note": "Seçim sabah 07:30'da bültene göre yapılır; bülten değişirse liste de değişir."}
+
+
 # ---------------- Sistem ----------------
 
 def _run(args, timeout):

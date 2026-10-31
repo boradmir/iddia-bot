@@ -34,6 +34,7 @@ def _register():
     cache.register("events", lambda: events.data(3), 300, prio=9)
     from panel import kupon_builder
     cache.register("kupon_board", kupon_builder.board, 120, prio=5)
+    cache.register("upcoming", state.upcoming, 120, prio=4)
     cache.start()
 
 
@@ -89,6 +90,8 @@ class H(BaseHTTPRequestHandler):
                 return self._send(200, {"ok": True, **cache.refresh("reels", wait=True)})
             if p == "/api/kupon_board":
                 return self._send(200, {"ok": True, **cache.get("kupon_board")})
+            if p == "/api/upcoming":
+                return self._send(200, {"ok": True, **cache.get("upcoming")})
             if p == "/api/tiers":
                 from panel import tiers
                 return self._send(200, tiers.data())

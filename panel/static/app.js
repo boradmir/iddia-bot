@@ -5,7 +5,7 @@ const RS = { posted: 'yayında', ready: 'hazır, saat bekliyor', planned: 'seçi
 const HELP = {
   genel: '<b>Genel bakış.</b> Sistemin sağlığı ve bugünün özeti. Kırmızı bir şey görürsen ilgili sayfaya git; her şey yeşilse yapacak iş yok, bot kendi çalışıyor.',
   bugun: '<b>Bugün.</b> Bot paylaşımları kendi yapar; burası müdahale yeri. <b>Saat</b>: karusel o saatte gider (maçtan en az 1 saat önce). <b>Atla</b>: bu maç paylaşılmaz. <b>Story kapat</b>: kadro / devre / maç sonu story\'leri gitmez. <b>Bugün durdur</b>: gece yarısına kadar hiçbir şey paylaşılmaz. Kararlar en geç 20 dakikada etki eder (bekçi döngüsü).',
-  icerik: '<b>İçerik.</b> Bir maç seç. Açıklama Instagram\'daki metindir; düzenleyip kaydedersen senin yazdığın gider (kutuyu boşaltırsan otomatik metne döner). Kart yazılarını kaydettikten sonra <b>Kartı yeniden üret</b>, önizle, <b>Yayına yaz</b>. <b>Analizi yeniden çalıştır</b> ücretlidir (yaklaşık maliyet düğmede). Yayınlanmış gönderi değiştirilemez.',
+  icerik: '<b>İçerik.</b> Üstte sıradaki içerikler: yarın ve ertesi gün hangi maçlar analiz edilecek, karusel ve reels adayı hangisi, story hangi maçlarda (bekçinin seçim kuralıyla aynı; sabah bültene göre kesinleşir). Oradan maçı atlayabilir veya story\'sini kapatabilirsin. Altta bugünün analizleri: bir maç seç. Açıklama Instagram\'daki metindir; düzenleyip kaydedersen senin yazdığın gider (kutuyu boşaltırsan otomatik metne döner). Kart yazılarını kaydettikten sonra <b>Kartı yeniden üret</b>, önizle, <b>Yayına yaz</b>. <b>Analizi yeniden çalıştır</b> ücretlidir (yaklaşık maliyet düğmede). Yayınlanmış gönderi değiştirilemez.',
   reels: '<b>Reels.</b> Maçı seç, <b>Seç ve üret</b>: metin, ses, video sırayla üretilir; dinle, izle; beğenmediysen yeniden üret. <b>Yayına al</b>: video GitHub\'a yüklenir, bekçi verdiğin saatte yayınlar (bilgisayar kapalı olsa da). Sesler: Ahu ve erkek ses dönüşümlü; erkek ses seçilmediyse adayları dinleyip seç.',
   veri: '<b>Instagram verileri.</b> Bekçi her sabah ölçer. <b>Erişim</b>: gönderiyi gören tekil hesap; <b>etkileşim</b>: (beğeni+yorum+kaydet+paylaş)/erişim. Reklam bastığın gönderiyi kaydet, rapor onu organik tablolardan ayırır. Ayrıntılar aşağıdaki açılır bölümlerde.',
   gelen: '<b>Gelen kutusu.</b> Yorumlar, mesajlar, etiketlenmeler. "Yeni" son <b>Gördüm</b>\'den sonra gelenlerdir. Buradan yanıt verebilirsin, hesap adıyla gider.',
@@ -134,12 +134,19 @@ async function rIcerik() {
   $('#topActions').innerHTML = '';
   const list = `<div class="card"><div class="row">${ms.map(m => `<button class="btn ${m.code == CONTENT_CODE ? '' : 'sec'}" onclick="CONTENT_CODE=${m.code};rIcerik()">${esc(m.home)} – ${esc(m.away)} <span style="opacity:.7;font-weight:400">${esc(m.kickoff)}${m.post.state === 'yayında' ? ' · yayında' : ''}</span></button>`).join('')}
     ${ms.length ? '' : '<span class="muted">Bugün analizli maç yok.</span>'}</div></div>`;
-  if (!CONTENT_CODE) { $('#page').innerHTML = list; return; }
-  $('#page').innerHTML = list + loading();
+  const up = await api('/api/upcoming');
+  const upBox = up.loading ? `<div class="card">${loading('Sıradaki içerikler hazırlanıyor')}</div>` : `<div class="card"><h3>Sıradaki içerikler <small>${esc(up.note || '')}</small></h3>
+    ${(up.days || []).map(dd => `<div style="margin:6px 0"><b>${esc(dd.label)}</b> <span class="muted small">· ${dd.n_all} maç bültende · analiz en çok ${dd.limits.analysis}, karusel en çok ${dd.limits.carousel}</span>
+      <table>${dd.items.map(m => `<tr><td>${esc(m.home)} – ${esc(m.away)}<div class="small muted">${esc(m.kickoff)} · ${esc(m.league)} · kademe ${m.tier}</div></td>
+        <td>${m.skip ? chip('atlandı', 'bad') : [m.analysis ? chip('analiz', 'ok') : '', m.carousel ? chip('karusel', 'ok') : '', m.reels ? chip('reels adayı', 'info') : '', m.stories && !m.story_skip ? chip('story', 'info') : m.stories ? chip('story kapalı', 'bad') : ''].filter(Boolean).join(' ') || '<span class="muted small">sırada değil</span>'}</td>
+        <td class="num"><button class="btn ${m.skip ? 'sec' : 'warn'} sm" onclick="act({action:'skip',code:${m.code},skip:${!m.skip},day:'${dd.day}'},()=>setTimeout(rIcerik,1500))">${m.skip ? 'Geri al' : 'Atla'}</button>
+          ${m.stories ? `<button class="btn ${m.story_skip ? 'sec' : 'warn'} sm" onclick="act({action:'story_skip',code:${m.code},skip:${!m.story_skip},day:'${dd.day}'},()=>setTimeout(rIcerik,1500))">${m.story_skip ? "Story aç" : 'Story kapat'}</button>` : ''}</td></tr>`).join('') || '<tr><td class="muted small">büyük kulüp maçı yok</td></tr>'}</table></div>`).join('')}</div>`;
+  if (!CONTENT_CODE) { $('#page').innerHTML = upBox + list; return; }
+  $('#page').innerHTML = upBox + list + loading();
   const d = await api('/api/content?code=' + CONTENT_CODE); CONTENT = d;
-  if (!d.ok) { $('#page').innerHTML = list + `<div class="card err">${esc(d.error)}</div>`; return; }
+  if (!d.ok) { $('#page').innerHTML = upBox + list + `<div class="card err">${esc(d.error)}</div>`; return; }
   const dis = d.posted ? 'disabled' : '';
-  $('#page').innerHTML = list + `
+  $('#page').innerHTML = upBox + list + `
     <div class="card"><h3>${esc(d.home)} – ${esc(d.away)} <small>${esc(d.day)} · sürüm ${d.revision}${d.cost_usd ? ` · maliyet $${d.cost_usd}` : ''}${d.edited_at ? ' · düzenlendi' : ''}</small></h3>
       ${d.posted ? '<div class="err">Bu gönderi yayınlandı; Instagram metin düzenlemeyi kabul etmez. Yalnız görüntüleme.</div>' : ''}
       ${d.note ? `<div class="small muted">Son yeniden çalıştırma notu: ${esc(d.note)}</div>` : ''}
