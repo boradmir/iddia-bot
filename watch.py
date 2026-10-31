@@ -159,6 +159,8 @@ def story_async(m, rec, events_for_sport, aliases, dry):
                 rebuild_page()
                 git_publish(f"story {m['home']}-{m['away']}", dry)
             if dry or not os.environ.get("IG_TOKEN"):
+                if not dry:
+                    log(f"UYARI: IG_TOKEN yok, kadro story'si gönderilmedi: {m['home']}-{m['away']}")
                 return
             url = f"{instagram.RAW}/social/{day}/story_{m['code']}.jpg"
             pid = instagram.post_story_for(m, url, size=os.path.getsize(path))
@@ -210,6 +212,8 @@ def inplay_async(m, event_id, dry):
         with GIT_LOCK:
             git_publish(f"{kind} {m['home']}-{m['away']} {lv['score'].get('home')}-{lv['score'].get('away')}", dry)
         if dry or not os.environ.get("IG_TOKEN"):
+            if not dry:
+                log(f"UYARI: IG_TOKEN yok, {kind} story'si gönderilmedi: {m['home']}-{m['away']}")
             return
         url = f"{instagram.RAW}/social/{day}/{kind}_{m['code']}.jpg"
         pid = instagram.post_story_for(m, url, kind="story_ht" if kind == "devre" else "story_ft", size=size)
