@@ -15,6 +15,7 @@ Kullanım: python watch.py [--max-minutes 340] [--dry]   (--dry: Odds API çağ�
 import json, os, subprocess, sys, time, calendar, threading
 from datetime import datetime, timezone, timedelta
 import config, nesine, odds, match, prob, value, build_site, claude_check, espn
+import control
 
 NESINE_SEC = 60
 WINDOW_MIN = 100          # Pinnacle izleme penceresi: maça bu kadar dk kala başlar
@@ -32,6 +33,17 @@ WSTATUS = "records/watch_status.json"
 
 def log(msg):
     print(f"{datetime.now(timezone.utc).strftime('%H:%M:%S')} {msg}", flush=True)
+
+
+def story_blocked(m):
+    """Panel kararı: bu maçın story'leri kapalı mı (stories[gün:kod].skip) ya da her şey duraklatılmış mı (paused_until)?"""
+    ctrl = control.load()
+    day = m["start"].astimezone(timezone(timedelta(hours=3))).strftime("%Y-%m-%d")
+    if control.is_paused(ctrl):
+        return "duraklatıldı (panel)"
+    if control.story_skip(ctrl, day, m["code"]):
+        return "story atlandı (panel)"
+    return None
 
 
 def load_json(path, default):
@@ -121,6 +133,9 @@ def story_async(m, rec, events_for_sport, aliases, dry):
             # şimdilik yalnız kademe 0 (dört büyük) ve sabah yorumu olan maçlar; iki takımın da 11'i açıklanmış olmalı
             if clubs.tier(m) > 0 or not claude_check.find_prev(m["code"]):
                 return
+            why = story_blocked(m)
+            if why:
+                log(f"Kadro story'si yok, {why}: {m['home']}-{m['away']}"); return
             full = [r for r in (rec.get("rosters") or {}).values() if len(r.get("starters") or []) >= 11]
             if len(full) < 2:
                 log(f"Kadro story'si beklemede (iki 11 de açıklanmadı): {m['home']}-{m['away']}"); return
@@ -180,6 +195,9 @@ def inplay_async(m, event_id, dry):
         return
 
     def post(kind, lv):
+        why = story_blocked(m)
+        if why:
+            log(f"{kind} story'si yok, {why}: {m['home']}-{m['away']}"); return
         day = m["start"].astimezone(timezone(timedelta(hours=3))).strftime("%Y-%m-%d")
         os.makedirs(f"docs/social/{day}", exist_ok=True)
         path = f"docs/social/{day}/{kind}_{m['code']}.jpg"
