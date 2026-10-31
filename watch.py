@@ -287,7 +287,14 @@ def main():
     now = datetime.now(timezone.utc)
     horizon = now + timedelta(minutes=max_minutes + WINDOW_MIN)
 
-    data = nesine.fetch(save_path=None)
+    data = None
+    for attempt in range(6):   # açılışta geçici ağ/SSL hatası gözcüyü düşürmesin (31.10: SSL EOF ile çöktü)
+        try:
+            data = nesine.fetch(save_path=None); break
+        except Exception as e:
+            log(f"Nesine açılış çekimi başarısız ({attempt + 1}/6): {type(e).__name__}: {e}"); time.sleep(15)
+    if data is None:
+        log("Nesine açılışta çekilemedi; gözcü çıkıyor (bekçi yeniden tetikler)"); return
     targets = [m for m in nesine.parse(data) if now < m["start"] <= horizon]
     # başlamış kademe 0 maçları (bülten düşürmüş olabilir): son Nesine kaydından; maç içi takip için
     try:
