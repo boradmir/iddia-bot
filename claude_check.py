@@ -49,7 +49,9 @@ card_text: kartta görünecek kısa gövde, 3-4 cümle, en fazla 80 kelime; comm
 question: okura tek soru (en fazla 90 karakter), yoruma davet; oran/bahis yok.
 risk_short: belirsizliğin konuşma dilinde kısa hali, en fazla 12 kelime, 2-3 parça virgülle (seslendirme metni için).
 reels_script: seslendirme metni (38-46 kelime, 6-7 tam cümle, biz ağzı, konuşma dili, telgraf dili yasak). Sesli okunacak: her cümle fiille
-bitsin, 4-12 kelime arası olsun, devrik cümle olmasın; yabancı adlar olduğu gibi yazılsın. Ekranda görünen kanca (hook) da tam bir cümle olmalı.
+bitsin, 4-12 kelime arası olsun, devrik cümle olmasın; yabancı adlar olduğu gibi yazılsın. Sesli okunduğunda tekerlemeye dönmesin:
+art arda benzer heceli kelimeler ("izi hâlâ sürüyor, bu bizi"), "bu bizi / o onu" gibi kümeler yok; virgülle bağlanmış iki yargı yerine
+iki kısa cümle; ünsüz yığılması olan kelimeleri yan yana koyma. Metni içinden sesli okuyup takılan yeri yeniden yaz. Ekranda görünen kanca (hook) da tam bir cümle olmalı.
 risk: tek cümle, ölçülü ("En büyük soru işareti…", "Sonucu en çok şu belirsizleştiriyor:…"); "en büyük belirsizlik" kalıbını cümle içinde tekrarlama. absences: haberlerde geçen her eksik/şüpheli/dönen oyuncu için
 takımdaki yeri (as/rotasyon/yedek), son maçlardaki durumu ve bu maça somut etkisi (yerine kim oynar, hangi bölge zayıflar);
 emin olmadığın yere 'bilinmiyor' yaz, uydurma. lineup_note: muhtemel 11 / diziliş, 1-2 cümle; bilgi yoksa boş.
@@ -200,7 +202,8 @@ Görev: metinleri BAĞLAMI BİLMEYEN bir okurun gözüyle oku ve şunları yakal
 3. Ses: her yerde "biz" ağzı; "ben/bence/bana kalırsa/beni" varsa "biz" ağzına çevir.
 4. Yasak: oran (1.85 gibi), bahis, kupon, banko, kesin, garanti, ünlem.
 5. Seslendirme metni (reels_script): sesli okunacak; her cümle fiille biten tam cümle olsun, 4-14 kelime; "PİYASA." yer tutucusunu OLDUĞU GİBİ bırak
-   (kod, "Piyasaya göre X'in kazanma ihtimali yüzde A, Y'nin yüzde B." cümlesiyle değiştirecek).
+   (kod, "Piyasaya göre X'in kazanma ihtimali yüzde A, Y'nin yüzde B." cümlesiyle değiştirecek). Tekerleme kontrolü: benzer heceli
+   kelimeler art arda geliyorsa ("izi hâlâ sürüyor, bu bizi"), virgülle bağlı iki yargı varsa cümleyi ikiye böl ve kelimeleri değiştir.
 6. Kanca (hook) ve soru (question): tam cümle, tek başına anlaşılır.
 7. Okunuş (pronounce): metinlerde geçen ve Türkçe okunduğunda yanlış çıkacak yabancı kişi adlarını (oyuncu, hoca) listele; her biri için
    Türk spikerin söylediği gibi Türkçe harflerle okunuşunu yaz (örn. Kuyt → Kayt, Skriniar → Şkriniar, Juan → Huan, Henrique → Enrike,
