@@ -117,15 +117,20 @@ async def _tts(text, out_mp3):
 
 ELEVEN_KEY = os.environ.get("ELEVENLABS_API_KEY", "")
 ELEVEN_VOICE = os.environ.get("ELEVENLABS_VOICE_ID", "")
-ELEVEN_MODEL = os.environ.get("ELEVENLABS_MODEL", "eleven_multilingual_v2")
+ELEVEN_MODEL = os.environ.get("ELEVENLABS_MODEL", "eleven_turbo_v2_5")   # Türkçe zorlanabilen model: yabancı adlar İngilizce moda kaymaz (31.10.2026 kullanıcı seçimi)
+ELEVEN_LANG = {"eleven_turbo_v2_5": "tr", "eleven_flash_v2_5": "tr", "eleven_v3": "tr"}   # multilingual_v2 language_code kabul etmez
 
 
 def tts_eleven(text, out_mp3, voice_id=None, model=None):
     """ElevenLabs: ses + karakter zaman damgaları → kelime zamanları (altyazı senkronu için)."""
     import base64, urllib.request
     voice_id = voice_id or ELEVEN_VOICE
-    body = json.dumps({"text": text, "model_id": model or ELEVEN_MODEL,
-                       "voice_settings": {"stability": 0.40, "similarity_boost": 0.85, "style": 0.38, "use_speaker_boost": True}}).encode()   # Ahu "orta" ayar
+    model = model or ELEVEN_MODEL
+    payload = {"text": text, "model_id": model,
+               "voice_settings": {"stability": 0.40, "similarity_boost": 0.85, "style": 0.38, "use_speaker_boost": True}}   # Ahu "orta" ayar
+    if model in ELEVEN_LANG:
+        payload["language_code"] = ELEVEN_LANG[model]
+    body = json.dumps(payload).encode()
     req = urllib.request.Request(f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}/with-timestamps?output_format=mp3_44100_128",
                                  data=body, headers={"xi-api-key": ELEVEN_KEY, "Content-Type": "application/json"})
     with urllib.request.urlopen(req, timeout=120) as r:
@@ -170,7 +175,8 @@ PRONOUNCE = {
 def spoken_text(text, extra=None):
     """Seslendirme için okunuş sözlüğünü uygular; token sayısı aynı kalır. extra: yapay zekânın pakete yazdığı okunuşlar (öncelikli)."""
     out = text
-    table = dict(PRONOUNCE); table.update({k: v for k, v in (extra or {}).items() if k and v and len(k.split()) == len(v.split())})
+    # yapay zekânın listesi temel; elle doğrulanmış PRONOUNCE (kullanıcı onaylı yazımlar) onun üstüne yazar
+    table = {k: v for k, v in (extra or {}).items() if k and v and len(k.split()) == len(v.split())}; table.update(PRONOUNCE)
     for k, v in table.items():
         if k == v or k not in out:
             continue
