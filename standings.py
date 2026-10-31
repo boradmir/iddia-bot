@@ -91,7 +91,7 @@ def cover_card(week, names, path, monday_note):
     now = datetime.now(TR)
     social.text(d, (60, 300), "PUAN", social.font("display", 230), social.CREAM)
     social.text(d, (60, 505), "DURUMU", social.font("display", 230), social.YELLOW)
-    social.text(d, (60, 770), f"{social.tr_date(now)} · hafta {week[-2:]}", social.font("semi", 34), social.PALE)
+    social.text(d, (60, 770), f"{social.tr_date(now)} itibarıyla", social.font("semi", 34), social.PALE)
     y = 850
     for n in names:
         d.ellipse((60, y + 14, 76, y + 30), fill=social.YELLOW)
@@ -106,7 +106,9 @@ def league_card(name, rows, prev_rows, path, monday_note):
     img = social.pitch_background(th); d = ImageDraw.Draw(img)
     social.topbar(d, "Puan durumu")
     social.text(d, (60, 100), name, social.font("display", 84), social.CREAM)
-    social.text(d, (W - 60, 128), datetime.now(TR).strftime("%d.%m.%Y"), social.font("semi", 28), social.PALE, anchor="ra")
+    md = matchday(rows)
+    social.text(d, (W - 60, 112), f"{md}. hafta sonrası" if md else "", social.font("displaysemi", 40), social.YELLOW, anchor="ra")
+    social.text(d, (W - 60, 160), datetime.now(TR).strftime("%d.%m.%Y"), social.font("semi", 26), social.PALE, anchor="ra")
     prev_rank = {r["team"]: r["rank"] for r in (prev_rows or [])}
     n = len(rows)
     top, bottom = 215, H - 150
@@ -152,6 +154,14 @@ def league_card(name, rows, prev_rows, path, monday_note):
     social.save(img, path)
 
 
+def matchday(rows):
+    """Ligin haftası: en çok maç oynayan takımın maç sayısı (ESPN hafta numarası vermiyor)."""
+    try:
+        return max(int(r.get("gp") or 0) for r in rows)
+    except ValueError:
+        return None
+
+
 def monday_note_for(now=None):
     now = (now or datetime.now(TR)).astimezone(TR)
     return "Pazartesi maçları öncesi" if now.weekday() == 0 else ""
@@ -179,7 +189,8 @@ def build(week=None):
 
 
 def caption(week, data):
-    lines = [f"Haftalık puan durumu · hafta {int(week[-2:])}", ""]
+    now = datetime.now(TR)
+    lines = [f"Puan durumu · {now.day} {social.MONTHS_TR[now.month]}", ""]
     for sport, slug, name, tag in LEAGUES:
         rows = data.get(sport)
         if not rows or len(rows) < 2:
@@ -190,12 +201,13 @@ def caption(week, data):
         except ValueError:
             gap = None
         ta, tb = TEAM_TR.get(a["team"], a["team"]), TEAM_TR.get(b["team"], b["team"])
+        md = matchday(rows); hd = f" ({md}. hafta)" if md else ""
         if gap is None:
-            lines.append(f"{name}: {ta} lider ({a['pts']} puan).")
+            lines.append(f"{name}{hd}: {ta} lider ({a['pts']} puan).")
         elif gap == 0:
-            lines.append(f"{name}: {ta} ve {tb} aynı puanda ({a['pts']}), averaj {ta} lehine.")
+            lines.append(f"{name}{hd}: {ta} ve {tb} aynı puanda ({a['pts']}), averaj {ta} lehine.")
         else:
-            lines.append(f"{name}: {ta} lider ({a['pts']} puan), {tb} {gap} puan geride.")
+            lines.append(f"{name}{hd}: {ta} lider ({a['pts']} puan), {tb} {gap} puan geride.")
     lines += ["", "Tablolar hafta sonu maçları sonrası; pazartesi oynanan maçlar dahil değil.", "Her hafta pazartesi 12:00'de güncel tablo burada.", "",
               instagram.NOTE, " ".join(["#puandurumu", "#futbol"] + [tag for _, _, _, tag in LEAGUES] + ["#analizveotesi"])]
     return "\n".join(lines)
