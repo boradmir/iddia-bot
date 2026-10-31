@@ -175,7 +175,7 @@ def wait_public(url, timeout=480, size=None):
                     return True
         except Exception:
             pass
-        time.sleep(10)
+        time.sleep(5)
     return False
 
 
@@ -190,7 +190,10 @@ def post_story_for(m, image_url, kind="story", size=None):
         return None
     if sum(1 for s in log if s.get("type") == kind and s.get("day") == today) >= MAX_STORY_PER_DAY:
         return None
-    if not wait_public(image_url, size=size):
+    # önbellek atlatma: raw.githubusercontent yeni dosya için ilk 'yok' cevabını dakikalarca önbellekte tutar;
+    # benzersiz sorgu eki (dosya boyutu + zaman) her denemede taze cevap alır → story saniyeler içinde gider
+    image_url = f"{image_url}{'&' if '?' in image_url else '?'}v={size or 0}-{int(time.time())}"
+    if not wait_public(image_url, timeout=180, size=size):
         raise RuntimeError(f"görsel yayına girmedi: {image_url}")
     pid = publish_story(image_url)
     with open(LOG, "a", encoding="utf-8") as f:

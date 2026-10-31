@@ -269,7 +269,7 @@ def story_due(prefix, start, now):
 
 def maybe_story_fallback(s, now):
     """Gözcü story kartını üretip repoya yazmış ama yayınlayamamışsa (çökme, zaman aşımı) bekçi yayınlar:
-    docs/social/<gün>/{story,devre,ft}_<kod>.jpg var, günlükte yok, dosya en az 10 dk önce commit edilmiş, zaman penceresi uygun.
+    docs/social/<gün>/{story,devre,ft}_<kod>.jpg var, günlükte yok, dosya en az 5 dk önce commit edilmiş, zaman penceresi uygun.
     Panel kararlarına (story skip, duraklatma) uyar. Kullanıcı sürekli başında olmadığı için otomasyonun yedeği."""
     if not (os.environ.get("IG_TOKEN") and os.environ.get("IG_USER_ID")):
         return
@@ -300,8 +300,8 @@ def maybe_story_fallback(s, now):
             committed = datetime.fromtimestamp(int(r.stdout.strip()), timezone.utc)
         except ValueError:
             continue   # henüz commit edilmemiş (gözcü bu turda yazıyor olabilir)
-        if (now - committed).total_seconds() < 600:
-            continue   # gözcünün kendi yayın denemesi en çok 8 dk sürer (wait_public); 10 dk geçtiyse vazgeçmiştir
+        if (now - committed).total_seconds() < 300:
+            continue   # gözcünün kendi yayın denemesi en çok 3 dk sürer (wait_public 180 sn); 5 dk geçtiyse vazgeçmiştir
         if ms is None:
             _t, last = build_site.recent_snapshot(build_site.read_jsonl("records/nesine/*.jsonl"))
             ms = {m["code"]: m for m in build_site.nesine_matches(last)}
