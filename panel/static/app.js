@@ -381,8 +381,15 @@ async function rKupon() {
   $('#topActions').innerHTML = `<button class="btn sec" onclick="api('/api/kupon?refresh=1').then(rKupon)">Yenile</button>`;
   const srcs = ['ai', 'market', 'coupon', 'alert'];
   const srcName = { ai: 'Yapay zekâ favorisi', market: 'Piyasa favorisi', coupon: 'Bot kuponu bacakları', alert: 'Gözcü uyarıları' };
+  const srcInfo = {
+    ai: 'Sabah analizinde yapay zekâ her pazar için ihtimal verir (ev/beraberlik/deplasman, 2,5 alt/üst, KG var/yok). Her pazarda en yüksek ihtimalli seçim "favori" sayılır. Maç bitince gerçek sonuçla karşılaştırılır: favori doğruysa 1 tuttu. Her maç her pazarda 1 kez sayılır; aynı maç iki kez analiz edildiyse en yeni analiz geçerli. Yüzde = tuttu / toplam. Brier puanı ayrıca ihtimalin ne kadar isabetli olduğunu ölçer: tahmin %90 deyip tutarsa az, %51 deyip tutarsa daha çok ceza; 0 mükemmel, 0,33 rastgele.',
+    market: 'Aynı hesap, yapay zekâ yerine piyasa (Pinnacle) ihtimalleriyle: her pazarda piyasanın en yüksek ihtimal verdiği seçim favori sayılır ve sonuçla karşılaştırılır. Yapay zekâ ile piyasayı aynı maçlarda yan yana koymak için var; piyasayı geçemiyorsak analizin katma değeri yok demektir.',
+    coupon: 'Botun kilitlediği kuponların tek tek bacakları (bir kupon 3 maçsa 3 bacak). Bacağın seçimi (örn. 2,5 üst) maç sonucuyla karşılaştırılır; kupon tutmasa da tutan bacak sayılır. Kuponlar önerildikleri anda kilitlenir, sonradan değişmez. Burada "değerli" seçimler (oran ihtimale göre cömert) de olduğu için isabet oranı yapay zekâ favorisinden düşük çıkabilir; önemli olan oranla birlikte kârlı olup olmadığı, o da aşağıdaki Bot kuponları bölümünde (1 birimle net).',
+    alert: 'Gözcünün maç gününde yakaladığı fırsat uyarıları: Nesine oranı dünya piyasasına göre yüksekse işaretlenir. Seçim sonuçla karşılaştırılır; ayrıca CLV (kapanış oranına göre fark) gösterilir, artıysa yöntem uzun vadede kazanır.'
+  };
   const accCards = srcs.map(s => { const rows = ac.by_market.filter(r => r.src === s); const picks = ac.by_pick.filter(r => r.src === s); if (!rows.length && !picks.length) return ''; const H = rows.reduce((x, r) => x + r.hit, 0), T = rows.reduce((x, r) => x + r.total, 0);
-    return `<div class="card"><h3>${srcName[s]} <small>${T ? `toplam ${H}/${T} (%${Math.round(100 * H / T)})` : ''}</small></h3>
+    return `<div class="card"><h3>${srcName[s]} <small>${T ? `toplam ${H}/${T} (%${Math.round(100 * H / T)})` : ''}</small> <button class="ghost" style="width:24px;height:24px;font-size:12px" title="Nasıl hesaplanıyor?" onclick="const b=this.parentNode.nextElementSibling;b.style.display=b.style.display==='none'?'block':'none'">i</button></h3>
+      <div class="help" style="display:none;font-size:13px;margin:6px 0 10px">${esc(srcInfo[s])}</div>
       ${rows.map(r => `<div style="margin:6px 0"><div class="small">${esc(r.market)}</div>${bar(r.hit, r.total)}</div>`).join('')}
       ${picks.length ? `<details style="margin-top:6px"><summary class="small">Seçim bazında</summary><table>${picks.map(r => `<tr><td>${esc(r.market)} · <b>${esc(r.pick)}</b></td><td style="width:55%">${bar(r.hit, r.total)}</td></tr>`).join('')}</table></details>` : ''}</div>`; }).join('');
   const mrows = (ac.matches || []).map(m => `<tr><td>${esc(m.home)} – ${esc(m.away)}<div class="small muted">${esc(m.day)} · skor ${esc(m.score || '–')}</div></td>
