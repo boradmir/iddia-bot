@@ -267,6 +267,7 @@ async function pollBadges() {
 let TIERS = null, TIER_Q = '';
 async function rKademe(reload = true) {
   if (reload || !TIERS) { TIERS = await api('/api/tiers'); }
+  if (!TIERS || !TIERS.ok) { $('#page').innerHTML = `<div class="card err">Kademe verisi alınamadı (${esc((TIERS || {}).error || 'sunucu eski sürüm')}). Paneli kapatıp masaüstündeki kısayoldan yeniden aç.</div>`; return; }
   $('#topActions').innerHTML = `<button class="btn" onclick="saveTiers()">Kaydet ve repoya it</button>`;
   const box = (k, title, desc) => `<div class="card"><h3>${title} <small>${desc}</small></h3><div class="row">${(TIERS.tiers[k] || []).map(n => `<span class="chip" style="font-size:13px;padding:5px 10px">${esc(n)} <a href="#" style="color:#C8423A" onclick="removeTier('${k}','${esc(n)}');return false">✕</a></span>`).join('') || '<span class="muted small">boş</span>'}</div>
     <div class="row" style="margin-top:8px"><input type="text" id="add${k}" placeholder="takım adı (Nesine'deki gibi)" style="width:260px" onkeydown="if(event.key==='Enter')addTier('${k}',this.value)"><button class="btn sec sm" onclick="addTier('${k}',$('#add${k}').value)">Ekle</button></div></div>`;
