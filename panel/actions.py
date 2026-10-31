@@ -193,7 +193,9 @@ def run(body):
             return {"ok": False, "error": err} if err else {"ok": True, "msg": "Reklam kaydedildi"}
         # ---- Puan durumu
         if a == "standings_preview":
-            return _job("Puan durumu kartları (önizleme)", lambda log: _standings_preview(log))
+            # ayrı süreç: standings.py güncellenmişse panel yeniden başlatılmadan yeni kod kullanılır
+            jid = jobs.submit("Puan durumu kartları (önizleme)", [sys.executable, "standings.py", "--dry"])
+            alog(a, f"iş {jid}"); return {"ok": True, "msg": "Önizleme üretiliyor (sağdaki İşler kutusu)", "job": jid}
         if a == "standings_skip":
             import standings
             with GIT_LOCK:
