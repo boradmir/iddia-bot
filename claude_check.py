@@ -246,13 +246,16 @@ def qa_texts(bl, home, away):
     return bl
 
 
-def analyze(home, away, league, start_iso, market_probs=None):
-    """Tek maç analizi. market_probs = {'MS': {'1','X','2'}, 'AU25': {...}, 'KG': {...}} (yalnızca 2. aşamada gösterilir)."""
+def analyze(home, away, league, start_iso, market_probs=None, note=None):
+    """Tek maç analizi. market_probs = {'MS': {'1','X','2'}, 'AU25': {...}, 'KG': {...}} (yalnızca 2. aşamada gösterilir).
+    note: panelden gelen yeniden çalıştırma notu (kullanıcının dikkat çektiği nokta); soruya eklenir."""
     client = _client()
     tr = timezone(timedelta(hours=3))
     start = datetime.fromisoformat(start_iso).astimezone(tr)
     q = (f"Maç: {home} - {away} ({league}), başlama: {start:%d.%m.%Y %H:%M} Türkiye saati. Bugün: {datetime.now(tr):%d.%m.%Y}. "
          "Güncel haberleri araştır ve tahminini ver.")
+    if note:
+        q += f" Editör notu (özellikle dikkate al, doğrula ve gerekiyorsa yazıya yansıt): {note.strip()}"
     messages = [{"role": "user", "content": q}]
     usage = Usage()
     blind = _run(client, messages, BLIND_SCHEMA, usage)
@@ -328,6 +331,39 @@ def analyze_and_store(m, market_probs, force=False):
            "league": m["league"], "sport": m.get("sport_key"), "start": m["start"].isoformat(),
            "market": {k: {kk: round(vv, 4) for kk, vv in v.items()} for k, v in (market_probs or {}).items() if not k.startswith("_")},
            "result": None, "forced": bool(force), **res}
+    os.makedirs(OUT_DIR, exist_ok=True)
+    with open(f"{OUT_DIR}/{day}.jsonl", "a", encoding="utf-8") as f:
+        f.write(json.dumps(row, ensure_ascii=False) + "\n")
+    return row
+
+
+def reanalyze_and_store(m, market_probs, note=None):
+    """Panel: aynı maçı editör notuyla YENİDEN analiz eder; eski kayıt 'superseded' işaretlenir, yeni satır eklenir
+    (okuyucular sözlüğü kodla kurduğu için son satır geçerli olur). Günlük sınır uygulanmaz; maliyet kullanıcıya gösterilir."""
+    if not config.ANTHROPIC_API_KEY:
+        raise RuntimeError("ANTHROPIC_API_KEY yok")
+    res = analyze(m["home"], m["away"], m["league"], m["start"].isoformat(), market_probs, note=note)
+    if not res.get("blind"):
+        raise RuntimeError(f"analiz boş döndü; maliyet ${res.get('cost_usd', 0)}")
+    import glob
+    now = datetime.now(timezone.utc)
+    prev_rev = 0
+    for p in glob.glob(f"{OUT_DIR}/*.jsonl"):
+        rows = [json.loads(l) for l in open(p, encoding="utf-8") if l.strip()]
+        changed = False
+        for r in rows:
+            if r.get("code") == m["code"] and not r.get("superseded"):
+                r["superseded"] = now.isoformat(timespec="seconds"); changed = True
+                prev_rev = max(prev_rev, int(r.get("revision") or 0))
+        if changed:
+            with open(p, "w", encoding="utf-8") as f:
+                for r in rows:
+                    f.write(json.dumps(r, ensure_ascii=False) + "\n")
+    day = now.strftime("%Y-%m-%d")
+    row = {"t": now.isoformat(timespec="seconds"), "code": m["code"], "home": m["home"], "away": m["away"],
+           "league": m["league"], "sport": m.get("sport_key"), "start": m["start"].isoformat(),
+           "market": {k: {kk: round(vv, 4) for kk, vv in v.items()} for k, v in (market_probs or {}).items() if not k.startswith("_")},
+           "result": None, "forced": False, "revision": prev_rev + 1, "note": note, **res}
     os.makedirs(OUT_DIR, exist_ok=True)
     with open(f"{OUT_DIR}/{day}.jsonl", "a", encoding="utf-8") as f:
         f.write(json.dumps(row, ensure_ascii=False) + "\n")

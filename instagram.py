@@ -223,6 +223,9 @@ def load_log():
 
 
 def caption_for(m, ai, pm):
+    ov = ((ai or {}).get("caption_override") or "").strip()   # panelden düzenlenmiş açıklama: olduğu gibi kullanılır
+    if ov:
+        return ov[:2190]
     bl = (ai or {}).get("blind") or {}
     start = m["start"].astimezone(TR)
     import social, re

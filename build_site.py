@@ -12,6 +12,14 @@ import match, odds, prob, value, stats, coupons, espn
 
 TR = timezone(timedelta(hours=3))
 RECORD_COUPONS = False   # build_site.py --record-coupons ile açılır (yalnızca kayıtçı iş akışı)
+MINIMAL_PAGE = True      # 31.10.2026: vitrin panele taşındı (python -m panel); Pages yalnız görsel sunucusu, ana sayfa boş
+
+
+def minimal_page():
+    return ("<!doctype html><html lang=\"tr\"><head><meta charset=\"utf-8\"><title>analizveotesi</title>"
+            "<meta name=\"robots\" content=\"noindex, nofollow, noarchive\"></head>"
+            "<body style=\"font-family:system-ui;background:#0B2A1F;color:#F3EFE4;display:flex;align-items:center;justify-content:center;height:100vh;margin:0\">"
+            "<p>analizveotesi · görsel sunucusu</p></body></html>")
 CLAUDE_ACC = "henüz ölçülmedi"   # build() içinde puanlanmış Yapay zekâ tahminlerinden hesaplanır
 ESPN_BY = {}    # build() içinde espn.load_all(); maç kodu → ESPN verisi
 SHADOW = True   # gölge test: para oynanmaz, her şey kaydedilip puanlanır (29.10.2026 karar)
@@ -891,6 +899,8 @@ def build():
     if not social_html:
         social_html = '<div class="empty">Henüz kart üretilmedi; Bekçi saatte bir üretir.</div>'
     cnt = lambda n: f'<span class="cnt">{n}</span>' if n else ""
+    if MINIMAL_PAGE:
+        return minimal_page()
     return f"""<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>İddia Bot</title>
 <meta name="robots" content="noindex, nofollow, noarchive">

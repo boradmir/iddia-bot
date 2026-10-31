@@ -13,7 +13,7 @@ import config  # noqa: F401  (.env)
 from panel import jobs
 
 STATIC = os.path.join(ROOT, "panel", "static")
-IMG_ROOTS = ("docs/social", "data/reels", "assets/brand/v3")
+IMG_ROOTS = ("docs/social", "data/reels", "data/panel", "assets/brand/v3")
 TR = timezone(timedelta(hours=3))
 MIME = {".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "application/javascript; charset=utf-8",
         ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".mp4": "video/mp4", ".mp3": "audio/mpeg", ".json": "application/json"}
@@ -62,6 +62,19 @@ class H(BaseHTTPRequestHandler):
                 return self._send(200, _state())
             if p == "/api/jobs":
                 return self._send(200, jobs.list_jobs())
+            if p == "/api/content":
+                from panel import content
+                q = dict(x.split("=", 1) for x in u.query.split("&") if "=" in x)
+                return self._send(200, content.get(int(q.get("code", "0"))))
+            if p == "/api/reels":
+                from panel import reels_flow
+                return self._send(200, {"ok": True, **reels_flow.status()})
+            if p == "/api/stats":
+                from panel import stats
+                return self._send(200, {"ok": True, **stats.data()})
+            if p == "/api/kupon":
+                from panel import kupon
+                return self._send(200, {"ok": True, **kupon.data()})
             if p.startswith("/api/log/"):
                 from panel import state
                 return self._send(200, state.run_log(p.rsplit("/", 1)[1]))

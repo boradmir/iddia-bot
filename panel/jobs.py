@@ -8,10 +8,20 @@ _lock = threading.Lock()
 
 
 def submit(name, argv, cwd="."):
+    """Alt süreç işi (argv listesi) ya da Python işi (çağrılabilir; log(satır) alır, sonucu döner)."""
     jid = next(_ids)
     with _lock:
-        _jobs[jid] = {"id": jid, "name": name, "argv": argv, "cwd": cwd, "status": "bekliyor", "lines": [], "started": None, "ended": None}
+        _jobs[jid] = {"id": jid, "name": name, "argv": argv, "cwd": cwd, "status": "bekliyor", "lines": [], "started": None, "ended": None, "result": None}
     _q.put(jid)
+    return jid
+
+
+def run_now(name, fn):
+    """Kuyruğa girmeden hemen çalıştır (kısa işler); kayıt yine tutulur."""
+    jid = next(_ids)
+    with _lock:
+        _jobs[jid] = {"id": jid, "name": name, "argv": fn, "cwd": ".", "status": "çalışıyor", "lines": [], "started": time.strftime("%H:%M:%S"), "ended": None, "result": None}
+    _run_callable(_jobs[jid])
     return jid
 
 
@@ -27,11 +37,26 @@ def list_jobs(limit=20):
         return [{k: v for k, v in j.items() if k != "argv"} | {"lines": j["lines"][-40:]} for j in rows]
 
 
+def _run_callable(j):
+    def log(line):
+        with _lock:
+            j["lines"].append(str(line))
+    try:
+        j["result"] = j["argv"](log)
+        j["status"] = "bitti"
+    except Exception as e:
+        log(f"HATA: {e}")
+        j["status"] = "hata"
+    j["ended"] = time.strftime("%H:%M:%S")
+
+
 def _worker():
     while True:
         jid = _q.get()
         j = _jobs[jid]
         j["status"] = "çalışıyor"; j["started"] = time.strftime("%H:%M:%S")
+        if callable(j["argv"]):
+            _run_callable(j); continue
         try:
             env = {**os.environ, "PYTHONIOENCODING": "utf-8", "PYTHONUTF8": "1"}
             p = subprocess.Popen(j["argv"], cwd=j["cwd"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
