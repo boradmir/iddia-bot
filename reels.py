@@ -552,7 +552,19 @@ def timeline(words, parts, total):
         t["absences"] = words[j + 1]["t"] - 0.1 if j + 1 < len(words) and not words[j + 1]["w"].lower().startswith(("beni", "bizi")) else None
     else:
         t["absences"] = None
-    i = find("bizi") or find("beni"); t["risk"] = words[i]["t"] - 0.16 if i is not None else None
+    i = find("bizi") or find("beni")
+    if i is not None:
+        # belirsizlik cümlesi kısaysa ("Bu da bizi düşündürüyor.") sahne bir önceki cümleyle başlar (ekranda ikisi birlikte görünür)
+        s0 = i
+        while s0 > 0 and not words[s0 - 1]["w"].endswith("."): s0 -= 1
+        e0 = i
+        while e0 < len(words) - 1 and not words[e0]["w"].endswith("."): e0 += 1
+        if e0 - s0 + 1 <= 5 and s0 > 0:
+            s0 -= 1
+            while s0 > 0 and not words[s0 - 1]["w"].endswith("."): s0 -= 1
+        t["risk"] = words[s0]["t"] - 0.16
+    else:
+        t["risk"] = None
     # soru: "düşündüren" cümlesi bittikten sonraki kelime
     if i is not None:
         j = i
@@ -621,9 +633,12 @@ def render(m, bl, pm, er, out_mp4, absences=None):
     question = (bl.get("question") or "Siz ne diyorsunuz?")
     if ai_script:
         # metindeki 'bizi düşündür' cümlesi varsa ekranda o görünsün (sesle aynı)
-        for p in parts:
+        for k, p in enumerate(parts):
             if "düşündür" in p.lower() and len(p.split()) <= 22:
-                risk_short = p.rstrip(".") ; break
+                risk_short = p.rstrip(".")
+                if len(p.split()) <= 5 and k > 0:   # kısa bağlaç cümlesi ("Bu da bizi düşündürüyor"): önceki cümleyle birlikte
+                    risk_short = parts[k - 1].rstrip(".") + ". " + risk_short
+                break
     fsub = font("semi", 56)
     # sahne sırası
     scene_hook.m = m
