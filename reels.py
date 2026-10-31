@@ -513,7 +513,7 @@ def scene_question(img, d, t, question, th):
     cta_y = max(820, y_end + 40)
     d.text((M_L, cta_y), "Yoruma yazın · Maçtan sonra karşılaştırırız", font=font("semi", 36), fill=PALE)
     logo_y = cta_y + 180
-    if logo_y + 290 > 1540:
+    if logo_y + 352 > 1546:   # logo (290) + kullanıcı adı (318+34) not satırına (1546) değmesin
         note_issue("soru sahnesi alt blok dipnota taşıyor")
     # marka: kit dikey logosu (göz + ANALİZ VE ÖTESİ), belirerek gelir, hafif nefes
     k_in = ease_out_cubic(clamp(t / 0.35))
@@ -523,7 +523,7 @@ def scene_question(img, d, t, question, th):
         lk = lk.copy(); lk.putalpha(lk.split()[3].point(lambda p: int(p * k_in)))
     img.paste(lk, ((W - lk.width) // 2, logo_y + (290 - lk.height) // 2), lk)
     d.text((W / 2, logo_y + 318), HANDLE, font=font("semi", 32), fill=tuple(int(c * k_in) for c in PALE), anchor="ma")
-    d.text((M_L, 1580), DISCLAIMER, font=font("body", 26), fill=(170, 190, 180))
+    d.text((M_L, 1546), DISCLAIMER, font=font("body", 26), fill=(170, 190, 180))   # ilerleme çubuğu H-320=1600; not onun üstünde biter
 
 
 # ----------------------------------------------------------------- zaman çizelgesi
