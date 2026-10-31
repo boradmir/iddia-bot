@@ -128,13 +128,15 @@ function rBugun() {
 async function rIcerik() {
   const T = S && S.today; const ms = (T && T.matches || []).filter(m => m.analysis);
   if (!CONTENT_CODE && ms.length) CONTENT_CODE = ms[0].code;
-  $('#topActions').innerHTML = `Maç: <select onchange="CONTENT_CODE=+this.value;rIcerik()">${ms.map(m => `<option value="${m.code}" ${m.code == CONTENT_CODE ? 'selected' : ''}>${esc(m.home)} – ${esc(m.away)} ${esc(m.kickoff)}</option>`).join('')}</select>`;
-  if (!CONTENT_CODE) { $('#page').innerHTML = '<div class="card muted">Bugün analizli maç yok.</div>'; return; }
-  $('#page').innerHTML = loading();
+  $('#topActions').innerHTML = '';
+  const list = `<div class="card"><div class="row">${ms.map(m => `<button class="btn ${m.code == CONTENT_CODE ? '' : 'sec'}" onclick="CONTENT_CODE=${m.code};rIcerik()">${esc(m.home)} – ${esc(m.away)} <span style="opacity:.7;font-weight:400">${esc(m.kickoff)}${m.post.state === 'yayında' ? ' · yayında' : ''}</span></button>`).join('')}
+    ${ms.length ? '' : '<span class="muted">Bugün analizli maç yok.</span>'}</div></div>`;
+  if (!CONTENT_CODE) { $('#page').innerHTML = list; return; }
+  $('#page').innerHTML = list + loading();
   const d = await api('/api/content?code=' + CONTENT_CODE); CONTENT = d;
-  if (!d.ok) { $('#page').innerHTML = `<div class="card err">${esc(d.error)}</div>`; return; }
+  if (!d.ok) { $('#page').innerHTML = list + `<div class="card err">${esc(d.error)}</div>`; return; }
   const dis = d.posted ? 'disabled' : '';
-  $('#page').innerHTML = `
+  $('#page').innerHTML = list + `
     <div class="card"><h3>${esc(d.home)} – ${esc(d.away)} <small>${esc(d.day)} · sürüm ${d.revision}${d.cost_usd ? ` · maliyet $${d.cost_usd}` : ''}${d.edited_at ? ' · düzenlendi' : ''}</small></h3>
       ${d.posted ? '<div class="err">Bu gönderi yayınlandı; Instagram metin düzenlemeyi kabul etmez. Yalnız görüntüleme.</div>' : ''}
       ${d.note ? `<div class="small muted">Son yeniden çalıştırma notu: ${esc(d.note)}</div>` : ''}
