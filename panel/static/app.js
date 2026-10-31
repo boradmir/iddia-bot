@@ -9,7 +9,7 @@ const HELP = {
   reels: '<b>Reels.</b> Maçı seç, <b>Seç ve üret</b>: metin, ses, video sırayla üretilir; dinle, izle; beğenmediysen yeniden üret. <b>Yayına al</b>: video GitHub\'a yüklenir, bekçi verdiğin saatte yayınlar (bilgisayar kapalı olsa da). Sesler: Ahu ve erkek ses dönüşümlü; erkek ses seçilmediyse adayları dinleyip seç.',
   veri: '<b>Instagram verileri.</b> Bekçi her sabah ölçer. <b>Erişim</b>: gönderiyi gören tekil hesap; <b>etkileşim</b>: (beğeni+yorum+kaydet+paylaş)/erişim. Reklam bastığın gönderiyi kaydet, rapor onu organik tablolardan ayırır. Ayrıntılar aşağıdaki açılır bölümlerde.',
   gelen: '<b>Gelen kutusu.</b> Yorumlar, mesajlar, etiketlenmeler. "Yeni" son <b>Gördüm</b>\'den sonra gelenlerdir. Buradan yanıt verebilirsin, hesap adıyla gider.',
-  kupon: '<b>Kupon ve uyarılar.</b> Eski vitrin sayfasının içeriği: kilitlenen kuponların puanı (1 birim oynanmış gibi), gözcü fırsat uyarıları ve kapanış farkı (CLV: artıysa yöntem çalışıyor), skorlar.',
+  kupon: '<b>Bot kuponları ve isabet.</b> Üstte tahmin isabeti: pazar başına en olası seçimimizin (yapay zekâ) ve piyasa favorisinin gerçek sonuçla eşleşme oranı; "seçim bazında" açılınca 2,5 üst gibi tek tek seçimlerin kaç maçta tuttuğu. Maç maç tablo her analizli maçın sonucunu gösterir. Altta botun kilitlediği kuponlar (1 birim oynanmış gibi puanlanır), gözcü fırsat uyarıları (CLV: kapanış oranına göre fark, artıysa yöntem çalışıyor) ve skorlar.',
   gunluk: '<b>Günlük.</b> Ne olup bittiğinin tek listesi: yayınlar, analizler (maliyetiyle), panel eylemleri, reels, GitHub çalışmaları ve loglarındaki hata satırları. Kırmızı hata, sarı uyarı. GitHub logları 5 dakikada bir taranır.',
   sistem: '<b>Sistem.</b> Bekçi (GitHub\'da 20 dakikada bir: kayıt, analiz, kartlar, karusel, insights, reels, story yedeği), gözcü (maç günü oran takibi ve story\'ler), skorlar. Çalışmıyorsa düğmeyle başlat; <b>log</b> son 200 satır. <b>Yeniden it</b>: yerel değişiklikler GitHub\'a gitmediyse tekrar dener.'
 };
@@ -372,20 +372,37 @@ async function loadMyCoupons() {
     <div class="row" style="margin-top:6px"><button class="btn warn sm" onclick="if(confirm('Silinsin mi?'))act({action:'coupon_delete',id:${c.id}},loadMyCoupons)">Sil</button></div></details>`).join('') || '<div class="muted small">Henüz kupon yok.</div>';
 }
 
-// ---------- Kupon
+// ---------- Kupon (bot kuponları, tahmin isabeti, uyarılar)
+function bar(h, t) { const p = t ? Math.round(100 * h / t) : 0; return `<div style="display:flex;align-items:center;gap:8px"><div style="flex:1;height:8px;background:#EEF1F0;border-radius:4px;overflow:hidden"><div style="width:${p}%;height:100%;background:${p >= 60 ? '#0B6B45' : p >= 40 ? '#D9A400' : '#C8423A'}"></div></div><b style="min-width:52px;text-align:right">${h}/${t}</b><span class="muted small" style="min-width:36px">${t ? '%' + p : ''}</span></div>`; }
 async function rKupon() {
   const d = await api('/api/kupon');
   if (d.loading) { $('#page').innerHTML = loading(); setTimeout(() => PAGE === 'kupon' && rKupon(), 2000); return; }
-  const c = d.coupons, al = d.alerts;
+  const c = d.coupons, al = d.alerts, ac = d.accuracy || { by_market: [], by_pick: [], matches: [] };
+  $('#topActions').innerHTML = `<button class="btn sec" onclick="api('/api/kupon?refresh=1').then(rKupon)">Yenile</button>`;
+  const srcs = ['ai', 'market', 'coupon', 'alert'];
+  const srcName = { ai: 'Yapay zekâ favorisi', market: 'Piyasa favorisi', coupon: 'Bot kuponu bacakları', alert: 'Gözcü uyarıları' };
+  const accCards = srcs.map(s => { const rows = ac.by_market.filter(r => r.src === s); const picks = ac.by_pick.filter(r => r.src === s); if (!rows.length && !picks.length) return ''; const H = rows.reduce((x, r) => x + r.hit, 0), T = rows.reduce((x, r) => x + r.total, 0);
+    return `<div class="card"><h3>${srcName[s]} <small>${T ? `toplam ${H}/${T} (%${Math.round(100 * H / T)})` : ''}</small></h3>
+      ${rows.map(r => `<div style="margin:6px 0"><div class="small">${esc(r.market)}</div>${bar(r.hit, r.total)}</div>`).join('')}
+      ${picks.length ? `<details style="margin-top:6px"><summary class="small">Seçim bazında</summary><table>${picks.map(r => `<tr><td>${esc(r.market)} · <b>${esc(r.pick)}</b></td><td style="width:55%">${bar(r.hit, r.total)}</td></tr>`).join('')}</table></details>` : ''}</div>`; }).join('');
+  const mrows = (ac.matches || []).map(m => `<tr><td>${esc(m.home)} – ${esc(m.away)}<div class="small muted">${esc(m.day)} · skor ${esc(m.score || '–')}</div></td>
+    ${['MS', 'AU25', 'KG'].map(k => { const x = m.markets[k]; if (!x) return '<td class="muted">–</td>'; return `<td><div>${x.ai ? `<span class="src-ai">biz: ${esc(x.ai)}</span> ${x.ai_hit ? '✓' : '✗'}` : ''}</div><div class="small">${x.market ? `<span class="src-pin">piyasa: ${esc(x.market)}</span> ${x.market_hit ? '✓' : '✗'}` : ''}</div><div class="small muted">sonuç: ${esc(x.actual)}</div></td>`; }).join('')}</tr>`).join('');
   const summ = c.summary.map(s => `<div class="kpi"><b>${s.won}/${s.total}</b><span>${esc(s.kind)} tuttu · 1 birimle net ${s.pnl > 0 ? '+' : ''}${s.pnl}</span></div>`).join('') || '<span class="muted">Henüz sonuçlanmış kupon yok.</span>';
   const items = c.items.map(x => `<details><summary>#${x.no} · ${esc(x.kind)} · ${x.n} maç · oran ${x.odds} · ihtimal %${x.prob} ${x.result === 'won' ? chip('tuttu', 'ok') : x.result === 'lost' ? chip('tutmadı', 'bad') : chip(`bekliyor ${x.legs_hit}/${x.n}`)} <span class="muted small">${esc(x.t)}</span></summary>
     <table>${x.legs.map(l => `<tr><td>${esc(l.home)} – ${esc(l.away)}<div class="small muted">${esc(l.start)}${l.score ? ' · skor ' + esc(l.score) : ''}</div></td><td>${esc(l.pick)}</td><td class="num">${l.odds}</td><td>${l.result === 'won' ? '✓' : l.result === 'lost' ? '✗' : '…'}</td></tr>`).join('')}</table></details>`).join('');
   const alst = al.stats ? `<div class="kpi"><b>${al.stats.settled}</b><span>sonuçlanmış uyarı · net ${al.stats.pnl} birim (ROI ${al.stats.roi}%)</span></div>${al.stats.clv_avg != null ? `<div class="kpi"><b>${al.stats.clv_avg > 0 ? '+' : ''}${al.stats.clv_avg}%</b><span>ortalama kapanış farkı (CLV)</span></div>` : ''}` : '<span class="muted">Henüz uyarı yok (gözcü bulunca yazar).</span>';
   const alrows = al.items.map(a => `<tr><td>${esc(a.t)}</td><td>${esc(a.home)} – ${esc(a.away)}</td><td>${esc(a.pick)}</td><td class="num">${a.nesine}</td><td class="num">${a.fair}</td><td class="num">+${a.ev_pct}%</td><td>${a.result === 'won' ? chip('tuttu', 'ok') : a.result === 'lost' ? chip('tutmadı', 'bad') : '…'}${a.clv_pct != null ? ` <span class="muted small">CLV ${a.clv_pct > 0 ? '+' : ''}${a.clv_pct}%</span>` : ''}</td></tr>`).join('');
-  $('#page').innerHTML = `<div class="card"><h3>Kuponlar <small>${c.total} kilitli, ${c.settled} sonuçlanmış</small></h3><div class="row">${summ}</div></div>
-    <div class="card">${items || '<span class="muted">kupon yok</span>'}</div>
-    <div class="card"><h3>Gözcü uyarıları <small>${al.total}</small></h3><div class="row">${alst}</div>${alrows ? `<table style="margin-top:8px"><tr><th>Zaman</th><th>Maç</th><th>Seçim</th><th class="num">Nesine</th><th class="num">Adil</th><th class="num">Değer</th><th>Sonuç</th></tr>${alrows}</table>` : ''}</div>
-    <div class="card"><h3>Skorlar <small>son 2 gün</small></h3><table>${d.results.map(r => `<tr><td>${esc(r.day)}</td><td>${esc(r.home)} – ${esc(r.away)}</td><td class="num">${esc(r.score)}</td></tr>`).join('') || '<tr><td class="muted">yok</td></tr>'}</table></div>`;
+  $('#page').innerHTML = `
+    <div class="card"><div class="row"><div class="kpi"><b>${ac.n_settled || 0}</b><span>sonuçlanmış analiz</span></div>
+      <div class="kpi"><b>${ac.brier && ac.brier.ai != null ? ac.brier.ai : '–'}</b><span>yapay zekâ isabet puanı (Brier, küçük iyi)</span></div>
+      <div class="kpi"><b>${ac.brier && ac.brier.market != null ? ac.brier.market : '–'}</b><span>piyasa isabet puanı</span></div>
+      <div class="kpi"><b>${c.settled}</b><span>sonuçlanmış bot kuponu · ${c.total} kilitli</span></div></div>
+      <div class="small muted">İsabet: pazar başına en olası seçimimiz gerçek sonuçla eşleşti mi. Az maçla oynaktır; 50 maçtan önce yargı verme.</div></div>
+    <div class="grid2">${accCards || '<div class="card muted">Henüz sonuçlanmış tahmin yok.</div>'}</div>
+    <div class="card"><h3>Maç maç <small>biz · piyasa · sonuç</small></h3><table><tr><th>Maç</th><th>Maç sonucu</th><th>2,5 gol</th><th>Karşılıklı gol</th></tr>${mrows || '<tr><td colspan="4" class="muted">henüz yok</td></tr>'}</table></div>
+    <div class="card"><details><summary>Bot kuponları <span class="muted small">${c.total} kilitli, ${c.settled} sonuçlanmış</span></summary><div class="row" style="margin:8px 0">${summ}</div>${items || '<span class="muted">kupon yok</span>'}</details></div>
+    <div class="card"><details><summary>Gözcü uyarıları <span class="muted small">${al.total}</span></summary><div class="row" style="margin:8px 0">${alst}</div>${alrows ? `<table><tr><th>Zaman</th><th>Maç</th><th>Seçim</th><th class="num">Nesine</th><th class="num">Adil</th><th class="num">Değer</th><th>Sonuç</th></tr>${alrows}</table>` : ''}</details></div>
+    <div class="card"><details><summary>Skorlar <span class="muted small">son 2 gün</span></summary><table>${d.results.map(r => `<tr><td>${esc(r.day)}</td><td>${esc(r.home)} – ${esc(r.away)}</td><td class="num">${esc(r.score)}</td></tr>`).join('') || '<tr><td class="muted">yok</td></tr>'}</table></details></div>`;
 }
 
 // ---------- Günlük

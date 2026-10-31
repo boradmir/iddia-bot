@@ -67,5 +67,75 @@ def results(days=2):
     return out[::-1]
 
 
+def _pick_from_probs(mk, probs):
+    if not probs:
+        return None
+    if mk == "MS":
+        return max(probs, key=probs.get)
+    if mk == "AU25":
+        return "Üst" if probs.get("Üst", 0) >= 0.5 else "Alt"
+    if mk == "KG":
+        return "Var" if probs.get("Var", 0) >= 0.5 else "Yok"
+    return None
+
+
+def accuracy():
+    """Tahmin isabeti: yapay zekâ analizlerinin pazar başına favori seçimi (ve piyasanın favorisi) gerçek sonuçla kıyaslanır;
+    bot kuponu bacakları ve gözcü uyarıları seçim bazında sayılır. 'Tuttu/Toplam' biçiminde."""
+    rows = _read("records/claude/*.jsonl")
+    settled = [r for r in rows if isinstance(r.get("result"), dict) and r.get("blind") and not r.get("superseded")]
+    per_market = {}      # (kaynak, pazar) → [tuttu, toplam]
+    per_pick = {}        # (kaynak, pazar, seçim) → [tuttu, toplam]
+    matches = []
+    brier = {"ai": [], "market": []}
+    for r in settled:
+        bl, res, mk = r["blind"], r["result"], r.get("market") or {}
+        ai_probs = {"MS": {"1": bl.get("p_home"), "X": bl.get("p_draw"), "2": bl.get("p_away")},
+                    "AU25": {"Üst": bl.get("p_over25"), "Alt": 1 - bl["p_over25"]} if bl.get("p_over25") is not None else None,
+                    "KG": {"Var": bl.get("p_btts"), "Yok": 1 - bl["p_btts"]} if bl.get("p_btts") is not None else None}
+        row = {"home": r["home"], "away": r["away"], "day": (r.get("start") or "")[:10], "score": res.get("score"), "markets": {}}
+        for m in ("MS", "AU25", "KG"):
+            actual = res.get(m)
+            if not actual:
+                continue
+            ap = _pick_from_probs(m, ai_probs.get(m)); pp = _pick_from_probs(m, mk.get(m))
+            cell = {"actual": PICK_SHORT.get((m, actual), actual)}
+            if ap:
+                hit = ap == actual
+                per_market.setdefault(("ai", m), [0, 0]); per_market[("ai", m)][0] += hit; per_market[("ai", m)][1] += 1
+                per_pick.setdefault(("ai", m, ap), [0, 0]); per_pick[("ai", m, ap)][0] += hit; per_pick[("ai", m, ap)][1] += 1
+                cell["ai"] = PICK_SHORT.get((m, ap), ap); cell["ai_hit"] = hit
+            if pp:
+                hit = pp == actual
+                per_market.setdefault(("market", m), [0, 0]); per_market[("market", m)][0] += hit; per_market[("market", m)][1] += 1
+                cell["market"] = PICK_SHORT.get((m, pp), pp); cell["market_hit"] = hit
+            row["markets"][m] = cell
+        for k, key in (("ai", "brier_claude"), ("market", "brier_market")):
+            b = res.get(key) or {}
+            if b.get("MS") is not None:
+                brier[k].append(b["MS"])
+        matches.append(row)
+    # bot kuponu bacakları ve uyarılar (seçim bazında)
+    for c in _read("records/coupons/*.jsonl"):
+        for l in c.get("legs", []):
+            if l.get("result") in ("won", "lost"):
+                k = ("coupon", l["market"], l["pick"]); per_pick.setdefault(k, [0, 0]); per_pick[k][0] += l["result"] == "won"; per_pick[k][1] += 1
+                km = ("coupon", l["market"]); per_market.setdefault(km, [0, 0]); per_market[km][0] += l["result"] == "won"; per_market[km][1] += 1
+    for a in _read("records/alerts/*.jsonl"):
+        if a.get("result") in ("won", "lost"):
+            k = ("alert", a.get("market"), a.get("pick")); per_pick.setdefault(k, [0, 0]); per_pick[k][0] += a["result"] == "won"; per_pick[k][1] += 1
+    MK = {"MS": "Maç sonucu", "AU25": "2,5 gol", "KG": "Karşılıklı gol"}
+    SRC = {"ai": "Yapay zekâ favorisi", "market": "Piyasa favorisi", "coupon": "Bot kuponu bacağı", "alert": "Gözcü uyarısı"}
+    def rowsof(d, keyf):
+        out = []
+        for k, (h, t) in sorted(d.items(), key=lambda kv: (kv[0][0], kv[0][1], str(kv[0][2:]))):
+            out.append({**keyf(k), "hit": h, "total": t, "pct": round(100 * h / t) if t else None})
+        return out
+    return {"by_market": rowsof(per_market, lambda k: {"source": SRC.get(k[0], k[0]), "src": k[0], "market": MK.get(k[1], k[1])}),
+            "by_pick": rowsof(per_pick, lambda k: {"source": SRC.get(k[0], k[0]), "src": k[0], "market": MK.get(k[1], k[1]), "pick": PICK_SHORT.get((k[1], k[2]), k[2])}),
+            "matches": sorted(matches, key=lambda r: r["day"], reverse=True), "n_settled": len(settled),
+            "brier": {k: round(sum(v) / len(v), 3) if v else None for k, v in brier.items()}}
+
+
 def data():
-    return {"coupons": coupons(), "alerts": alerts(), "results": results()}
+    return {"coupons": coupons(), "alerts": alerts(), "results": results(), "accuracy": accuracy()}
