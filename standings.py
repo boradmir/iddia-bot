@@ -96,8 +96,8 @@ def cover_card(week, names, path, monday_note):
     for n in names:
         d.ellipse((60, y + 14, 76, y + 30), fill=social.YELLOW)
         social.text(d, (96, y), n, social.font("semi", 40), social.WHITE); y += 58
-    social.text(d, (60, H - 150), "Kaydırın → beş lig, beş tablo. " + monday_note, social.font("body", 26), social.PALE)
-    social.footer(d)
+    social.text(d, (60, H - 130), "Kaydırın → beş lig, beş tablo. " + monday_note, social.font("body", 26), social.PALE)
+    light_footer(d)
     social.save(img, path)
 
 
@@ -111,7 +111,7 @@ def league_card(name, rows, prev_rows, path, monday_note):
     social.text(d, (W - 60, 160), datetime.now(TR).strftime("%d.%m.%Y"), social.font("semi", 26), social.PALE, anchor="ra")
     prev_rank = {r["team"]: r["rank"] for r in (prev_rows or [])}
     n = len(rows)
-    top, bottom = 215, H - 150
+    top, bottom = 215, H - 140
     row_h = min(56, (bottom - top - 40) // max(n, 1))
     f_h = social.font("semi", 22); f_r = social.font("semi", 30); f_t = social.font("semi", 31); f_n = social.font("body", 28); f_p = social.font("display", 38)
     cols = {"O": 640, "G": 700, "B": 760, "M": 820, "Av": 900, "P": 1000}
@@ -141,7 +141,7 @@ def league_card(name, rows, prev_rows, path, monday_note):
         y += row_h
     # efsane (renk çizgileri ne anlama geliyor); sığmazsa ikinci satıra geçer
     fl = social.font("body", 21)
-    ly = H - 112; lx = 60
+    ly = H - 108; lx = 60
     for label, col in list(legend.items())[:6]:
         w = int(fl.getlength(label)) + 44
         if lx + w > W - 60:
@@ -150,7 +150,7 @@ def league_card(name, rows, prev_rows, path, monday_note):
         social.text(d, (lx + 18, ly), label, fl, social.PALE); lx += w
     if monday_note:
         social.text(d, (W - 60, 175), monday_note, fl, social.MUTED, anchor="ra")
-    social.footer(d)
+    light_footer(d)
     social.save(img, path)
 
 
@@ -160,6 +160,14 @@ def matchday(rows):
         return max(int(r.get("gp") or 0) for r in rows)
     except ValueError:
         return None
+
+
+def light_footer(d):
+    """Puan durumu kartlarında 18+ dipnotu yok (bahis içeriği yok); yalnız ince bir ritim satırı."""
+    f = social.font("body", 22)
+    d.line((60, H - 70, W - 60, H - 70), fill=(60, 95, 78), width=2)
+    social.text(d, (60, H - 54), "Her pazartesi 12:00 güncel tablo", f, (170, 190, 180))
+    social.text(d, (W - 60, H - 54), social.HANDLE, f, (170, 190, 180), anchor="ra")
 
 
 def monday_note_for(now=None):
