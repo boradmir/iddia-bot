@@ -21,6 +21,54 @@ REC = "records/standings"
 W, H = social.W, social.H
 TEAM_TR = {"Bayern Munich": "Bayern Münih", "Internazionale": "Inter", "Borussia Dortmund": "Dortmund", "Manchester City": "Manchester City",
            "Atlético Madrid": "Atlético Madrid", "Fenerbahce": "Fenerbahçe", "Besiktas": "Beşiktaş", "Basaksehir": "Başakşehir"}
+# Kart teması (STANDINGS_STYLE ortam değişkeni ya da --style): green (analiz kartlarıyla aynı), cream (açık zemin), navy (lacivert)
+STYLES = {
+    "green": {"light": False, "bg": None, "title": social.CREAM, "accent": social.YELLOW, "text": social.WHITE, "muted": social.PALE, "head": social.MUTED,
+              "pts": social.YELLOW, "line": (60, 95, 78), "foot": (170, 190, 180), "motif": "pitch"},
+    "cream": {"light": True, "bg": (247, 243, 233), "title": (11, 42, 31), "accent": (176, 118, 0), "text": (20, 38, 31), "muted": (110, 122, 115), "head": (125, 138, 131),
+              "pts": (11, 42, 31), "line": (220, 214, 200), "foot": (125, 138, 131), "motif": None},
+    "navy": {"light": False, "bg": ((8, 20, 54), (16, 36, 92)), "title": social.CREAM, "accent": social.YELLOW, "text": social.WHITE, "muted": (190, 200, 225), "head": (150, 165, 200),
+             "pts": social.YELLOW, "line": (60, 80, 130), "foot": (170, 185, 215), "motif": "stars"},
+}
+STYLE = os.environ.get("STANDINGS_STYLE", "green")
+
+
+def pal():
+    return STYLES.get(STYLE, STYLES["green"])
+
+
+def canvas():
+    p = pal()
+    if p["light"]:
+        return Image.new("RGB", (W, H), p["bg"])
+    if p["bg"] is None:
+        return social.pitch_background(social.THEMES["default"])
+    th = {"bg": p["bg"][0], "bg2": p["bg"][1], "motif": p["motif"]}
+    return social.pitch_background(th)
+
+
+def dark_mark(h):
+    """Göz işaretinin açık zemin sürümü: kemik rengi pikseller koyu yeşile boyanır, sarı göz bebeği kalır."""
+    img = logo.mark_image(h).copy(); px = img.load()
+    for y in range(img.height):
+        for x in range(img.width):
+            r, g, b, a = px[x, y]
+            if a and not (r > 200 and g > 170 and b < 140):
+                px[x, y] = (11, 42, 31, a)
+    return img
+
+
+def topbar(d, img, label):
+    p = pal()
+    if not p["light"]:
+        social.topbar(d, label); return
+    social.text(d, (60, 50), social.tr_upper(label), social.font("displaysemi", 30), p["accent"])
+    social.text(d, (W - 60, 50), social.HANDLE, social.font("semi", 26), p["text"], anchor="ra")
+    hw = social.font("semi", 26).getlength(social.HANDLE)
+    mk = dark_mark(54)
+    img.paste(mk, (int(W - 60 - hw - 14 - mk.width), 62 - mk.height // 2), mk)
+
+
 NOTE_TR = {"Champions League": "Şampiyonlar Ligi", "Europa League": "Avrupa Ligi", "Conference League": "Konferans Ligi",
            "Relegation": "Küme düşme", "Relegation Playoff": "Küme düşme play-off", "Promotion": "Yükselme",
            "Europa Conference League": "Konferans Ligi", "Champions League qualifying": "ŞL eleme", "Europa League qualifying": "AL eleme",
@@ -85,30 +133,30 @@ def _hex(c, default):
 
 
 def cover_card(week, names, path, monday_note):
-    th = social.THEMES["default"]
-    img = social.pitch_background(th); d = ImageDraw.Draw(img)
-    social.topbar(d, "Haftalık puan durumu")
+    p = pal()
+    img = canvas(); d = ImageDraw.Draw(img)
+    topbar(d, img, "Haftalık puan durumu")
     now = datetime.now(TR)
-    social.text(d, (60, 300), "PUAN", social.font("display", 230), social.CREAM)
-    social.text(d, (60, 505), "DURUMU", social.font("display", 230), social.YELLOW)
-    social.text(d, (60, 770), f"{social.tr_date(now)} itibarıyla", social.font("semi", 34), social.PALE)
+    social.text(d, (60, 300), "PUAN", social.font("display", 230), p["title"])
+    social.text(d, (60, 505), "DURUMU", social.font("display", 230), p["accent"] if not p["light"] else social.YELLOW)
+    social.text(d, (60, 770), f"{social.tr_date(now)} itibarıyla", social.font("semi", 34), p["muted"])
     y = 850
     for n in names:
         d.ellipse((60, y + 14, 76, y + 30), fill=social.YELLOW)
-        social.text(d, (96, y), n, social.font("semi", 40), social.WHITE); y += 58
-    social.text(d, (60, H - 130), "Kaydırın → beş lig, beş tablo. " + monday_note, social.font("body", 26), social.PALE)
+        social.text(d, (96, y), n, social.font("semi", 40), p["text"]); y += 58
+    social.text(d, (60, H - 130), "Kaydırın → beş lig, beş tablo. " + monday_note, social.font("body", 26), p["muted"])
     light_footer(d)
     social.save(img, path)
 
 
 def league_card(name, rows, prev_rows, path, monday_note):
-    th = social.THEMES["default"]
-    img = social.pitch_background(th); d = ImageDraw.Draw(img)
-    social.topbar(d, "Puan durumu")
-    social.text(d, (60, 100), name, social.font("display", 84), social.CREAM)
+    p = pal()
+    img = canvas(); d = ImageDraw.Draw(img)
+    topbar(d, img, "Puan durumu")
+    social.text(d, (60, 100), name, social.font("display", 84), p["title"])
     md = matchday(rows)
-    social.text(d, (W - 60, 112), f"{md}. hafta sonrası" if md else "", social.font("displaysemi", 40), social.YELLOW, anchor="ra")
-    social.text(d, (W - 60, 160), datetime.now(TR).strftime("%d.%m.%Y"), social.font("semi", 26), social.PALE, anchor="ra")
+    social.text(d, (W - 60, 112), f"{md}. hafta sonrası" if md else "", social.font("displaysemi", 40), p["accent"], anchor="ra")
+    social.text(d, (W - 60, 160), datetime.now(TR).strftime("%d.%m.%Y"), social.font("semi", 26), p["muted"], anchor="ra")
     prev_rank = {r["team"]: r["rank"] for r in (prev_rows or [])}
     n = len(rows)
     top, bottom = 215, H - 140
@@ -116,7 +164,7 @@ def league_card(name, rows, prev_rows, path, monday_note):
     f_h = social.font("semi", 22); f_r = social.font("semi", 30); f_t = social.font("semi", 31); f_n = social.font("body", 28); f_p = social.font("display", 38)
     cols = {"O": 640, "G": 700, "B": 760, "M": 820, "Av": 900, "P": 1000}
     for k, x in cols.items():
-        social.text(d, (x, top), k, f_h, social.MUTED, anchor="ma")
+        social.text(d, (x, top), k, f_h, p["head"], anchor="ma")
     y = top + 36
     legend = {}
     for r in rows:
@@ -124,7 +172,7 @@ def league_card(name, rows, prev_rows, path, monday_note):
             col = _hex(r.get("note_color"), social.SIGNAL)
             d.rectangle((44, y + 6, 50, y + row_h - 6), fill=col)
             legend.setdefault(NOTE_TR.get(r["note"], r["note"]), col)
-        social.text(d, (92, y + row_h // 2), str(r["rank"]), f_r, social.YELLOW if r["rank"] <= 4 else social.PALE, anchor="rm")
+        social.text(d, (92, y + row_h // 2), str(r["rank"]), f_r, p["accent"] if r["rank"] <= 4 else p["muted"], anchor="rm")
         crest = espn.team_logo(r.get("logo"), row_h - 14)
         if crest:
             img.paste(crest, (112, y + 7), crest)
@@ -132,12 +180,12 @@ def league_card(name, rows, prev_rows, path, monday_note):
         arrow = ""
         if pr and pr != r["rank"]:
             arrow = "▲" if r["rank"] < pr else "▼"
-        social.text(d, (168, y + row_h // 2), social.fit(SHORT_TR.get(r["short"], r["short"]), f_t, 400), f_t, social.WHITE, anchor="lm")
+        social.text(d, (168, y + row_h // 2), social.fit(SHORT_TR.get(r["short"], r["short"]), f_t, 400), f_t, p["text"], anchor="lm")
         if arrow:
             social.text(d, (580, y + row_h // 2), arrow, social.font("semi", 22), social.SIGNAL if arrow == "▲" else social.RED, anchor="mm")
         for k, key in (("O", "gp"), ("G", "w"), ("B", "d"), ("M", "l"), ("Av", "gd")):
-            social.text(d, (cols[k], y + row_h // 2), str(r.get(key, "")), f_n, social.PALE, anchor="mm")
-        social.text(d, (cols["P"], y + row_h // 2), str(r.get("pts", "")), f_p, social.YELLOW, anchor="mm")
+            social.text(d, (cols[k], y + row_h // 2), str(r.get(key, "")), f_n, p["muted"], anchor="mm")
+        social.text(d, (cols["P"], y + row_h // 2), str(r.get("pts", "")), f_p, p["pts"], anchor="mm")
         y += row_h
     # efsane (renk çizgileri ne anlama geliyor); sığmazsa ikinci satıra geçer
     fl = social.font("body", 21)
@@ -147,9 +195,9 @@ def league_card(name, rows, prev_rows, path, monday_note):
         if lx + w > W - 60:
             lx = 60; ly -= 28
         d.rectangle((lx, ly + 4, lx + 10, ly + 22), fill=col)
-        social.text(d, (lx + 18, ly), label, fl, social.PALE); lx += w
+        social.text(d, (lx + 18, ly), label, fl, p["muted"]); lx += w
     if monday_note:
-        social.text(d, (W - 60, 175), monday_note, fl, social.MUTED, anchor="ra")
+        social.text(d, (W - 60, 175), monday_note, fl, p["head"], anchor="ra")
     light_footer(d)
     social.save(img, path)
 
@@ -164,10 +212,10 @@ def matchday(rows):
 
 def light_footer(d):
     """Puan durumu kartlarında 18+ dipnotu yok (bahis içeriği yok); yalnız ince bir ritim satırı."""
-    f = social.font("body", 22)
-    d.line((60, H - 70, W - 60, H - 70), fill=(60, 95, 78), width=2)
-    social.text(d, (60, H - 54), "Her pazartesi 12:00 güncel tablo", f, (170, 190, 180))
-    social.text(d, (W - 60, H - 54), social.HANDLE, f, (170, 190, 180), anchor="ra")
+    p = pal(); f = social.font("body", 22)
+    d.line((60, H - 70, W - 60, H - 70), fill=p["line"], width=2)
+    social.text(d, (60, H - 54), "Her pazartesi 12:00 güncel tablo", f, p["foot"])
+    social.text(d, (W - 60, H - 54), social.HANDLE, f, p["foot"], anchor="ra")
 
 
 def monday_note_for(now=None):
@@ -248,6 +296,8 @@ def post(week=None, dry=False):
 
 
 if __name__ == "__main__":
+    if "--style" in sys.argv:
+        STYLE = sys.argv[sys.argv.index("--style") + 1]
     if "--post" in sys.argv:
         post(dry="--dry" in sys.argv)
     else:
