@@ -32,7 +32,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Bağımlılıklar
-        run: pip install -q anthropic
+        run: pip install -q pillow anthropic
       - name: Gözcü
         env:
           ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
