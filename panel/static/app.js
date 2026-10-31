@@ -13,7 +13,8 @@ const HELP = {
   gunluk: '<b>Günlük.</b> Ne olup bittiğinin tek listesi: yayınlar, analizler (maliyetiyle), panel eylemleri, reels, GitHub çalışmaları ve loglarındaki hata satırları. Kırmızı hata, sarı uyarı. GitHub logları 5 dakikada bir taranır.',
   sistem: '<b>Sistem.</b> Bekçi (GitHub\'da 20 dakikada bir: kayıt, analiz, kartlar, karusel, insights, reels, story yedeği), gözcü (maç günü oran takibi ve story\'ler), skorlar. Çalışmıyorsa düğmeyle başlat; <b>log</b> son 200 satır. <b>Yeniden it</b>: yerel değişiklikler GitHub\'a gitmediyse tekrar dener.'
 };
-const TITLE = { genel: 'Genel bakış', bugun: 'Bugün', icerik: 'İçerik', reels: 'Reels', veri: 'Instagram verileri', gelen: 'Gelen kutusu', kupon: 'Kupon ve uyarılar', gunluk: 'Günlük', sistem: 'Sistem' };
+const TITLE = { genel: 'Genel bakış', bugun: 'Bugün', icerik: 'İçerik', reels: 'Reels', veri: 'Instagram verileri', gelen: 'Gelen kutusu', olustur: 'Kupon oluştur', kupon: 'Kupon ve uyarılar', gunluk: 'Günlük', sistem: 'Sistem' };
+HELP.olustur = '<b>Kupon oluştur.</b> Önümüzdeki 48 saatin maçları ve Nesine oranları. Her oranın altında üç ihtimal: <span class="src-ai"><b>yeşil</b> bizim yapay zekâ analizi</span>, <span class="src-stat"><b>mavi</b> istatistik modeli</span>, <span class="src-pin"><b>turuncu</b> piyasa (Pinnacle)</span>. Orana tıkla, sağdaki kupona eklenir (maç başına bir seçim). <b>Golcüler</b> ile oyuncuların sezon ve son 5 maç istatistiği ve "gol atar" oranı açılır. <b>Kaydet ve yorumlat</b>: yapay zekâ maçların haberlerine bakıp kısa bir kupon yorumu yazar (ücretli, ~$0,3-0,6). Kuponlar bu bilgisayarda saklanır, maçlar bitince puanlanır.';
 
 // ---------- yardımcılar
 function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
@@ -47,7 +48,7 @@ function open(p) {
   render();
 }
 function render() {
-  ({ genel: rGenel, bugun: rBugun, icerik: rIcerik, reels: rReels, veri: rVeri, gelen: rGelen, kupon: rKupon, gunluk: rGunluk, sistem: rSistem })[PAGE]();
+  ({ genel: rGenel, bugun: rBugun, icerik: rIcerik, reels: rReels, veri: rVeri, gelen: rGelen, olustur: rOlustur, kupon: rKupon, gunluk: rGunluk, sistem: rSistem })[PAGE]();
 }
 async function tick() {
   try {
@@ -258,6 +259,85 @@ function badge(sel, t) { const b = $(sel); b.style.display = t ? 'inline' : 'non
 async function pollBadges() {
   try { const d = await api('/api/inbox'); if (d.ok && d.counts) badge('#inboxBadge', (d.counts.comments || 0) + (d.counts.messages || 0) + (d.counts.tags || 0)); } catch (e) { }
   try { const e = await api('/api/events'); if (e.ok && e.counts) badge('#errBadge', e.counts.hata || 0); } catch (e) { }
+}
+
+// ---------- Kupon oluştur
+let CART = {}, BOARD = null, PL = {}, OL_FILTER = '';
+function cartKey(code) { return String(code); }
+function togglePick(code, market, pick, odds, label, home, away) {
+  const k = cartKey(code);
+  if (CART[k] && CART[k].market === market && CART[k].pick === pick) delete CART[k]; else CART[k] = { code, market, pick, odds, label, home, away };
+  rOlustur(true);
+}
+function cartSummary() {
+  const legs = Object.values(CART); if (!legs.length) return '<div class="muted small">Soldan oran seçerek kupon kur.</div>';
+  let total = 1; legs.forEach(l => total *= l.odds);
+  const src = k => { const m = BOARD.matches; let p = 1, ok = true; legs.forEach(l => { const mm = m.find(x => x.code == l.code); const v = l.market === 'GOL' ? null : (((mm || {}).markets || {})[l.market] || {})[l.pick]; if (!v || v[k] == null) ok = false; else p *= v[k] / 100; }); return ok ? (p * 100).toFixed(1) : null; };
+  const pa = src('ai'), ps = src('stat'), pp = src('pin');
+  const ev = p => p ? ((total * p / 100 - 1) * 100).toFixed(0) : null;
+  return `${legs.map(l => `<div class="row" style="justify-content:space-between;border-bottom:1px solid var(--line);padding:4px 0"><span class="small"><b>${esc(l.home)} – ${esc(l.away)}</b><br>${esc(l.label)}</span><span><b>${l.odds}</b> <a href="#" onclick="delete CART['${cartKey(l.code)}'];rOlustur(true);return false" style="color:#C8423A">✕</a></span></div>`).join('')}
+    <div style="margin-top:8px"><b>${legs.length} maç · toplam oran ${total.toFixed(2)}</b></div>
+    <div class="small">Tutma ihtimali: <span class="src-ai">biz ${pa ? '%' + pa : '–'}</span> · <span class="src-stat">istatistik ${ps ? '%' + ps : '–'}</span> · <span class="src-pin">piyasa ${pp ? '%' + pp : '–'}</span></div>
+    <div class="small muted">Beklenen değer: biz ${ev(pa) != null ? ev(pa) + '%' : '–'} · istatistik ${ev(ps) != null ? ev(ps) + '%' : '–'} · piyasa ${ev(pp) != null ? ev(pp) + '%' : '–'} <span title="(toplam oran × ihtimal − 1); artı ise oran ihtimale göre cömert">ⓘ</span></div>
+    <div class="row" style="margin-top:8px"><input type="text" id="cname" placeholder="kupon adı (isteğe bağlı)" style="flex:1"><input type="number" id="cstake" placeholder="TL" style="width:70px"></div>
+    <div class="row" style="margin-top:8px"><button class="btn" onclick="saveCoupon(true)">Kaydet ve yorumlat</button><button class="btn sec" onclick="saveCoupon(false)">Sadece kaydet</button><button class="btn sec sm" onclick="CART={};rOlustur(true)">Temizle</button></div>`;
+}
+async function saveCoupon(review) {
+  const legs = Object.values(CART).map(l => ({ code: l.code, market: l.market, pick: l.pick }));
+  if (!legs.length) { toast('Kupon boş', true); return; }
+  const d = await act({ action: 'coupon_save', legs, review, name: $('#cname').value, stake_tl: $('#cstake').value });
+  if (d.ok) { CART = {}; rOlustur(); }
+}
+function pickCell(m, mk, pk, label) {
+  const v = (m.markets[mk] || {})[pk]; if (!v) return '<span class="pick" style="opacity:.35">–</span>';
+  const on = CART[cartKey(m.code)] && CART[cartKey(m.code)].market === mk && CART[cartKey(m.code)].pick === pk;
+  return `<span class="pick ${on ? 'on' : ''}" onclick="togglePick(${m.code},'${mk}','${pk}',${v.odds},'${esc(label)}','${esc(m.home)}','${esc(m.away)}')" title="${esc(label)}"><b>${v.odds}</b><span class="p"><span class="src-ai">${v.ai != null ? v.ai : '·'}</span> <span class="src-stat">${v.stat != null ? v.stat : '·'}</span> <span class="src-pin">${v.pin != null ? v.pin : '·'}</span></span></span>`;
+}
+async function loadPlayers(code) {
+  const box = $('#pl' + code); if (!box) return;
+  if (box.dataset.open === '1') { box.style.display = 'none'; box.dataset.open = '0'; return; }
+  box.style.display = 'block'; box.dataset.open = '1'; box.innerHTML = loading('Golcüler ve son 5 maç alınıyor (ESPN)');
+  const d = PL[code] || await api('/api/kupon_players?code=' + code); PL[code] = d;
+  const m = BOARD.matches.find(x => x.code == code);
+  const rows = (d.teams || []).map(t => `<div style="margin:6px 0"><b>${esc(t.team)}</b> <span class="muted small">${t.home ? 'ev' : 'deplasman'}${t.error ? ' · ' + esc(t.error) : ''}</span>
+    <div class="pl muted small"><span>Oyuncu</span><span>Sezon gol/asist</span><span>Maç</span><span>Son 5'te gol</span><span>Gol atar</span></div>
+    ${t.players.map(p => { const on = CART[cartKey(code)] && CART[cartKey(code)].market === 'GOL' && CART[cartKey(code)].pick === p.player; return `<div class="pl"><span>${esc(p.player)}${p.form_only ? ' <span class="chip warn">form</span>' : ''}</span><span class="num">${p.goals != null ? p.goals + ' / ' + (p.assists || 0) : '–'}</span><span class="num">${p.matches != null ? p.matches : '–'}</span><span class="num">${p.last5_goals}</span>
+      <span>${p.odds ? `<span class="pick ${on ? 'on' : ''}" style="min-width:56px" onclick="togglePick(${code},'GOL','${esc(p.player)}',${p.odds},'${esc(p.player)} gol atar','${esc(m.home)}','${esc(m.away)}')"><b>${p.odds}</b></span>` : '<span class="muted">oran yok</span>'}</span></div>`; }).join('')}
+    <div class="muted small">Son 5: ${t.last5.map(g => `${esc(g.date.slice(5))} ${esc(g.score)}${g.scorers.length ? ' (' + esc(g.scorers.join(', ')) + ')' : ''}`).join(' · ') || '–'}</div></div>`).join('');
+  const other = (d.players_odds || []).filter(p => !(d.teams || []).some(t => t.players.some(q => q.player === p.player))).slice(0, 12);
+  box.innerHTML = (d.note ? `<div class="muted small">${esc(d.note)}</div>` : '') + rows + (other.length ? `<details><summary class="small">Diğer oyuncular (gol atar oranı)</summary>${other.map(p => { const on = CART[cartKey(code)] && CART[cartKey(code)].market === 'GOL' && CART[cartKey(code)].pick === p.player; return `<span class="pick ${on ? 'on' : ''}" onclick="togglePick(${code},'GOL','${esc(p.player)}',${p.odds},'${esc(p.player)} gol atar','${esc(m.home)}','${esc(m.away)}')"><b>${p.odds}</b><span class="p">${esc(p.player)}</span></span>`; }).join('')}</details>` : '');
+}
+async function rOlustur(keep) {
+  if (!keep || !BOARD) {
+    $('#topActions').innerHTML = `<input type="text" placeholder="takım / lig ara" oninput="OL_FILTER=this.value.toLowerCase();rOlustur(true)" value="${esc(OL_FILTER)}"><button class="btn sec" onclick="BOARD=null;rOlustur()">Yenile</button>`;
+    const d = await api('/api/kupon_board');
+    if (d.loading) { $('#page').innerHTML = loading('Bülten ve ihtimaller hazırlanıyor'); setTimeout(() => PAGE === 'olustur' && rOlustur(), 2500); return; }
+    BOARD = d;
+  }
+  const open = {}; document.querySelectorAll('[id^=pl]').forEach(b => { if (b.dataset.open === '1') open[b.id] = b.innerHTML; });
+  const ms = BOARD.matches.filter(m => !OL_FILTER || (m.home + ' ' + m.away + ' ' + m.league).toLowerCase().includes(OL_FILTER));
+  const rows = ms.map(m => `<tr><td><b>${esc(m.home)} – ${esc(m.away)}</b><div class="small muted">${esc(m.start)} · ${esc(m.league)}${m.analysis ? ' · <span class="chip ok">analiz var</span>' : ''}</div>${m.hook ? `<div class="small muted">${esc(m.hook)}</div>` : ''}
+      <div class="small"><a href="#" onclick="loadPlayers(${m.code});return false">Golcüler${m.players_odds.length ? ' (' + m.players_odds.length + ' oran)' : ''}</a></div><div id="pl${m.code}" style="display:none"></div></td>
+    <td>${pickCell(m, 'MS', '1', 'Ev')}${pickCell(m, 'MS', 'X', 'Beraberlik')}${pickCell(m, 'MS', '2', 'Deplasman')}</td>
+    <td>${pickCell(m, 'AU25', 'Alt', '2,5 alt')}${pickCell(m, 'AU25', 'Üst', '2,5 üst')}</td>
+    <td>${pickCell(m, 'KG', 'Var', 'KG var')}${pickCell(m, 'KG', 'Yok', 'KG yok')}</td></tr>`).join('');
+  $('#page').innerHTML = `<div style="display:grid;grid-template-columns:1fr 300px;gap:14px"><div>
+    <div class="card legend"><span class="src-ai">■ bizim yapay zekâ</span><span class="src-stat">■ istatistik modeli</span><span class="src-pin">■ piyasa (Pinnacle)</span><span class="muted">rakamlar: ihtimal % · bülten ${esc(BOARD.t)} · ${ms.length} maç</span></div>
+    <div class="card"><table><tr><th>Maç</th><th>Maç sonucu (1 · X · 2)</th><th>2,5 gol (alt · üst)</th><th>Karşılıklı gol (var · yok)</th></tr>${rows || '<tr><td colspan="4" class="muted">maç yok</td></tr>'}</table></div>
+    <div class="card"><h3>Kuponlarım</h3><div id="mycoupons">${loading()}</div></div></div>
+    <div><div class="card cart"><h3>Kupon</h3>${cartSummary()}</div></div></div>`;
+  Object.entries(open).forEach(([id, html]) => { const b = document.getElementById(id); if (b) { b.style.display = 'block'; b.dataset.open = '1'; b.innerHTML = html; } });
+  loadMyCoupons();
+}
+async function loadMyCoupons() {
+  const d = await api('/api/kuponlarim'); const box = $('#mycoupons'); if (!box) return;
+  box.innerHTML = (d.coupons || []).map(c => `<details ${c.review ? '' : ''}><summary>${esc(c.name)} · ${c.n} maç · oran ${c.odds} ${c.result === 'won' ? chip('tuttu', 'ok') : c.result === 'lost' ? chip('tutmadı', 'bad') : chip('bekliyor' + (c.legs_hit ? ' ' + c.legs_hit + '/' + c.n : ''))} <span class="muted small">${esc(c.when)}${c.stake_tl ? ' · ' + c.stake_tl + ' TL' : ''}</span></summary>
+    <table>${c.legs.map(l => `<tr><td>${esc(l.home)} – ${esc(l.away)}<div class="small muted">${esc(l.start)}${l.score ? ' · ' + esc(l.score) : ''}</div></td><td>${esc(l.label)}</td><td class="num">${l.odds}</td><td class="small"><span class="src-ai">${l.ai != null ? '%' + l.ai : ''}</span> <span class="src-stat">${l.stat != null ? '%' + l.stat : ''}</span> <span class="src-pin">${l.pin != null ? '%' + l.pin : ''}</span></td><td>${l.result === 'won' ? '✓' : l.result === 'lost' ? '✗' : '…'}</td></tr>`).join('')}</table>
+    <div class="small">İhtimal: <span class="src-ai">biz ${c.probs.ai != null ? '%' + c.probs.ai : '–'}</span> · <span class="src-stat">istatistik ${c.probs.stat != null ? '%' + c.probs.stat : '–'}</span> · <span class="src-pin">piyasa ${c.probs.pin != null ? '%' + c.probs.pin : '–'}</span></div>
+    ${c.review ? `<div class="card" style="background:#F7F9F8;margin-top:8px"><b>Yapay zekâ yorumu</b> <span class="muted small">güven ${(c.review.confidence * 100).toFixed(0)}% · $${c.review.cost_usd}</span><p style="margin:6px 0">${esc(c.review.comment)}</p><div class="small">En zayıf bacak: ${esc(c.review.weakest)}</div>
+      ${(c.review.legs || []).map(x => `<div class="small">${chip(x.verdict, x.verdict === 'sağlam' ? 'ok' : x.verdict === 'riskli' ? 'bad' : 'warn')} ${esc(x.match)}: ${esc(x.note)}</div>`).join('')}</div>`
+      : `<div class="row" style="margin-top:6px"><button class="btn sec sm" onclick="act({action:'coupon_review',id:${c.id}},()=>setTimeout(loadMyCoupons,8000))">Yapay zekâ yorumu al</button></div>`}
+    <div class="row" style="margin-top:6px"><button class="btn warn sm" onclick="if(confirm('Silinsin mi?'))act({action:'coupon_delete',id:${c.id}},loadMyCoupons)">Sil</button></div></details>`).join('') || '<div class="muted small">Henüz kupon yok.</div>';
 }
 
 // ---------- Kupon

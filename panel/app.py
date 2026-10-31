@@ -32,6 +32,8 @@ def _register():
     cache.register("reels", reels_flow.status, 10, prio=4)
     cache.register("inbox", inbox.data, 120, prio=6)
     cache.register("events", lambda: events.data(3), 300, prio=9)
+    from panel import kupon_builder
+    cache.register("kupon_board", kupon_builder.board, 120, prio=5)
     cache.start()
 
 
@@ -85,6 +87,15 @@ class H(BaseHTTPRequestHandler):
                 return self._send(200, content.get(int(q.get("code", "0"))))
             if p == "/api/reels":
                 return self._send(200, {"ok": True, **cache.refresh("reels", wait=True)})
+            if p == "/api/kupon_board":
+                return self._send(200, {"ok": True, **cache.get("kupon_board")})
+            if p == "/api/kupon_players":
+                from panel import kupon_builder
+                q = dict(x.split("=", 1) for x in u.query.split("&") if "=" in x)
+                return self._send(200, kupon_builder.players(q.get("code", "0")))
+            if p == "/api/kuponlarim":
+                from panel import kupon_builder
+                return self._send(200, {"ok": True, "coupons": kupon_builder.list_coupons()})
             if p in ("/api/stats", "/api/inbox", "/api/events", "/api/kupon"):
                 name = p.rsplit("/", 1)[1]
                 v = cache.get(name)

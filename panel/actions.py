@@ -205,6 +205,21 @@ def run(body):
             alog(a, f"{wk} skip={body.get('skip')} {err or 'ok'}")
             return {"ok": False, "error": err} if err else {"ok": True, "msg": "Bu hafta atlanacak" if body.get("skip") else "Bu hafta gönderilecek"}
 
+        # ---- Kupon oluşturucu (kişisel)
+        from panel import kupon_builder
+        if a == "coupon_save":
+            c = kupon_builder.build(body.get("legs") or [], body.get("stake_tl"), body.get("name"))
+            alog(a, f"#{c['id']} {c['n']} maç oran {c['odds']}")
+            if body.get("review"):
+                cid = c["id"]
+                return {**_job("Kupon yorumu (yapay zekâ)", lambda log: kupon_builder.review(cid, log)), "coupon": c}
+            return {"ok": True, "msg": f"Kupon #{c['id']} kaydedildi", "coupon": c}
+        if a == "coupon_review":
+            cid = int(body.get("id"))
+            return _job("Kupon yorumu (yapay zekâ)", lambda log: kupon_builder.review(cid, log))
+        if a == "coupon_delete":
+            kupon_builder.delete(int(body.get("id"))); return {"ok": True, "msg": "Silindi"}
+
         # ---- Bakiye defteri (Higgsfield gibi bakiye uç noktası olmayan servisler)
         if a == "set_balance":
             import json as _json

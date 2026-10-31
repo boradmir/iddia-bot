@@ -124,7 +124,7 @@ class Usage:
         return round(self.inp * 4e-6 + self.cache_write * 5e-6 + self.cache_read * 0.2e-6 + self.out * 20e-6 + self.searches * 0.01, 3)
 
 
-def _run(client, messages, schema, usage):
+def _run(client, messages, schema, usage, system=None, max_searches=8):
     """Web araması pause_turn verebilir; en fazla 3 kez devam eder. Metin bloğundaki JSON'u döner; kullanım usage'a eklenir."""
     for _ in range(3):
         resp = client.beta.messages.create(
@@ -133,8 +133,8 @@ def _run(client, messages, schema, usage):
             # Önbellek: pause_turn devamları ve 2. aşama, önceki çağrının tam ön ekini paylaşır → okuma ucuz.
             # (2. aşama ilk kez görülen 1. aşama sonuçlarını önce yazar; kazanç devam turlarında.)
             cache_control={"type": "ephemeral"},
-            system=SYSTEM, messages=messages,
-            tools=[{"type": "web_search_20260209", "name": "web_search", "max_uses": 8}],
+            system=system or SYSTEM, messages=messages,
+            tools=[{"type": "web_search_20260209", "name": "web_search", "max_uses": max_searches}],
             output_config={"format": {"type": "json_schema", "schema": schema}},
         )
         usage.add(resp.usage)
@@ -154,6 +154,42 @@ def _run(client, messages, schema, usage):
             return None
     print("Claude: 3 devam turundan sonra da bitmedi (pause_turn)")
     return None
+
+
+# ---------- Kupon yorumu (panel, kişisel kullanım; Instagram'a girmez)
+COUPON_SYSTEM = """Sen tecrübeli bir futbol analistisin; kullanıcı kendi kuponunu kurdu ve senden dürüst, kısa bir değerlendirme istiyor.
+Her maç için güncel haberlere (kadro, sakatlık, moral, maçın önemi) kısaca bak. Kuponu bir bütün olarak yorumla: en zayıf bacak hangisi, neden;
+hangi bacak sağlam; toplam oran ihtimale göre makul mu. Ölçülü ol, kesin konuşma, 'garanti' deme. Türkçe, kusursuz, 'biz' ağzı.
+Toplam en fazla 120 kelime; maç başına en fazla bir cümle, sonda bir cümle genel kanaat."""
+COUPON_SCHEMA = {"type": "object", "properties": {
+    "comment": {"type": "string", "description": "En fazla 120 kelime kupon yorumu"},
+    "weakest": {"type": "string", "description": "En zayıf bacak: 'Ev – Dep: seçim' biçiminde"},
+    "confidence": {"type": "number", "description": "Kuponun tutma şansına dair kanaat 0-1 (kaynak ihtimallerini de düşünerek)"},
+    "legs": {"type": "array", "items": {"type": "object", "properties": {"match": {"type": "string"}, "verdict": {"type": "string", "enum": ["sağlam", "makul", "riskli"]}, "note": {"type": "string"}},
+             "required": ["match", "verdict", "note"], "additionalProperties": False}}},
+    "required": ["comment", "weakest", "confidence", "legs"], "additionalProperties": False}
+
+
+def coupon_review(c):
+    """Kupon sözlüğü (panel/kupon_builder.build çıktısı) → {comment, weakest, confidence, legs, cost_usd, usage}."""
+    if not config.ANTHROPIC_API_KEY:
+        raise RuntimeError("ANTHROPIC_API_KEY yok")
+    tr = timezone(timedelta(hours=3))
+    lines = []
+    for l in c["legs"]:
+        src = ", ".join(f"{k} %{v}" for k, v in (("bizim analiz", l.get("ai")), ("istatistik", l.get("stat")), ("piyasa", l.get("pin"))) if v)
+        lines.append(f"- {l['home']} - {l['away']} ({l['league']}, {l['start']}): seçim {l['label']}, oran {l['odds']}" + (f"; ihtimaller: {src}" if src else "")
+                     + (f"; sabah notumuz: {l['hook']}" if l.get("hook") else ""))
+    head = f"Bugün {datetime.now(tr):%d.%m.%Y}. Kupon ({c['n']} maç, toplam oran {c['odds']}"
+    if any(c["probs"].values()):
+        head += ", kaynaklara göre tutma ihtimali: " + ", ".join(f"{k} %{v}" for k, v in c["probs"].items() if v)
+    q = head + "):" + chr(10) + chr(10).join(lines) + chr(10) + "Her maç için güncel haberlere kısaca bak ve kuponu değerlendir."
+    client = _client(); usage = Usage()
+    res = _run(client, [{"role": "user", "content": q}], COUPON_SCHEMA, usage, system=COUPON_SYSTEM, max_searches=min(8, 2 * len(c["legs"])))
+    if not res:
+        raise RuntimeError("yorum alınamadı")
+    res["cost_usd"] = usage.cost(); res["usage"] = usage.dict(); res["model"] = MODEL
+    return res
 
 
 # ---------- Redaktör geçişi: noktalama / cümle uzunluğu / devrik cümle kontrolü (ucuz, web araması yok)

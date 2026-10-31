@@ -147,3 +147,33 @@ if __name__ == "__main__":
         local = m["start"].astimezone()
         mk = {k: v["odds"] for k, v in m["markets"].items()}
         print(f"  {local:%d.%m %H:%M} [{m['code']}] {m['home']} - {m['away']} MBS={m['mbs']} {mk}")
+
+
+MT_PLAYER_GOAL = 765   # "Oyuncu gol atar" (herhangi bir anda): OCA [{ON: oyuncu adı, O: oran}] (31.10.2026 bültenden)
+
+
+def player_goal_odds(data, only_target_leagues=True):
+    """Maç kodu → [{player, odds}] (oyuncu gol atar pazarı). Yoksa boş."""
+    out = {}
+    for e in _events(data):
+        if only_target_leagues and sport_key_for(e.get("LC"), None) is None:
+            continue
+        for m in e.get("MA") or []:
+            if m.get("MTID") != MT_PLAYER_GOAL:
+                continue
+            rows = [{"player": o.get("ON"), "odds": o.get("O")} for o in (m.get("OCA") or []) if o.get("ON") and o.get("O")]
+            if rows:
+                out[e["C"]] = sorted(rows, key=lambda r: r["odds"])
+    return out
+
+
+def _events(data):
+    if isinstance(data, dict):
+        if "MA" in data and isinstance(data["MA"], list):
+            yield data
+        else:
+            for v in data.values():
+                yield from _events(v)
+    elif isinstance(data, list):
+        for v in data:
+            yield from _events(v)
