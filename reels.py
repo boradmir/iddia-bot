@@ -122,7 +122,7 @@ ELEVEN_MODEL = os.environ.get("ELEVENLABS_MODEL", "eleven_v4")
 ELEVEN_LANG = {"eleven_v4": "tr", "eleven_turbo_v2_5": "tr", "eleven_flash_v2_5": "tr", "eleven_v3": "tr"}
 
 
-def tts_eleven(text, out_mp3, voice_id=None, model=None):
+def tts_eleven(text, out_mp3, voice_id=None, model=None, seed=None):
     """ElevenLabs: ses + karakter zaman damgaları → kelime zamanları (altyazı senkronu için)."""
     import base64, urllib.request
     voice_id = voice_id or ELEVEN_VOICE
@@ -131,6 +131,8 @@ def tts_eleven(text, out_mp3, voice_id=None, model=None):
                "voice_settings": {"stability": 0.40, "similarity_boost": 0.85, "style": 0.38, "use_speaker_boost": True}}   # Ahu "orta" ayar
     if model in ELEVEN_LANG:
         payload["language_code"] = ELEVEN_LANG[model]
+    if seed is not None:
+        payload["seed"] = int(seed)
     body = json.dumps(payload).encode()
     req = urllib.request.Request(f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}/with-timestamps?output_format=mp3_44100_128",
                                  data=body, headers={"xi-api-key": ELEVEN_KEY, "Content-Type": "application/json"})
@@ -190,7 +192,12 @@ def spoken_text(text, extra=None):
 
 def tts(text, out_mp3, pronounce=None):
     spoken = spoken_text(text, pronounce)
-    words = tts_eleven(spoken, out_mp3) if (ELEVEN_KEY and ELEVEN_VOICE) else asyncio.run(_tts(spoken, out_mp3))
+    pre = os.environ.get("REELS_VOICE_FILE")   # onaylı hazır ses (mp3 + yanında .json kelime zamanları): yeniden sentez yok
+    if pre and os.path.exists(pre) and os.path.exists(pre[:-4] + ".json"):
+        import shutil; shutil.copyfile(pre, out_mp3)
+        words = json.load(open(pre[:-4] + ".json", encoding="utf-8"))
+    else:
+        words = tts_eleven(spoken, out_mp3) if (ELEVEN_KEY and ELEVEN_VOICE) else asyncio.run(_tts(spoken, out_mp3))
     # altyazıda özgün yazım: kelime sayıları eşitse metni geri koy
     orig = text.split()
     if len(orig) == len(words):
@@ -390,11 +397,21 @@ def subtitle(img, d, words, t, f):
 
 
 # ----------------------------------------------------------------- sahneler
-def cover_image(img, m, th):
-    """Kapak: kanca sahnesinin tam hâli + üstte etiket, altta göz işareti ve marka. Profil ızgarası ortadan kırpar (1:1 → y 420-1500);
-    bütün öğeler bu kuşakta."""
+def cover_image(img, m, th, er=None):
+    """Kapak: kanca sahnesinin tam hâli + üstte etiket, ortada kulüp armaları (ESPN; yalnız kapakta), altta marka.
+    Profil ızgarası ortadan kırpar (1:1 → y 420-1500); bütün öğeler bu kuşakta."""
     d = ImageDraw.Draw(img)
     d.text((M_L, 340), tr_upper(COVER_LABEL), font=font("displaysemi", 34), fill=YELLOW)
+    try:
+        import story
+        y_c = getattr(scene_hook, "y_end", 830) + 195   # tarih satırının altı
+        hc, ac = story.crest_for(m["home"], er, 104), story.crest_for(m["away"], er, 104)
+        if hc and ac and y_c + 104 <= 1180:
+            img.paste(hc, (W // 2 - 104 - 16, y_c), hc); img.paste(ac, (W // 2 + 16, y_c), ac)
+        elif not (hc and ac):
+            note_issue("kapak: kulüp arması bulunamadı (ESPN kaydı yok)")
+    except Exception as e:
+        note_issue(f"kapak arması: {e}")
     lk = logo.kit_lockup(250)
     img.paste(lk, ((W - lk.width) // 2, 1190), lk)
     d.text((W / 2, 1462), HANDLE, font=font("semi", 30), fill=PALE, anchor="ma")
@@ -405,6 +422,7 @@ def scene_hook(img, d, t, hook, th):
     f, size = fit_font(tr_upper(hook), "display", (96, 86, 76, 68, 60), W - M_L - M_R, 4)
     acc = set(w.strip(".,").lower() for w in hook.split()[-3:])   # son üç kelime vurgu
     y_end = draw_words(img, tr_upper(hook), f, M_L, 420, W - M_L - M_R, 9, fill=WHITE, accent_words=set(tr_upper(w) .lower() for w in acc), stagger=0, dur=0.01, line_h=int(size * 1.12))
+    scene_hook.y_end = y_end
     if y_end + 190 > SUB_Y - 30:
         note_issue("kanca sahnesi altyazı bandına taşıyor")
     if t > 0.8 and th is not None:
@@ -692,7 +710,7 @@ def render(m, bl, pm, er, out_mp4, absences=None):
         if name != "question":
             subtitle(img, d, words, t, fsub)
         if fi == 0:
-            cover = cover_image(draw_scene("hook", 9.0), m, th)
+            cover = cover_image(draw_scene("hook", 9.0), m, th, er)
         if use_video:
             img.save(os.path.join(frames_dir, f"f{fi:04d}.png"))
         else:
