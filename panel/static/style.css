@@ -4,7 +4,9 @@ body{margin:0;font:15px/1.5 system-ui,"Segoe UI",Roboto,sans-serif;background:va
 a{color:var(--green);text-decoration:none}a:hover{text-decoration:underline}
 #side{background:var(--green2);color:#E6EFEA;padding:18px 14px;display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
 .brand{display:flex;gap:10px;align-items:center;margin-bottom:22px}.brand img{height:36px}.brand b{display:block;font-size:15px}.brand span{font-size:12px;color:#9FB3A8}
-#nav a{display:block;padding:9px 12px;border-radius:9px;color:#D5E2DB;cursor:pointer;margin-bottom:2px;font-weight:500}
+#nav a{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:9px;color:#D5E2DB;cursor:pointer;margin-bottom:2px;font-weight:500;font-size:14px}
+#nav a i{font-style:normal;width:18px;text-align:center;opacity:.75;font-size:13px}
+#nav .grp{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#7F978B;margin:14px 12px 4px}
 #nav a:hover{background:#143D2E;text-decoration:none}#nav a.on{background:#FFCF4D;color:var(--green2);font-weight:700}
 .side-foot{margin-top:auto;display:flex;align-items:center;gap:8px;color:#9FB3A8;font-size:13px}
 .dot{width:10px;height:10px;border-radius:50%;background:#C8423A;display:inline-block}.dot.ok{background:#7ED6A5}
