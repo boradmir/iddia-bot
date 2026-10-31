@@ -49,6 +49,15 @@ def _req(method, path, body=None, timeout=60):
         return json.loads(r.read())
 
 
+RATE = {"seedance": {"480p": 0.2056, "720p": 0.4622, "1080p": 1.1372}, "wan": {"480p": 0.05, "720p": 0.10, "1080p": 0.20}}   # $/sn, liste fiyatı (estimate, 31.10.2026)
+
+
+def estimate_cost(model, duration, resolution):
+    """Klip başına tahmini $ (panel bakiye defteri için). Bakiye uç noktası yok; liste fiyatı × saniye."""
+    fam = "seedance" if "seedance" in (model or "").lower() else "wan"
+    return round(RATE[fam].get(str(resolution), RATE[fam]["1080p"]) * float(duration), 2)
+
+
 def submit(prompt, model=DEFAULT_MODEL, duration=5, resolution="1080p", aspect="9:16", seed=None):
     body = {"prompt": prompt, "aspect_ratio": aspect, "duration": duration, "resolution": resolution}
     if seed is not None:
@@ -99,7 +108,8 @@ def generate(name, prompt, model=DEFAULT_MODEL, duration=5, resolution="1080p", 
     path = f"{out_dir}/{name}.mp4"
     size = download(url, path)
     meta = {"name": name, "model": model, "duration": duration, "resolution": resolution, "prompt": full, "request_id": rid,
-            "credits": st.get("credits") or st.get("cost") or st.get("billing"), "size": size, "t": time.strftime("%Y-%m-%dT%H:%M:%S")}
+            "credits": st.get("credits") or st.get("cost") or st.get("billing"), "credits_usd": estimate_cost(model, duration, resolution),
+            "size": size, "t": time.strftime("%Y-%m-%dT%H:%M:%S")}
     with open(f"{out_dir}/library.jsonl", "a", encoding="utf-8") as f:
         f.write(json.dumps(meta, ensure_ascii=False) + "\n")
     print(f"[{name}] indirildi: {size // 1024} KB; durum alanları: {sorted(st.keys())}")

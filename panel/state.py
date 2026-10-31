@@ -223,6 +223,42 @@ def _ig_token():
         raise
 
 
+BALANCES = "data/panel/balances.json"
+# Higgsfield liste fiyatı (estimate uç noktası, 31.10.2026): Seedance 2.5 saniye başına 480p 0.21 / 720p 0.46 / 1080p 1.14 $;
+# Wan 3.0 saniye başına 480p 0.05 / 720p 0.10 / 1080p 0.20 $. Bakiye uç noktası yok → yerel defter.
+HF_RATE = {"seedance": {"480p": 0.2056, "720p": 0.4622, "1080p": 1.1372}, "wan": {"480p": 0.05, "720p": 0.10, "1080p": 0.20}}
+
+
+def hf_cost(model, duration, resolution):
+    m = (model or "").lower(); fam = "seedance" if "seedance" in m else "wan" if "wan" in m else "wan"
+    return round(HF_RATE[fam].get(str(resolution or "1080p"), HF_RATE[fam]["1080p"]) * float(duration or 5), 2)
+
+
+def higgsfield():
+    """Yerel defter: kullanıcının girdiği bakiye − o tarihten sonra üretilen kliplerin (assets/*/library.jsonl) tahmini maliyeti."""
+    try:
+        bal = json.load(open(BALANCES, encoding="utf-8")).get("higgsfield") or {}
+    except Exception:
+        bal = {}
+    since = bal.get("t", "")
+    clips, spent, month_clips, month_spent = 0, 0.0, 0, 0.0
+    month = datetime.now(TR).strftime("%Y-%m")
+    for p in glob.glob("assets/*/library.jsonl"):
+        for l in open(p, encoding="utf-8"):
+            try:
+                r = json.loads(l)
+            except ValueError:
+                continue
+            c = r.get("credits_usd") or hf_cost(r.get("model"), r.get("duration"), r.get("resolution"))
+            if (r.get("t") or "") >= since:
+                clips += 1; spent += c
+            if (r.get("t") or "").startswith(month):
+                month_clips += 1; month_spent += c
+    return {"balance_entered": bal.get("amount"), "entered_at": since[:16].replace("T", " ") if since else None,
+            "clips_since": clips, "spent_since": round(spent, 1), "remaining": round(float(bal["amount"]) - spent, 1) if bal.get("amount") is not None else None,
+            "month_clips": month_clips, "month_spent": round(month_spent, 1)}
+
+
 def system():
     errors = []
 
@@ -244,7 +280,7 @@ def system():
     last = st.get("keeper_last")
     age = int((datetime.now(timezone.utc) - datetime.fromisoformat(last)).total_seconds() // 60) if last else None
     ai_t, ai_m = _ai_spend()
-    spend = {"ai_today_usd": ai_t, "ai_month_usd": ai_m, **safe("eleven", 300, _eleven, {})}
+    spend = {"ai_today_usd": ai_t, "ai_month_usd": ai_m, **safe("eleven", 300, _eleven, {}), "higgsfield": safe("higgsfield", 60, higgsfield, {})}
     return {"runs": runs,
             "keeper": {"last": datetime.fromisoformat(last).astimezone(TR).strftime("%H:%M") if last else None, "age_min": age,
                        "running": any(r["name"] == "Bekçi" and r["status"] == "in_progress" for r in runs),

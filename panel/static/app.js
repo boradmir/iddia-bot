@@ -299,7 +299,9 @@ function rSistem() {
   $('#page').innerHTML = `
     <div class="grid3">
       <div class="card"><h3>Bekçi</h3>${k.running ? chip('çalışıyor', 'ok') : chip('çalışmıyor', 'bad')}<div class="small muted" style="margin-top:6px">son kayıt ${esc(k.last || '–')} (${k.age_min ?? '–'} dk önce)<br>sabah analizi ${esc(k.claude_morning || '–')} · insights ${esc(k.insights_day || '–')}</div></div>
-      <div class="card"><h3>Kota ve harcama</h3><div class="small">Odds API kalan <b>${q.remaining}</b> istek · bugün ${q.spent_today}<br>Yapay zekâ bugün <b>$${s.ai_today_usd}</b> · bu ay $${s.ai_month_usd}${s.eleven_limit ? `<br>ElevenLabs ${s.eleven_used}/${s.eleven_limit} karakter (sıfırlama ${esc(s.eleven_reset)})` : ''}</div></div>
+      <div class="card"><h3>Kota ve harcama</h3><div class="small">Odds API kalan <b>${q.remaining}</b> istek · bugün ${q.spent_today}<br>Yapay zekâ bugün <b>$${s.ai_today_usd}</b> · bu ay $${s.ai_month_usd}${s.eleven_limit ? `<br>ElevenLabs ${s.eleven_used}/${s.eleven_limit} karakter (sıfırlama ${esc(s.eleven_reset)})` : ''}
+        ${(() => { const h = s.higgsfield || {}; return `<br>Higgsfield ${h.remaining != null ? `tahmini kalan <b>$${h.remaining}</b> (giriş $${h.balance_entered}, ${esc(h.entered_at)}; sonra ${h.clips_since} klip ≈ $${h.spent_since})` : 'bakiye girilmedi'} · bu ay ${h.month_clips || 0} klip ≈ $${h.month_spent || 0}
+        <div class="row" style="margin-top:4px"><input type="number" step="0.1" id="hfbal" placeholder="bakiye $" style="width:110px"><button class="btn sec sm" title="Higgsfield hesabındaki bakiyeyi yaz; panel üretilen klipleri düşerek kalanı tahmin eder" onclick="act({action:'set_balance',service:'higgsfield',amount:$('#hfbal').value})">Bakiyeyi kaydet</button></div>`; })()}</div></div>
       <div class="card"><h3>Instagram belirteci</h3>${t.valid === false ? chip('GEÇERSİZ', 'bad') : t.valid ? chip('geçerli', 'ok') : chip('bilgi yok', 'warn')}<div class="small muted" style="margin-top:6px">${esc(t.expires || '')}${t.username ? ' · @' + esc(t.username) : ''}</div></div>
     </div>
     ${(Y.errors || []).length ? `<div class="card err">${esc(Y.errors.join(' · '))}</div>` : ''}

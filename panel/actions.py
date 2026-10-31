@@ -205,6 +205,21 @@ def run(body):
             alog(a, f"{wk} skip={body.get('skip')} {err or 'ok'}")
             return {"ok": False, "error": err} if err else {"ok": True, "msg": "Bu hafta atlanacak" if body.get("skip") else "Bu hafta gönderilecek"}
 
+        # ---- Bakiye defteri (Higgsfield gibi bakiye uç noktası olmayan servisler)
+        if a == "set_balance":
+            import json as _json
+            p = "data/panel/balances.json"
+            try:
+                d = _json.load(open(p, encoding="utf-8"))
+            except Exception:
+                d = {}
+            d[body.get("service") or "higgsfield"] = {"amount": float(body.get("amount")), "t": datetime.now(TR).isoformat(timespec="seconds")}
+            os.makedirs(os.path.dirname(p), exist_ok=True)
+            _json.dump(d, open(p, "w", encoding="utf-8"))
+            from panel import cache
+            cache.refresh("system")
+            alog(a, str(d)); return {"ok": True, "msg": "Bakiye kaydedildi"}
+
         # ---- Gelen kutusu
         from panel import inbox
         if a == "inbox_seen":
