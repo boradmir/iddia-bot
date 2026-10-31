@@ -41,13 +41,7 @@ def canvas():
     p = pal()
     if p["light"]:
         img = Image.new("RGB", (W, H), p["bg"]); d = ImageDraw.Draw(img)
-        # çok silik saha deseni (koyu kartlardaki çizgilerin açık zemin karşılığı) + üstte sarı şerit (analiz kartlarıyla ortak dil)
-        ov = Image.new("RGBA", (W, H), (0, 0, 0, 0)); od = ImageDraw.Draw(ov)
-        mid = int(H * 0.533); ln = (11, 42, 31, 14)
-        od.ellipse((W / 2 - 300, mid - 300, W / 2 + 300, mid + 300), outline=ln, width=4)
-        od.arc((W / 2 - 520, H - 120, W / 2 + 520, H + 700), start=200, end=340, fill=ln, width=4)
-        img = Image.alpha_composite(img.convert("RGBA"), ov).convert("RGB"); d = ImageDraw.Draw(img)
-        d.rectangle((0, 0, W, 10), fill=social.YELLOW)
+        d.rectangle((0, 0, W, 10), fill=social.YELLOW)   # analiz kartlarıyla ortak dil; zemin sade (tablo kendi dokusunu taşır)
         return img
     if p["bg"] is None:
         return social.pitch_background(social.THEMES["default"])
@@ -143,6 +137,13 @@ def _hex(c, default):
 def cover_card(week, names, path, monday_note):
     p = pal()
     img = canvas(); d = ImageDraw.Draw(img)
+    if p["light"]:
+        # kapak motifi: sağda gittikçe kısalan silik çubuklar (sıralama imgesi); en üstteki sarı
+        ov = Image.new("RGBA", (W, H), (0, 0, 0, 0)); od = ImageDraw.Draw(ov)
+        for i, wbar in enumerate((420, 340, 290, 250, 215, 185, 160)):
+            y0 = 335 + i * 62
+            od.rounded_rectangle((W - 60 - wbar, y0, W - 60, y0 + 40), radius=10, fill=(255, 207, 77, 200) if i == 0 else (11, 42, 31, 22))
+        img = Image.alpha_composite(img.convert("RGBA"), ov).convert("RGB"); d = ImageDraw.Draw(img)
     topbar(d, img, "Haftalık puan durumu")
     now = datetime.now(TR)
     social.text(d, (60, 300), "PUAN", social.font("display", 230), p["title"])
