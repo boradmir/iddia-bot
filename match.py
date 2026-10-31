@@ -14,12 +14,26 @@ NOISE = {"fc", "sk", "afc", "cf", "sc", "ac", "fk", "as", "ss", "cd", "club", "d
 REPLACE = {"utd": "united", "st": "saint", "bb": "basaksehir"}
 
 
+# Millî takımlar: Nesine Türkçe ad → ESPN/Pinnacle İngilizce ad (kelime bazlı; normalize sonrası, aksansız)
+NATION_EN = {"turkiye": "turkey", "almanya": "germany", "fransa": "france", "ispanya": "spain", "ingiltere": "england", "italya": "italy",
+             "portekiz": "portugal", "hollanda": "netherlands", "belcika": "belgium", "hirvatistan": "croatia", "isvicre": "switzerland",
+             "avusturya": "austria", "polonya": "poland", "danimarka": "denmark", "isvec": "sweden", "norvec": "norway", "yunanistan": "greece",
+             "iskocya": "scotland", "galler": "wales", "irlanda": "ireland", "cekya": "czechia", "macaristan": "hungary", "romanya": "romania",
+             "sirbistan": "serbia", "ukrayna": "ukraine", "gurcistan": "georgia", "bosna": "bosnia", "hersek": "herzegovina", "karadag": "montenegro",
+             "slovenya": "slovenia", "slovakya": "slovakia", "bulgaristan": "bulgaria", "kuzey": "north", "makedonya": "macedonia",
+             "finlandiya": "finland", "izlanda": "iceland", "israil": "israel", "ermenistan": "armenia", "azerbaycan": "azerbaijan",
+             "kazakistan": "kazakhstan", "letonya": "latvia", "litvanya": "lithuania", "estonya": "estonia", "luksemburg": "luxembourg",
+             "arnavutluk": "albania", "kosova": "kosovo", "rusya": "russia", "brezilya": "brazil", "arjantin": "argentina", "meksika": "mexico",
+             "japonya": "japan", "guney": "south", "kore": "korea", "misir": "egypt", "fas": "morocco", "cezayir": "algeria", "nijerya": "nigeria",
+             "kamerun": "cameroon", "gana": "ghana", "kibris": "cyprus", "malta": "malta", "faroe": "faroe", "adalari": "islands"}
+
+
 def normalize(name):
     s = name.lower().replace("ı", "i").replace("İ", "i")
     s = unicodedata.normalize("NFKD", s)
     s = "".join(c for c in s if not unicodedata.combining(c))
     s = re.sub(r"[^a-z0-9 ]", " ", s)
-    words = [REPLACE.get(w, w) for w in s.split() if w not in NOISE]
+    words = [NATION_EN.get(REPLACE.get(w, w), REPLACE.get(w, w)) for w in s.split() if w not in NOISE]
     return " ".join(words)
 
 

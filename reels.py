@@ -433,11 +433,18 @@ def scene_hook(img, d, t, hook, th):
         d.text((M_L, y_end + 140), tr_upper(f"{social.DAYS_TR[start.weekday()]} {start:%H:%M} · {m_.get('league','')}"), font=font("displaysemi", 34), fill=tuple(int(c * k) for c in PALE))
 
 
-def scene_teams(img, d, t, m, th):
+def scene_teams(img, d, t, m, th, er=None):
     f = fit_width(tr_upper(max((m["home"], m["away"]), key=len)), "display", (150, 130, 112, 96, 84), W - M_L - M_R)
     k1 = ease_out_cubic(clamp(t / 0.26)); k2 = ease_out_cubic(clamp((t - 0.08) / 0.26))
     d.text((M_L - 80 * (1 - k1), 520), tr_upper(m["home"]), font=f, fill=tuple(int(c * k1) for c in WHITE))
     d.text((M_L - 80 * (1 - k2), 690), tr_upper(m["away"]), font=f, fill=tuple(int(c * k2) for c in YELLOW))
+    if m.get("sport_key") in social.NATIONAL and er:   # millî maç: armalar video içinde de (kullanıcı kararı)
+        import story
+        for nm_, yy, k in ((m["home"], 520, k1), (m["away"], 690, k2)):
+            c = story.crest_for(nm_, er, 130)
+            if c and k > 0:
+                a = c.split()[3].point(lambda v: int(v * k))
+                img.paste(c, (W - M_R - 130, yy + (f.size - 130) // 2), a)
     start = m["start"].astimezone(TR)
     d.text((M_L, 880), tr_upper(f"{social.DAYS_TR[start.weekday()]} {start:%H:%M} · {m.get('league','')}"), font=font("displaysemi", 36), fill=PALE)
 
@@ -681,7 +688,7 @@ def render(m, bl, pm, er, out_mp4, absences=None):
         img = background_video(fi, th) if use_video else background(fi, th)
         d = ImageDraw.Draw(img)
         if name == "hook": scene_hook(img, d, t_s, hook, th)
-        elif name == "teams": scene_teams(img, d, t_s, m, th)
+        elif name == "teams": scene_teams(img, d, t_s, m, th, er)
         elif name == "market": scene_market(img, d, t_s, m, pm, er)
         elif name == "absences": scene_absences(img, d, t_s, absences, th)
         elif name == "form": scene_form(img, d, t_s, m, er, th)

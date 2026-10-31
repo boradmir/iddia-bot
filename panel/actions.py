@@ -220,6 +220,16 @@ def run(body):
         if a == "coupon_delete":
             kupon_builder.delete(int(body.get("id"))); return {"ok": True, "msg": "Silindi"}
 
+        # ---- Kademeler
+        if a == "tiers_save":
+            from panel import tiers
+            tiers.save(body.get("tiers") or {}, body.get("analyze_max_tier"))
+            err = commit_push(["records/clubs.json"], "panel: kademeler güncellendi")
+            alog(a, err or "ok")
+            from panel import cache
+            cache.refresh("today")
+            return {"ok": False, "error": err} if err else {"ok": True, "msg": "Kademeler kaydedildi; bekçi ve gözcü bir sonraki döngüde kullanır"}
+
         # ---- Bakiye defteri (Higgsfield gibi bakiye uç noktası olmayan servisler)
         if a == "set_balance":
             import json as _json

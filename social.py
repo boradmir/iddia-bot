@@ -282,6 +282,13 @@ def match_card(m, pm, ai, er, out_path):
     y1 = 104; y2 = 104 + fh.size - 6
     text(d, (60, y1), home, fh, WHITE)
     text(d, (60, y2), away, fh, YELLOW)
+    if m.get("sport_key") in NATIONAL:   # millî maç: armalar her yerde serbest (kullanıcı kararı 31.10.2026)
+        import story
+        cs = min(104, fh.size - 8)
+        for nm_, yy in ((m["home"], y1), (m["away"], y2)):
+            c = story.crest_for(nm_, er, cs)
+            if c:
+                img.paste(c, (W - 60 - cs, yy + (fh.size - cs) // 2), c)
     y = 104 + 2 * fh.size + 4
     ft = font("display", 46)
     text(d, (60, y), f"{start:%H:%M}", ft, WHITE)
@@ -369,7 +376,8 @@ def short_text(text_, max_words):
     return " ".join(out)
 
 
-def comment_card(m, ai, out_path):
+def comment_card(m, ai, out_path, er=None):
+    comment_card.er = er
     bl = (ai or {}).get("blind") or {}
     if not bl.get("comment"):
         return False
@@ -388,6 +396,13 @@ def comment_card(m, ai, out_path):
     while fh.getlength(title) > W - 120:
         fh = font("display", fh.size - 4)
     text(d, (60, 110), title, fh, WHITE)
+    if m.get("sport_key") in NATIONAL:
+        import story
+        x = W - 60
+        for nm_ in (m["away"], m["home"]):
+            c = story.crest_for(nm_, comment_card.er, 62)
+            if c:
+                x -= 62; img.paste(c, (x, 110 + (fh.size - 62) // 2), c); x -= 12
     # tez: kalın tek cümle (yapay zekânın "hook" alanı; eski kayıtlarda yazının ilk cümlesi)
     tez = (bl.get("hook") or "").strip() or first_sentence(bl["comment"])
     y = 270; ft = font("display", 46)
@@ -481,7 +496,7 @@ def main():
         if a or er:
             p = f"{out_dir}/match_{m['code']}.jpg"; match_card(m, pm, a, er, p); made.append(p)
             p2 = f"{out_dir}/yorum_{m['code']}.jpg"
-            if comment_card(m, a, p2):
+            if comment_card(m, a, p2, er=er):
                 made.append(p2)
     for old in glob.glob(f"{out_dir}/*.png"):
         os.remove(old)   # png → jpg geçişi; bülten kartı da kaldırıldı

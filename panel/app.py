@@ -89,6 +89,9 @@ class H(BaseHTTPRequestHandler):
                 return self._send(200, {"ok": True, **cache.refresh("reels", wait=True)})
             if p == "/api/kupon_board":
                 return self._send(200, {"ok": True, **cache.get("kupon_board")})
+            if p == "/api/tiers":
+                from panel import tiers
+                return self._send(200, tiers.data())
             if p == "/api/kupon_players":
                 from panel import kupon_builder
                 q = dict(x.split("=", 1) for x in u.query.split("&") if "=" in x)

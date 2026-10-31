@@ -13,7 +13,8 @@ const HELP = {
   gunluk: '<b>Günlük.</b> Ne olup bittiğinin tek listesi: yayınlar, analizler (maliyetiyle), panel eylemleri, reels, GitHub çalışmaları ve loglarındaki hata satırları. Kırmızı hata, sarı uyarı. GitHub logları 5 dakikada bir taranır.',
   sistem: '<b>Sistem.</b> Bekçi (GitHub\'da 20 dakikada bir: kayıt, analiz, kartlar, karusel, insights, reels, story yedeği), gözcü (maç günü oran takibi ve story\'ler), skorlar. Çalışmıyorsa düğmeyle başlat; <b>log</b> son 200 satır. <b>Yeniden it</b>: yerel değişiklikler GitHub\'a gitmediyse tekrar dener.'
 };
-const TITLE = { genel: 'Genel bakış', bugun: 'Bugün', icerik: 'İçerik', reels: 'Reels', veri: 'Instagram verileri', gelen: 'Gelen kutusu', olustur: 'Kupon oluştur', kupon: 'Kupon ve uyarılar', gunluk: 'Günlük', sistem: 'Sistem' };
+const TITLE = { kademe: 'Kademeler', genel: 'Genel bakış', bugun: 'Bugün', icerik: 'İçerik', reels: 'Reels', veri: 'Instagram verileri', gelen: 'Gelen kutusu', olustur: 'Kupon oluştur', kupon: 'Kupon ve uyarılar', gunluk: 'Günlük', sistem: 'Sistem' };
+HELP.kademe = '<b>Kademeler.</b> Hangi kulüp ve millî takımların öncelikli olduğunu buradan yönetirsin. <b>Kademe 0</b>: en önde (sabah analizi, karusel, kadro/devre/maç sonu story\'leri, reels adayı). <b>Kademe 1</b> ve <b>2</b>: analiz ve karusel önceliği sırayla; story yalnız kademe 0\'da. Listede olmayan takımlar kademe 9 (analiz yapılmaz, yalnız kart üretilir). Adlar Nesine bültenindeki gibi yazılmalı; aşağıdaki öneri listesinden tıklayarak eklersin. Kaydedince repoya gider, bekçi ve gözcü bir sonraki döngüde kullanır.';
 HELP.olustur = '<b>Kupon oluştur.</b> Önümüzdeki 48 saatin maçları ve Nesine oranları. Her oranın altında üç ihtimal: <span class="src-ai"><b>yeşil</b> bizim yapay zekâ analizi</span>, <span class="src-stat"><b>mavi</b> istatistik modeli</span>, <span class="src-pin"><b>turuncu</b> piyasa (Pinnacle)</span>. Orana tıkla, sağdaki kupona eklenir (maç başına bir seçim). <b>Golcüler</b> ile oyuncuların sezon ve son 5 maç istatistiği ve "gol atar" oranı açılır. <b>Kaydet ve yorumlat</b>: yapay zekâ maçların haberlerine bakıp kısa bir kupon yorumu yazar (ücretli, ~$0,3-0,6). Kuponlar bu bilgisayarda saklanır, maçlar bitince puanlanır.';
 
 // ---------- yardımcılar
@@ -48,7 +49,7 @@ function open(p) {
   render();
 }
 function render() {
-  ({ genel: rGenel, bugun: rBugun, icerik: rIcerik, reels: rReels, veri: rVeri, gelen: rGelen, olustur: rOlustur, kupon: rKupon, gunluk: rGunluk, sistem: rSistem })[PAGE]();
+  ({ kademe: rKademe, genel: rGenel, bugun: rBugun, icerik: rIcerik, reels: rReels, veri: rVeri, gelen: rGelen, olustur: rOlustur, kupon: rKupon, gunluk: rGunluk, sistem: rSistem })[PAGE]();
 }
 async function tick() {
   try {
@@ -58,8 +59,9 @@ async function tick() {
     if (PAGE === 'genel' || PAGE === 'bugun' || PAGE === 'sistem') render();
   } catch (e) { $('#conn').className = 'dot'; }
 }
+const JOB_OPEN = new Set();
 function renderJobs(jobs) {
-  $('#jobList').innerHTML = jobs.length ? jobs.map(j => `<div class="job ${cls(j.status)}"><b>${esc(j.name)}</b> · ${esc(j.status)} ${esc(j.started || '')}\n${esc(j.lines.slice(-8).join('\n'))}</div>`).join('') : '<span class="muted">İş yok</span>';
+  $('#jobList').innerHTML = jobs.length ? jobs.map(j => `<details class="job ${cls(j.status)}" ${JOB_OPEN.has(j.id) ? 'open' : ''} ontoggle="this.open?JOB_OPEN.add(${j.id}):JOB_OPEN.delete(${j.id})"><summary><b>${esc(j.name)}</b><br><span class="muted">${esc(j.status)}${j.started ? ' · ' + esc(j.started) : ''}${j.ended ? '–' + esc(j.ended) : ''}</span></summary><pre>${esc(j.lines.slice(-30).join(String.fromCharCode(10)))}</pre></details>`).join('') : '<span class="muted">İş yok</span>';
 }
 
 // ---------- Genel bakış
@@ -260,6 +262,30 @@ async function pollBadges() {
   try { const d = await api('/api/inbox'); if (d.ok && d.counts) badge('#inboxBadge', (d.counts.comments || 0) + (d.counts.messages || 0) + (d.counts.tags || 0)); } catch (e) { }
   try { const e = await api('/api/events'); if (e.ok && e.counts) badge('#errBadge', e.counts.hata || 0); } catch (e) { }
 }
+
+// ---------- Kademeler
+let TIERS = null, TIER_Q = '';
+async function rKademe(reload = true) {
+  if (reload || !TIERS) { TIERS = await api('/api/tiers'); }
+  $('#topActions').innerHTML = `<button class="btn" onclick="saveTiers()">Kaydet ve repoya it</button>`;
+  const box = (k, title, desc) => `<div class="card"><h3>${title} <small>${desc}</small></h3><div class="row">${(TIERS.tiers[k] || []).map(n => `<span class="chip" style="font-size:13px;padding:5px 10px">${esc(n)} <a href="#" style="color:#C8423A" onclick="removeTier('${k}','${esc(n)}');return false">✕</a></span>`).join('') || '<span class="muted small">boş</span>'}</div>
+    <div class="row" style="margin-top:8px"><input type="text" id="add${k}" placeholder="takım adı (Nesine'deki gibi)" style="width:260px" onkeydown="if(event.key==='Enter')addTier('${k}',this.value)"><button class="btn sec sm" onclick="addTier('${k}',$('#add${k}').value)">Ekle</button></div></div>`;
+  const sug = (TIERS.suggestions || []).filter(n => !TIER_Q || n.toLowerCase().includes(TIER_Q));
+  $('#page').innerHTML = `${box('0', 'Kademe 0', 'en önde: analiz, karusel, story, reels')}${box('1', 'Kademe 1', 'dünya devleri ve büyük millî takımlar')}${box('2', 'Kademe 2', 'büyük kulüpler')}
+    <div class="card"><h3>Analiz sınırı <small>sabah analizi en çok hangi kademeye kadar</small></h3>
+      <select id="maxTier" onchange="TIERS.analyze_max_tier=+this.value">${[0, 1, 2].map(x => `<option value="${x}" ${TIERS.analyze_max_tier == x ? 'selected' : ''}>kademe ${x} ve üstü</option>`).join('')}</select>
+      <span class="muted small">Günlük analiz sayısı sınırı ayrıca var (${TIERS.max_per_day} maç/gün).</span></div>
+    <div class="card"><h3>Bültendeki diğer takımlar <small>tıklayınca kademe 2'ye eklenir; sonra ✕ ile çıkarıp başka kademeye ekleyebilirsin</small></h3>
+      <input type="text" placeholder="ara" oninput="TIER_Q=this.value.toLowerCase();rKademe(false)" value="${esc(TIER_Q)}" style="margin-bottom:8px">
+      <div class="row">${sug.slice(0, 120).map(n => `<span class="chip" style="cursor:pointer" onclick="addTier('2','${esc(n)}')">${esc(n)}</span>`).join('')}${sug.length > 120 ? '<span class="muted small">… daha fazlası için ara</span>' : ''}</div></div>`;
+}
+function addTier(k, name) {
+  name = (name || '').trim(); if (!name) return;
+  for (const t of ['0', '1', '2']) TIERS.tiers[t] = (TIERS.tiers[t] || []).filter(x => x.toLowerCase() !== name.toLowerCase());
+  TIERS.tiers[k].push(name); TIERS.suggestions = (TIERS.suggestions || []).filter(x => x.toLowerCase() !== name.toLowerCase()); rKademe(false);
+}
+function removeTier(k, name) { TIERS.tiers[k] = TIERS.tiers[k].filter(x => x !== name); TIERS.suggestions = [name].concat(TIERS.suggestions || []); rKademe(false); }
+async function saveTiers() { await act({ action: 'tiers_save', tiers: TIERS.tiers, analyze_max_tier: TIERS.analyze_max_tier }, () => rKademe(true)); }
 
 // ---------- Kupon oluştur
 let CART = {}, BOARD = null, PL = {}, OL_FILTER = '';
