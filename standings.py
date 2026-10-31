@@ -30,7 +30,7 @@ STYLES = {
     "navy": {"light": False, "bg": ((8, 20, 54), (16, 36, 92)), "title": social.CREAM, "accent": social.YELLOW, "text": social.WHITE, "muted": (190, 200, 225), "head": (150, 165, 200),
              "pts": social.YELLOW, "line": (60, 80, 130), "foot": (170, 185, 215), "motif": "stars"},
 }
-STYLE = os.environ.get("STANDINGS_STYLE", "green")
+STYLE = os.environ.get("STANDINGS_STYLE", "cream")   # kullanıcı seçimi 31.10.2026: krem
 
 
 def pal():
@@ -40,7 +40,15 @@ def pal():
 def canvas():
     p = pal()
     if p["light"]:
-        return Image.new("RGB", (W, H), p["bg"])
+        img = Image.new("RGB", (W, H), p["bg"]); d = ImageDraw.Draw(img)
+        # çok silik saha deseni (koyu kartlardaki çizgilerin açık zemin karşılığı) + üstte sarı şerit (analiz kartlarıyla ortak dil)
+        ov = Image.new("RGBA", (W, H), (0, 0, 0, 0)); od = ImageDraw.Draw(ov)
+        mid = int(H * 0.533); ln = (11, 42, 31, 14)
+        od.ellipse((W / 2 - 300, mid - 300, W / 2 + 300, mid + 300), outline=ln, width=4)
+        od.arc((W / 2 - 520, H - 120, W / 2 + 520, H + 700), start=200, end=340, fill=ln, width=4)
+        img = Image.alpha_composite(img.convert("RGBA"), ov).convert("RGB"); d = ImageDraw.Draw(img)
+        d.rectangle((0, 0, W, 10), fill=social.YELLOW)
+        return img
     if p["bg"] is None:
         return social.pitch_background(social.THEMES["default"])
     th = {"bg": p["bg"][0], "bg2": p["bg"][1], "motif": p["motif"]}
@@ -138,7 +146,9 @@ def cover_card(week, names, path, monday_note):
     topbar(d, img, "Haftalık puan durumu")
     now = datetime.now(TR)
     social.text(d, (60, 300), "PUAN", social.font("display", 230), p["title"])
-    social.text(d, (60, 505), "DURUMU", social.font("display", 230), p["accent"] if not p["light"] else social.YELLOW)
+    social.text(d, (60, 505), "DURUMU", social.font("display", 230), p["accent"])
+    if p["light"]:
+        d.rectangle((60, 752, 300, 762), fill=social.YELLOW)   # sarı alt çizgi: marka vurgusu
     social.text(d, (60, 770), f"{social.tr_date(now)} itibarıyla", social.font("semi", 34), p["muted"])
     y = 850
     for n in names:
@@ -163,11 +173,15 @@ def league_card(name, rows, prev_rows, path, monday_note):
     row_h = min(56, (bottom - top - 40) // max(n, 1))
     f_h = social.font("semi", 22); f_r = social.font("semi", 30); f_t = social.font("semi", 31); f_n = social.font("body", 28); f_p = social.font("display", 38)
     cols = {"O": 640, "G": 700, "B": 760, "M": 820, "Av": 900, "P": 1000}
+    if p["light"]:
+        d.rounded_rectangle((44, top - 8, W - 44, top + 30), radius=8, fill=(236, 232, 222))
     for k, x in cols.items():
         social.text(d, (x, top), k, f_h, p["head"], anchor="ma")
     y = top + 36
     legend = {}
-    for r in rows:
+    for i, r in enumerate(rows):
+        if p["light"] and i % 2 == 0:
+            d.rectangle((56, y + 2, W - 56, y + row_h - 2), fill=(240, 236, 226))
         if r.get("note"):
             col = _hex(r.get("note_color"), social.SIGNAL)
             d.rectangle((44, y + 6, 50, y + row_h - 6), fill=col)
