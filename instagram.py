@@ -15,7 +15,7 @@ Kullanım: python instagram.py [--dry]
 """
 import json, os, sys, time, urllib.error, urllib.parse, urllib.request
 from datetime import datetime, timezone, timedelta
-import config, clubs  # .env yükler (yerelde); Actions'ta secrets zaten ortamda
+import config, clubs, control  # .env yükler (yerelde); Actions'ta secrets zaten ortamda
 
 TOKEN_ENV = os.environ.get("IG_TOKEN", "")
 # Belirteç türüne göre uç nokta: "IGAA…" = Instagram login (graph.instagram.com), "EAA…" = Unified/Facebook login (graph.facebook.com)
@@ -273,13 +273,19 @@ def day_plan(day):
         return {}
 
 
-def post_slots(cands, today):
+def post_slots(cands, today, ctrl=None):
     """Her aday için yayın saati (TR). İlk: 12:00; maç 15:00'ten erkense 10:00; o gün reels 2 saat içindeyse 2 saat öne (en erken 09:00).
     Sonrakiler (31.10.2026 kuralı): maçtan 3,5 saat önce (hafta sonu 4 saat; gündüz kullanım daha yaygın), 15:30'dan erken ve
     18:00'den geç olmasın; önceki karusel ve günün reels'inden en az 3 saat sonra (birbirlerinin erişimini düşürmesinler);
     her durumda maçtan en geç 1 saat önce. Gerekçe: küçük hesapta erişim ilk 60-90 dk'daki kaydet/paylaş sinyaliyle açılıyor,
-    Türkiye'de akşam yoğunluğu 17:00'de başlıyor; 20:00-22:00 zirvesi maçın içinde kaldığı için ön analiz o saate bırakılmaz."""
+    Türkiye'de akşam yoğunluğu 17:00'de başlıyor; 20:00-22:00 zirvesi maçın içinde kaldığı için ön analiz o saate bırakılmaz.
+    Panel kararları (control.json): posts[gün:kod].at hesaplanan saatin yerine geçer (maçtan ≥1 sa önce kuralı yine uygulanır);
+    reels saati control.reels[gün].at'tan (status planned/ready) okunur, yoksa plan.json reels_at (geriye uyum)."""
+    if ctrl is None:
+        ctrl = control.load()
     plan = day_plan(today)
+    rc = control.reels(ctrl, today)
+    ra = rc.get("at") if rc.get("status") in ("planned", "ready") else plan.get("reels_at")
     slots = []
     prev = None
     for i, (_, m, pm, has_comment) in enumerate(cands):
@@ -288,7 +294,6 @@ def post_slots(cands, today):
             t = ko.replace(hour=12, minute=0, second=0, microsecond=0)
             if ko < ko.replace(hour=15, minute=0):
                 t = t.replace(hour=10)
-            ra = plan.get("reels_at")
             if ra:
                 rh, rm = map(int, ra.split(":")); r_at = ko.replace(hour=rh, minute=rm, second=0, microsecond=0)
                 if abs((r_at - t).total_seconds()) < 2 * 3600:
@@ -297,36 +302,39 @@ def post_slots(cands, today):
             lead = timedelta(hours=4) if ko.weekday() >= 5 else timedelta(hours=3, minutes=30)
             t = min(max(ko - lead, ko.replace(hour=15, minute=30, second=0, microsecond=0)), ko.replace(hour=18, minute=0, second=0, microsecond=0))
             t = max(t, prev + timedelta(hours=3))
-            ra = plan.get("reels_at")
             if ra:
                 rh, rm = map(int, ra.split(":")); t = max(t, ko.replace(hour=rh, minute=rm, second=0, microsecond=0) + timedelta(hours=3))
-        t = min(t, ko - timedelta(hours=1))
+        ov = control.post(ctrl, today, m.get("code")) if m.get("code") is not None else {}
+        hm = control.parse_hm(ov.get("at")) if ov.get("at") else None
+        if hm:
+            t = ko.replace(hour=hm[0], minute=hm[1], second=0, microsecond=0)
+        if t > ko - timedelta(hours=1):
+            if hm:
+                print(f"uyarı: panel saati {ov['at']} maça 1 saatten yakın, {ko - timedelta(hours=1):%H:%M} alındı")
+            t = ko - timedelta(hours=1)
         slots.append(t); prev = t
     return slots
 
 
-def main():
+def plan_today(today, ctrl=None, only=None, caps=None):
+    """Günün karusel planı: aday maçlar, sıraları, saatleri, atlananlar. instagram.main ve panel aynı listeyi kullanır.
+    only: ev sahibi adı parçaları (elle yeniden yükleme; sınır ve günlük yok sayılır). caps: hesaptaki açıklamalar (None = bakılmaz)."""
     import build_site, prob, odds, match
-    dry = "--dry" in sys.argv or not (TOKEN and USER_ID)
-    today = datetime.now(TR).date()
+    if ctrl is None:
+        ctrl = control.load()
     sent = load_log()
     sent_today = [s for s in sent if s["day"] == str(today) and not str(s.get("type", "")).startswith(("story", "reels"))]
-    # --only Konyaspor,Nice : sadece bu ev sahiplerini gönder (günlük sınır ve günlük yok sayılır; elle yeniden yükleme için)
-    only = [s.strip().lower() for s in sys.argv[sys.argv.index("--only") + 1].split(",")] if "--only" in sys.argv else None
-    if only is None and len(sent_today) >= MAX_PER_DAY:
-        print(f"Bugünkü sınır dolu ({MAX_PER_DAY})"); return
+    out = {"paused_until": ctrl.get("paused_until") if control.is_paused(ctrl) else None,
+           "sent_today": sent_today, "picked": [], "skipped": [], "waiting": []}
     day_dir = f"docs/social/{today}"
     if not os.path.isdir(day_dir):
-        print("Bugün için kart yok"); return
+        return out
     rows = build_site.read_jsonl("records/nesine/*.jsonl"); t, last = build_site.recent_snapshot(rows)
     now = datetime.now(timezone.utc)
     nm = [m for m in build_site.nesine_matches(last) if m["start"].astimezone(TR).date() == today and m["start"] > now + timedelta(hours=1)]
-    ai = {r["code"]: r for r in build_site.read_jsonl("records/claude/*.jsonl") if r.get("blind")}
     pin = build_site.pinnacle_events(build_site.read_jsonl("records/pinnacle/*.jsonl"))
     aliases = json.load(open("aliases.json", encoding="utf-8")) if os.path.exists("aliases.json") else {}
     done = {s["code"] for s in sent if not str(s.get("type", "")).startswith(("story", "reels"))}
-    caps = existing_captions() if (TOKEN and USER_ID) else []  # kuru modda da hesaptaki gönderilere bak
-    # öncelik: yorumu olan (iki kartlı) maçlar, sonra en yakın başlangıç
     cands = []
     for m, ev, score in match.match_all(nm, pin, aliases):
         if not os.path.exists(f"{day_dir}/match_{m['code']}.jpg"):
@@ -336,27 +344,58 @@ def main():
                 continue
         elif m["code"] in done:
             continue
-        if already_posted(m, caps):
-            print(f"atlandı (hesapta zaten var): {m['home']}-{m['away']}"); continue
+        if control.post(ctrl, today, m["code"]).get("skip"):
+            out["skipped"].append({"m": m, "reason": "panel"}); continue
+        if caps is not None and already_posted(m, caps):
+            out["skipped"].append({"m": m, "reason": "hesapta var"}); continue
         pm = prob.market_probs(odds.pinnacle_h2h(ev), odds.pinnacle_totals(ev)) if ev and odds.pinnacle_h2h(ev) else None
         has_comment = os.path.exists(f"{day_dir}/yorum_{m['code']}.jpg")
         cands.append(((0 if has_comment else 1, clubs.tier(m), m["start"]), m, pm, has_comment))
     cands.sort(key=lambda x: x[0])  # yorumu olan → büyük kulüp → erken başlayan
-    budget = len(cands) if only is not None else MAX_PER_DAY - len(sent_today)
+    budget = len(cands) if only is not None else max(0, MAX_PER_DAY - len(sent_today))
     picked = cands[:budget]
-    # yayın saatleri: bugün gönderilmişler de sıraya sayılır (ikinci gönderi aralığı için)
-    slots = post_slots([(None, {"start": datetime.fromisoformat(x["t"]).astimezone(TR)}, None, None) for x in sent_today] + picked, today)[len(sent_today):] if only is None else [None] * len(picked)
+    out["waiting"] = [{"m": c[1]} for c in cands[budget:]]
+    prev = [(None, {"start": datetime.fromisoformat(x["t"]).astimezone(TR), "code": x.get("code")}, None, None) for x in sent_today]
+    slots = post_slots(prev + picked, today, ctrl)[len(sent_today):] if only is None else [None] * len(picked)
+    for (_, m, pm, has_comment), slot in zip(picked, slots):
+        urls = [f"{PAGES}/social/{today}/match_{m['code']}.jpg"] + ([f"{PAGES}/social/{today}/yorum_{m['code']}.jpg"] if has_comment else [])
+        out["picked"].append({"m": m, "pm": pm, "has_comment": has_comment, "slot": slot, "urls": urls})
+    return out
+
+
+def main():
+    import build_site
+    dry = "--dry" in sys.argv or not (TOKEN and USER_ID)
+    today = datetime.now(TR).date()
+    ctrl = control.load()
+    if control.is_paused(ctrl):
+        pu = datetime.fromisoformat(ctrl["paused_until"])
+        print(f"Duraklatıldı (panel), {pu:%d.%m %H:%M} kadar")
+        if pu.astimezone(TR).date() == today:
+            print(f"NEXT_SLOT_UTC={pu.astimezone(timezone.utc):%H:%M}")
+        return
+    # --only Konyaspor,Nice : sadece bu ev sahiplerini gönder (günlük sınır ve günlük yok sayılır; elle yeniden yükleme için)
+    only = [s.strip().lower() for s in sys.argv[sys.argv.index("--only") + 1].split(",")] if "--only" in sys.argv else None
+    caps = existing_captions() if (TOKEN and USER_ID) else []  # kuru modda da hesaptaki gönderilere bak
+    plan = plan_today(today, ctrl, only, caps)
+    if only is None and len(plan["sent_today"]) >= MAX_PER_DAY:
+        print(f"Bugünkü sınır dolu ({MAX_PER_DAY})"); return
+    if not os.path.isdir(f"docs/social/{today}"):
+        print("Bugün için kart yok"); return
+    for s in plan["skipped"]:
+        print(f"atlandı ({s['reason']}): {s['m']['home']}-{s['m']['away']}")
+    ai = {r["code"]: r for r in build_site.read_jsonl("records/claude/*.jsonl") if r.get("blind")}
     now_tr = datetime.now(TR)
     pending = []
-    for (_, m, pm, has_comment), slot in zip(picked, slots):
+    for p in plan["picked"]:
+        m, slot = p["m"], p["slot"]
         if slot is not None and now_tr < slot:
             pending.append(slot); print(f"planlı {slot:%H:%M}: {m['home']}-{m['away']}"); continue
-        urls = [f"{PAGES}/social/{today}/match_{m['code']}.jpg"] + ([f"{PAGES}/social/{today}/yorum_{m['code']}.jpg"] if has_comment else [])
-        cap = caption_for(m, ai.get(m["code"]), pm)
+        cap = caption_for(m, ai.get(m["code"]), p["pm"])
         if dry:
-            print(f"[kuru] {m['home']}-{m['away']} ({slot and f'{slot:%H:%M}'}): {len(urls)} görsel\n{cap[:300]}...\n"); continue
+            print(f"[kuru] {m['home']}-{m['away']} ({slot and f'{slot:%H:%M}'}): {len(p['urls'])} görsel\n{cap[:300]}...\n"); continue
         try:
-            pid = publish_carousel(urls, cap)
+            pid = publish_carousel(p["urls"], cap)
             with open(LOG, "a", encoding="utf-8") as f:
                 f.write(json.dumps({"day": str(today), "code": m["code"], "home": m["home"], "away": m["away"], "post_id": pid,
                                     "t": datetime.now(timezone.utc).isoformat(timespec="seconds")}, ensure_ascii=False) + "\n")
