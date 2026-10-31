@@ -10,6 +10,8 @@ Günlük (bekçi 06:00 TSİ'den sonra günde bir kez çağırır; `python insigh
          records/insights/account.jsonl (günde bir satır).
 Haftalık (`python insights.py --report [YYYY-Www]`): records/insights/rapor_YYYY-Www.md — tür, saat, kademe, lig ve favori
   gücüne göre ortalama erişim / kaydetme / etkileşim oranı, takipçi değişimi, en iyi paylaşımlar. Yorum içermez; veri özeti.
+Reklam: records/insights/ads.jsonl (elle; post_id, day, budget_tl, days) → satırlara boosted/ad_tl etiketi; raporda saat/tür/kademe
+  tabloları yalnız organik gönderilerle kurulur, reklamlılar ayrı tabloda. (Reklam gösterimleri medya insights'a girmez, hesap erişimine girer.)
 Belirteç hiçbir satıra yazılmaz (API'nin sayfalama bağlantıları atılır)."""
 import glob, json, os, sys, urllib.error, urllib.parse, urllib.request
 from collections import defaultdict
@@ -134,9 +136,14 @@ def tags_for(row, ai):
     return tg
 
 
+def ads_index():
+    p = f"{OUT}/ads.jsonl"
+    return {a["post_id"]: a for a in (json.loads(l) for l in open(p, encoding="utf-8") if l.strip())} if os.path.exists(p) else {}
+
+
 def collect_media(now):
     rows = [json.loads(l) for l in open(LOG, encoding="utf-8") if l.strip()] if os.path.exists(LOG) else []
-    ai = ai_index()
+    ai = ai_index(); ads = ads_index()
     out, errs = [], []
     for row in rows:
         pid = row.get("post_id")
@@ -153,6 +160,8 @@ def collect_media(now):
         rec = {"day": now.astimezone(TR).date().isoformat(), "t": now.isoformat(timespec="seconds"), "post_id": pid,
                "code": row.get("code"), "age_h": round(age_h, 1)}
         rec.update(tags_for(row, ai)); rec.update(met)
+        if pid in ads:
+            rec["boosted"] = True; rec["ad_tl"] = ads[pid].get("budget_tl"); rec["ad_days"] = ads[pid].get("days")
         if k == "story":
             nav, _ = get(f"{pid}/insights", metric="navigation", breakdown="story_navigation_action_type")
             if nav:
@@ -257,7 +266,9 @@ def report(week=None):
     label = f"{monday.isocalendar()[0]}-W{monday.isocalendar()[1]:02d}"
     rows = latest_per_post(load_media())
     week_rows = [r for r in rows if monday.isoformat() <= r["posted_at"][:10] <= sunday.isoformat()]
-    posts = [r for r in week_rows if r["kind"] != "story"]
+    posts_all = [r for r in week_rows if r["kind"] != "story"]
+    posts = [r for r in posts_all if not r.get("boosted")]
+    boosted = [r for r in posts_all if r.get("boosted")]
     stories = [r for r in week_rows if r["kind"] == "story"]
     acct = [json.loads(l) for l in open(f"{OUT}/account.jsonl", encoding="utf-8")] if os.path.exists(f"{OUT}/account.jsonl") else []
     acct_w = [a for a in acct if monday.isoformat() <= a["day"] <= (sunday + timedelta(days=1)).isoformat()]
@@ -274,7 +285,7 @@ def report(week=None):
         if wk:
             L.append("- Günlük hesap erişimi (Instagram günü, UTC bitiş): " + ", ".join(f"{d[5:]}: {v}" for d, v in wk.items()))
         L.append("")
-    L += ["## Gönderiler (karusel + reels)", "", f"Toplam {len(posts)} gönderi, {len(stories)} story.", ""]
+    L += ["## Gönderiler (karusel + reels)", "", f"Toplam {len(posts_all)} gönderi ({len(boosted)} reklamlı, aşağıdaki tablolar yalnız {len(posts)} organik gönderiyle), {len(stories)} story.", ""]
     if posts:
         L += group_table(posts, lambda r: r["kind"], "Türe göre")
         L += group_table(posts, lambda r: hour_bucket(r["post_hour"]), "Paylaşım saatine göre (TSİ)")
@@ -285,6 +296,13 @@ def report(week=None):
         L += ["### En çok erişen 5 gönderi", "", "| Gönderi | Tür | Saat | Erişim | Kaydetme | Etkileşim |", "|---|---|---|---|---|---|"]
         for r in sorted(posts, key=lambda r: r.get("reach") or 0, reverse=True)[:5]:
             L.append(f"| {r['home']}–{r['away']} | {r['kind']} | {r['posted_at'][5:16]} | {r.get('reach', '-')} | {r.get('saved', '-')} | {r.get('total_interactions', '-')} |")
+        L.append("")
+    if boosted:
+        L += ["## Reklamlı gönderiler (organik ölçümler; reklam gösterimleri burada görünmez, hesap erişimine yansır)", "",
+              "| Gönderi | Tür | Saat | Bütçe | Erişim | Kaydetme | Etkileşim | Profil ziyareti | Takip |", "|---|---|---|---|---|---|---|---|---|"]
+        for r in sorted(boosted, key=lambda r: r["posted_at"]):
+            L.append(f"| {r['home']}–{r['away']} | {r['kind']} | {r['posted_at'][5:16]} | {r.get('ad_tl', '-')} TL / {r.get('ad_days', '-')} gün | {r.get('reach', '-')} | "
+                     f"{r.get('saved', '-')} | {r.get('total_interactions', '-')} | {r.get('profile_visits', '-')} | {r.get('follows', '-')} |")
         L.append("")
     if stories:
         L += ["## Story'ler", "", "| Story | Tür | Saat | Erişim | Görüntülenme | İleri | Geri | Çıkış | Yanıt |", "|---|---|---|---|---|---|---|---|---|"]
