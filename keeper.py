@@ -252,7 +252,7 @@ def maybe_standings(s, now):
     return None
 
 
-STORY_KINDS = {"story": "story", "devre": "story_ht", "ft": "story_ft"}   # dosya öneki → günlük türü
+STORY_KINDS = {"story": "story", "devre": "story_ht", "macsonu": "story_ft", "ft": "story_ft"}   # dosya öneki → günlük türü (gözcü maç sonunu 'macsonu_' yazar)
 
 
 def story_due(prefix, start, now):
@@ -262,7 +262,7 @@ def story_due(prefix, start, now):
         return -180 <= d <= 20
     if prefix == "devre":
         return 40 <= d <= 120
-    if prefix == "ft":
+    if prefix in ("ft", "macsonu"):
         return 95 <= d <= 240
     return False
 
@@ -276,7 +276,7 @@ def maybe_story_fallback(s, now):
     import glob, instagram
     tr = control.TR
     day = now.astimezone(tr).strftime("%Y-%m-%d")
-    files = glob.glob(f"docs/social/{day}/story_*.jpg") + glob.glob(f"docs/social/{day}/devre_*.jpg") + glob.glob(f"docs/social/{day}/ft_*.jpg")
+    files = sum((glob.glob(f"docs/social/{day}/{p}_*.jpg") for p in STORY_KINDS), [])
     if not files:
         return
     # gözcü az önce yayınlayıp günlüğü ittiyse görelim (çift gönderi olmasın): rebase yapmadan uzak günlüğü oku

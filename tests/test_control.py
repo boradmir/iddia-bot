@@ -219,6 +219,7 @@ class StoryFallbackTest(unittest.TestCase):
         self.assertTrue(keeper.story_due("devre", start, start + timedelta(minutes=50)))
         self.assertFalse(keeper.story_due("devre", start, start + timedelta(minutes=10)))
         self.assertTrue(keeper.story_due("ft", start, start + timedelta(minutes=120)))
+        self.assertTrue(keeper.story_due("macsonu", start, start + timedelta(minutes=120)))
         self.assertFalse(keeper.story_due("ft", start, start + timedelta(minutes=300)))
         self.assertFalse(keeper.story_due("x", start, start))
 

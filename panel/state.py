@@ -78,9 +78,9 @@ def today():
     out = []
     for m in ms:
         code = m["code"]; d = f"docs/social/{ds}"
-        cards = {k: _img(f"{d}/{k}_{code}.jpg") for k in ("match", "yorum", "story", "devre", "ft")}
+        cards = {k: _img(f"{d}/{k}_{code}.jpg") for k in ("match", "yorum", "story", "devre", "macsonu")}
         posted_any = any(k[1] == code for k in posted)
-        if clubs.tier(m) > 2 and code not in ai and not posted_any and not any(cards[k] for k in ("yorum", "story", "devre", "ft")):
+        if clubs.tier(m) > 2 and code not in ai and not posted_any and not any(cards[k] for k in ("yorum", "story", "devre", "macsonu")):
             continue   # her maçın 'match' kartı var; küçük kulüp maçı yalnız analiz/yorum/story/yayın varsa listelenir
         ov = control.post(ctrl, ds, code)
         if ("carousel", code) in posted:

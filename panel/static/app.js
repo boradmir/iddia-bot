@@ -103,7 +103,7 @@ function rBugun() {
   const st = T.standings || {};
   const rows = T.matches.map(m => {
     const p = m.post, s = m.stories, c = m.cards;
-    const thumbs = ['match', 'yorum', 'story', 'devre', 'ft'].filter(k => c[k]).map(k => `<img class="thumb" src="${c[k]}" title="${k}" onclick="zoom('${c[k]}')">`).join('');
+    const thumbs = ['match', 'yorum', 'story', 'devre', 'macsonu'].filter(k => c[k]).map(k => `<img class="thumb" src="${c[k]}" title="${k}" onclick="zoom('${c[k]}')">`).join('');
     const editable = !(p.state === 'yayında' || p.state === 'süre geçti');
     const storyTxt = m.tier === 0 ? `kadro ${s.kadro} · devre ${s.devre} · maç sonu ${s.ft}` : '<span class="muted">yok (yalnız dört büyük)</span>';
     const reels = m.reels ? `<div class="small">Reels: ${esc(RS[m.reels.status] || m.reels.status)}${m.reels.url ? ` · <a href="${m.reels.url}" target="_blank">aç</a>` : ''}</div>` : '';
