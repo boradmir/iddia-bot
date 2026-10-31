@@ -36,6 +36,9 @@ jobs:
       - name: Gözcü
         env:
           ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+          IG_TOKEN: ${{ secrets.IG_TOKEN }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_STORY_MAX_PER_DAY: ${{ vars.IG_STORY_MAX_PER_DAY || '3' }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           CLAUDE_MODEL: ${{ vars.CLAUDE_MODEL || 'claude-opus-5-5' }}
           CLAUDE_MAX_PER_DAY: ${{ vars.CLAUDE_MAX_PER_DAY || '3' }}
