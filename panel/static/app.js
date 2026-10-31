@@ -294,18 +294,21 @@ function pickCell(m, mk, pk, label) {
   return `<span class="pick ${on ? 'on' : ''}" onclick="togglePick(${m.code},'${mk}','${pk}',${v.odds},'${esc(label)}','${esc(m.home)}','${esc(m.away)}')" title="${esc(label)}"><b>${v.odds}</b><span class="p"><span class="src-ai">${v.ai != null ? v.ai : '·'}</span> <span class="src-stat">${v.stat != null ? v.stat : '·'}</span> <span class="src-pin">${v.pin != null ? v.pin : '·'}</span></span></span>`;
 }
 async function loadPlayers(code) {
-  const box = $('#pl' + code); if (!box) return;
-  if (box.dataset.open === '1') { box.style.display = 'none'; box.dataset.open = '0'; return; }
-  box.style.display = 'block'; box.dataset.open = '1'; box.innerHTML = loading('Golcüler ve son 5 maç alınıyor (ESPN)');
+  const row = $('#plr' + code), box = $('#pl' + code); if (!box) return;
+  if (box.dataset.open === '1') { row.style.display = 'none'; box.dataset.open = '0'; return; }
+  row.style.display = ''; box.dataset.open = '1'; box.innerHTML = loading('Golcüler ve son 5 maç alınıyor (ESPN)');
   const d = PL[code] || await api('/api/kupon_players?code=' + code); PL[code] = d;
   const m = BOARD.matches.find(x => x.code == code);
-  const rows = (d.teams || []).map(t => `<div style="margin:6px 0"><b>${esc(t.team)}</b> <span class="muted small">${t.home ? 'ev' : 'deplasman'}${t.error ? ' · ' + esc(t.error) : ''}</span>
-    <div class="pl muted small"><span>Oyuncu</span><span>Sezon gol/asist</span><span>Maç</span><span>Son 5'te gol</span><span>Gol atar</span></div>
-    ${t.players.map(p => { const on = CART[cartKey(code)] && CART[cartKey(code)].market === 'GOL' && CART[cartKey(code)].pick === p.player; return `<div class="pl"><span>${esc(p.player)}${p.form_only ? ' <span class="chip warn">form</span>' : ''}</span><span class="num">${p.goals != null ? p.goals + ' / ' + (p.assists || 0) : '–'}</span><span class="num">${p.matches != null ? p.matches : '–'}</span><span class="num">${p.last5_goals}</span>
-      <span>${p.odds ? `<span class="pick ${on ? 'on' : ''}" style="min-width:56px" onclick="togglePick(${code},'GOL','${esc(p.player)}',${p.odds},'${esc(p.player)} gol atar','${esc(m.home)}','${esc(m.away)}')"><b>${p.odds}</b></span>` : '<span class="muted">oran yok</span>'}</span></div>`; }).join('')}
-    <div class="muted small">Son 5: ${t.last5.map(g => `${esc(g.date.slice(5))} ${esc(g.score)}${g.scorers.length ? ' (' + esc(g.scorers.join(', ')) + ')' : ''}`).join(' · ') || '–'}</div></div>`).join('');
-  const other = (d.players_odds || []).filter(p => !(d.teams || []).some(t => t.players.some(q => q.player === p.player))).slice(0, 12);
-  box.innerHTML = (d.note ? `<div class="muted small">${esc(d.note)}</div>` : '') + rows + (other.length ? `<details><summary class="small">Diğer oyuncular (gol atar oranı)</summary>${other.map(p => { const on = CART[cartKey(code)] && CART[cartKey(code)].market === 'GOL' && CART[cartKey(code)].pick === p.player; return `<span class="pick ${on ? 'on' : ''}" onclick="togglePick(${code},'GOL','${esc(p.player)}',${p.odds},'${esc(p.player)} gol atar','${esc(m.home)}','${esc(m.away)}')"><b>${p.odds}</b><span class="p">${esc(p.player)}</span></span>`; }).join('')}</details>` : '');
+  const oddBtn = (name, o) => { const on = CART[cartKey(code)] && CART[cartKey(code)].market === 'GOL' && CART[cartKey(code)].pick === name; return o ? `<span class="pick ${on ? 'on' : ''}" style="min-width:58px" onclick="togglePick(${code},'GOL','${esc(name)}',${o},'${esc(name)} gol atar','${esc(m.home)}','${esc(m.away)}')"><b>${o}</b></span>` : '<span class="muted small">–</span>'; };
+  const teamBox = t => `<div><h4 style="margin:4px 0 6px">${esc(t.team)} <span class="muted small">${t.home ? 'ev sahibi' : 'deplasman'}</span></h4>
+    <table><tr><th>Oyuncu</th><th class="num">Gol</th><th class="num">Asist</th><th class="num">Maç</th><th class="num">Son 5'te gol</th><th>Gol atar</th></tr>
+    ${t.players.map(p => `<tr><td>${esc(p.player)}${p.form_only ? ' <span class="chip warn" title="sezon ilk üçte değil, son 5 maçta gol attı">form</span>' : ''}</td><td class="num">${p.goals != null ? p.goals : '–'}</td><td class="num">${p.assists != null ? p.assists : '–'}</td><td class="num">${p.matches != null ? p.matches : '–'}</td><td class="num">${p.last5_goals}</td><td>${oddBtn(p.player, p.odds)}</td></tr>`).join('')}</table>
+    <div class="small muted" style="margin-top:6px">Son 5 maç: ${t.last5.map(g => `<span class="chip" title="${esc(g.scorers.join(', ') || 'gol yok')}">${esc(g.score)}</span>`).join(' ') || '–'}${t.error ? ' · ' + esc(t.error) : ''}</div></div>`;
+  const other = (d.players_odds || []).filter(p => !(d.teams || []).some(t => t.players.some(q => q.player === p.player)));
+  box.innerHTML = `<div class="card" style="background:#F7F9F8;margin:0">${d.note ? `<div class="muted small">${esc(d.note)}</div>` : ''}
+    <div class="grid2">${(d.teams || []).map(teamBox).join('')}</div>
+    ${other.length ? `<details style="margin-top:8px"><summary class="small">Diğer oyuncular · gol atar oranı (${other.length})</summary><div class="row" style="margin-top:6px">${other.map(p => `<span class="row" style="gap:4px;font-size:13px">${esc(p.player)} ${oddBtn(p.player, p.odds)}</span>`).join('')}</div></details>` : ''}
+    <div class="small muted" style="margin-top:6px">Gol ve asist: bu sezon (ESPN). Son 5: takımın son 5 maçı; skorun üstüne gelince gol atanlar görünür. Oran: Nesine "oyuncu gol atar".</div></div>`;
 }
 async function rOlustur(keep) {
   if (!keep || !BOARD) {
@@ -314,20 +317,22 @@ async function rOlustur(keep) {
     if (d.loading) { $('#page').innerHTML = loading('Bülten ve ihtimaller hazırlanıyor'); setTimeout(() => PAGE === 'olustur' && rOlustur(), 2500); return; }
     BOARD = d;
   }
-  const open = {}; document.querySelectorAll('[id^=pl]').forEach(b => { if (b.dataset.open === '1') open[b.id] = b.innerHTML; });
+  const open = {}; document.querySelectorAll('td[id^=pl]').forEach(b => { if (b.dataset.open === '1') open[b.id] = b.innerHTML; });
   const ms = BOARD.matches.filter(m => !OL_FILTER || (m.home + ' ' + m.away + ' ' + m.league).toLowerCase().includes(OL_FILTER));
   const rows = ms.map(m => `<tr><td><b>${esc(m.home)} – ${esc(m.away)}</b><div class="small muted">${esc(m.start)} · ${esc(m.league)}${m.analysis ? ' · <span class="chip ok">analiz var</span>' : ''}</div>${m.hook ? `<div class="small muted">${esc(m.hook)}</div>` : ''}
-      <div class="small"><a href="#" onclick="loadPlayers(${m.code});return false">Golcüler${m.players_odds.length ? ' (' + m.players_odds.length + ' oran)' : ''}</a></div><div id="pl${m.code}" style="display:none"></div></td>
+      <div style="margin-top:4px"><button class="btn sec sm" onclick="loadPlayers(${m.code})">Golcüler${m.players_odds.length ? ' · ' + m.players_odds.length + ' oran' : ''}</button></div></td>
     <td class="odds">${pickCell(m, 'MS', '1', 'Ev')}${pickCell(m, 'MS', 'X', 'Beraberlik')}${pickCell(m, 'MS', '2', 'Deplasman')}</td>
     <td class="odds">${pickCell(m, 'AU25', 'Alt', '2,5 alt')}${pickCell(m, 'AU25', 'Üst', '2,5 üst')}</td>
-    <td class="odds">${pickCell(m, 'KG', 'Var', 'KG var')}${pickCell(m, 'KG', 'Yok', 'KG yok')}</td></tr>`).join('');
-  $('#page').innerHTML = `<div style="display:grid;grid-template-columns:1fr 300px;gap:14px"><div>
+    <td class="odds">${pickCell(m, 'KG', 'Var', 'KG var')}${pickCell(m, 'KG', 'Yok', 'KG yok')}</td></tr>
+    <tr id="plr${m.code}" style="display:none"><td colspan="4" id="pl${m.code}" style="padding:6px 8px 12px"></td></tr>`).join('');
+  $('#page').innerHTML = `<div style="display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:14px"><div style="min-width:0">
     <div class="card legend"><span class="src-ai">■ bizim yapay zekâ</span><span class="src-stat">■ istatistik modeli</span><span class="src-pin">■ piyasa (Pinnacle)</span><span class="muted">rakamlar: ihtimal % · bülten ${esc(BOARD.t)} · ${ms.length} maç</span></div>
-    <div class="card"><table><tr><th>Maç</th><th>Maç sonucu (1 · X · 2)</th><th>2,5 gol (alt · üst)</th><th>Karşılıklı gol (var · yok)</th></tr>${rows || '<tr><td colspan="4" class="muted">maç yok</td></tr>'}</table></div>
+    <div class="card" style="overflow-x:auto"><table><tr><th>Maç</th><th>Maç sonucu (1 · X · 2)</th><th>2,5 gol (alt · üst)</th><th>Karşılıklı gol (var · yok)</th></tr>${rows || '<tr><td colspan="4" class="muted">maç yok</td></tr>'}</table></div>
     <div class="card"><h3>Kuponlarım</h3><div id="mycoupons">${loading()}</div></div></div>
     <div><div class="card cart"><h3>Kupon</h3>${cartSummary()}</div></div></div>`;
-  Object.entries(open).forEach(([id, html]) => { const b = document.getElementById(id); if (b) { b.style.display = 'block'; b.dataset.open = '1'; b.innerHTML = html; } });
+  Object.entries(open).forEach(([id, html]) => { const b = document.getElementById(id); if (b) { b.dataset.open = '1'; b.innerHTML = html; const r = document.getElementById('plr' + id.slice(2)); if (r) r.style.display = ''; } });
   loadMyCoupons();
+  const pl0 = new URLSearchParams(location.search).get('pl'); if (pl0 && !keep) setTimeout(() => loadPlayers(+pl0), 300);
 }
 async function loadMyCoupons() {
   const d = await api('/api/kuponlarim'); const box = $('#mycoupons'); if (!box) return;
